@@ -1,2 +1,2 @@
 # skipper
-Skip the peaks for enriched RBP signal in CLIP data
+Skip the peaks to examine RBP signal in CLIP data
