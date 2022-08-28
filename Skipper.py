@@ -61,7 +61,8 @@ for experiment_label, label_list in zip(experiment_data.index, experiment_data.I
 
 rule all:
     input:
-        expand("output/fastqc/initial/{replicate_label}_fastqc.html", replicate_label = replicate_labels),        
+        expand("output/fastqc/initial/{replicate_label}_fastqc.html", replicate_label = replicate_labels), 
+        expand("output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
         # expand("output/bigwigs/plus/{replicate_label}.plus.bw", replicate_label = replicate_labels),
@@ -177,8 +178,8 @@ rule run_trimmed_fastqc:
     input:
         "output/fastqs/umi/{replicate_label}.trimmed.umi.fq.gz",
     output:
-        report = "output/fastqc/processed/{replicate_label}.trimmed.umi.fastqc.html",
-        zip_file = "output/fastqc/processed/{replicate_label}.trimmed.umi.fastqc.zip",
+        report = "output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html",
+        zip_file = "output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.zip",
     threads: 1
     params:
         outdir="output/fastqc/processed/",
@@ -376,8 +377,8 @@ rule make_repeat_count_tables:
         class_table = "output/counts/repeats/tables/class/{experiment_label}.tsv.gz",
         family_table = "output/counts/repeats/tables/family/{experiment_label}.tsv.gz",
     params:
-        error_file = "stderr/{experiment_label}/make_repeat_count_tables.err",
-        out_file = "stdout/{experiment_label}/make_repeat_count_tables.out",
+        error_file = "stderr/{experiment_label}.make_repeat_count_tables.err",
+        out_file = "stdout/{experiment_label}.make_repeat_count_tables.out",
         run_time = "00:15:00",
         cores = "1",
         memory = "200",
@@ -401,8 +402,8 @@ rule fit_clip_betabinomial_re_model:
         coef = "output/clip_model_coef_re/{experiment_label}.{clip_replicate_label}.tsv",
         # plot = lambda wildcards: expand("output/figures/clip_distributions/{{experiment_label}}.{{clip_replicate_label}}.{other_label}.clip_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
     params:
-        error_file = "stderr/{experiment_label}/{clip_replicate_label}.fit_clip_betabinomial_re_model.err",
-        out_file = "stdout/{experiment_label}/{clip_replicate_label}.fit_clip_betabinomial_re_model.out",
+        error_file = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.err",
+        out_file = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.out",
         run_time = "10:00",
         memory = "2000",
         job_name = "fit_clip_betabinomial_re_model"
@@ -417,8 +418,8 @@ rule fit_input_betabinomial_re_model:
         coef = "output/input_model_coef_re/{experiment_label}.{input_replicate_label}.tsv",
         # plot = lambda wildcards: expand("output/figures/input_distributions/{{experiment_label}}.{{input_replicate_label}}.{other_label}.input_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
     params:
-        error_file = "stderr/{experiment_label}/{input_replicate_label}.fit_input_betabinomial_re_model.err",
-        out_file = "stdout/{experiment_label}/{input_replicate_label}.fit_input_betabinomial_re_model.out",
+        error_file = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.err",
+        out_file = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.out",
         run_time = "10:00",
         memory = "2000",
         job_name = "fit_input_betabinomial_re_model"
@@ -436,8 +437,8 @@ rule call_enriched_re:
         "output/enriched_re/{experiment_label}.{clip_replicate_label}.enriched_re.tsv.gz"
     params:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label],
-        error_file = "stderr/{experiment_label}/{clip_replicate_label}.call_enriched_re.err",
-        out_file = "stdout/{experiment_label}/{clip_replicate_label}.call_enriched_re.out",
+        error_file = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_re.err",
+        out_file = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_re.out",
         run_time = "00:25:00",
         memory = "3000",
         job_name = "call_enriched_re"
@@ -451,8 +452,8 @@ rule find_reproducible_enriched_re:
     output:
         reproducible_windows = "output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz",
     params:
-        error_file = "stderr/{experiment_label}/find_reproducible_enriched_re.err",
-        out_file = "stdout/{experiment_label}/find_reproducible_enriched_re.out",
+        error_file = "stderr/{experiment_label}.find_reproducible_enriched_re.err",
+        out_file = "stdout/{experiment_label}.find_reproducible_enriched_re.out",
         run_time = "5:00",
         memory = "1000",
         job_name = "find_reproducible_enriched_re"
@@ -506,8 +507,8 @@ rule make_genome_count_table:
     output:
         count_table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
     params:
-        error_file = "stderr/{experiment_label}/make_count_table.err",
-        out_file = "stdout/{experiment_label}/make_count_table.out",
+        error_file = "stderr/{experiment_label}.make_count_table.err",
+        out_file = "stdout/{experiment_label}.make_count_table.out",
         run_time = "00:05:00",
         cores = "1",
         memory = "200",
@@ -523,8 +524,8 @@ rule fit_input_betabinomial_model:
         coef = "output/input_model_coef/{experiment_label}.{input_replicate_label}.tsv",
         # plot = lambda wildcards: expand("output/figures/input_distributions/{{experiment_label}}.{{input_replicate_label}}.{other_label}.input_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
     params:
-        error_file = "stderr/{experiment_label}/{input_replicate_label}.fit_input_betabinom.err",
-        out_file = "stdout/{experiment_label}/{input_replicate_label}.fit_input_betabinom.out",
+        error_file = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinom.err",
+        out_file = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinom.out",
         run_time = "1:00:00",
         memory = "10000",
         job_name = "fit_input_betabinomial_model"
@@ -539,8 +540,8 @@ rule fit_clip_betabinomial_model:
         coef = "output/clip_model_coef/{experiment_label}.{clip_replicate_label}.tsv",
         # plot = lambda wildcards: expand("output/figures/clip_distributions/{{experiment_label}}.{{clip_replicate_label}}.{other_label}.clip_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
     params:
-        error_file = "stderr/{experiment_label}/{clip_replicate_label}.fit_clip_betabinomial_model.err",
-        out_file = "stdout/{experiment_label}/{clip_replicate_label}.fit_clip_betabinomial_model.out",
+        error_file = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.err",
+        out_file = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.out",
         run_time = "1:00:00",
         memory = "1000",
         job_name = "fit_clip_betabinomial_model"
@@ -581,8 +582,8 @@ rule call_enriched_windows:
         "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature_gc.pdf"
     params:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label],
-        error_file = "stderr/{experiment_label}/{clip_replicate_label}.call_enriched_windows.err",
-        out_file = "stdout/{experiment_label}/{clip_replicate_label}.call_enriched_windows.out",
+        error_file = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_windows.err",
+        out_file = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_windows.out",
         run_time = "00:45:00",
         memory = "6000",
         job_name = "call_enriched_windows"
@@ -597,8 +598,8 @@ rule check_window_concordance:
         "output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf",
         "output/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.tsv"
     params:
-        error_file = "stderr/{experiment_label}/check_window_concordance.err",
-        out_file = "stdout/{experiment_label}/check_window_concordance.out",
+        error_file = "stderr/{experiment_label}.check_window_concordance.err",
+        out_file = "stdout/{experiment_label}.check_window_concordance.out",
         run_time = "0:15:00",
         memory = "1000",
         job_name = "check_window_concordance"
@@ -614,8 +615,8 @@ rule find_reproducible_enriched_windows:
         linear_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.linear.pdf",
         log_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.log10.pdf"
     params:
-        error_file = "stderr/{experiment_label}/find_reproducible_enriched_windows.err",
-        out_file = "stdout/{experiment_label}/find_reproducible_enriched_windows.out",
+        error_file = "stderr/{experiment_label}.find_reproducible_enriched_windows.err",
+        out_file = "stdout/{experiment_label}.find_reproducible_enriched_windows.out",
         run_time = "5:00",
         memory = "2000",
         job_name = "find_reproducible_enriched_windows"
@@ -631,8 +632,8 @@ rule sample_background_windows_by_region:
         variable_windows = "output/homer/region_matched_background/variable/{experiment_label}.sampled_variable_windows.bed.gz",
         fixed_windows = "output/homer/region_matched_background/fixed/{experiment_label}.sampled_fixed_windows.bed.gz"
     params:
-        error_file = "stderr/{experiment_label}/sample_background_windows_by_region.err",
-        out_file = "stdout/{experiment_label}/sample_background_windows_by_region.out",
+        error_file = "stderr/{experiment_label}.sample_background_windows_by_region.err",
+        out_file = "stdout/{experiment_label}.sample_background_windows_by_region.out",
         run_time = "10:00",
         memory = "3000",
         job_name = "sample_background_windows"
@@ -651,8 +652,8 @@ rule get_nt_coverage:
         nt_clip_counts = temp("output/finemapping/nt_coverage/{experiment_label}.nt_coverage.clip.counts"),
         nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
     params:
-        error_file = "stderr/{experiment_label}/get_nt_coverage.err",
-        out_file = "stdout/{experiment_label}/get_nt_coverage.out",
+        error_file = "stderr/{experiment_label}.get_nt_coverage.err",
+        out_file = "stdout/{experiment_label}.get_nt_coverage.out",
         run_time = "1:00:00",
         memory = "15000",
         job_name = "get_nt_coverage"
@@ -683,8 +684,8 @@ rule finemap_windows:
     output:
         finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     params:
-        error_file = "stderr/{experiment_label}/finemap_windows.err",
-        out_file = "stdout/{experiment_label}/finemap_windows.out",
+        error_file = "stderr/{experiment_label}.finemap_windows.err",
+        out_file = "stdout/{experiment_label}.finemap_windows.out",
         run_time = "1:00:00",
         memory = "10000",
         job_name = "finemap_windows"
@@ -700,8 +701,8 @@ rule run_homer:
     output:
         report = "output/homer/finemapped_results/{experiment_label}/homerResults.html"
     params:
-        error_file = "stderr/{experiment_label}/run_homer.err",
-        out_file = "stdout/{experiment_label}/run_homer.out",
+        error_file = "stderr/{experiment_label}.run_homer.err",
+        out_file = "stdout/{experiment_label}.run_homer.out",
         run_time = "40:00",
         memory = "2000",
         job_name = "run_homer"
@@ -739,8 +740,8 @@ rule consult_term_reference:
         enrichment_results = "output/gene_sets/{experiment_label}.enriched_terms.tsv.gz",
         enrichment_plot = "output/figures/gene_sets/{experiment_label}.clustered_top_terms.pdf"
     params:
-        error_file = "stderr/{experiment_label}/consult_term_reference.err",
-        out_file = "stdout/{experiment_label}/consult_term_reference.out",
+        error_file = "stderr/{experiment_label}.consult_term_reference.err",
+        out_file = "stdout/{experiment_label}.consult_term_reference.out",
         run_time = "15:00",
         memory = "1000",
         job_name = "consult_term_reference"

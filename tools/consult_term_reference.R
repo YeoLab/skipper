@@ -35,10 +35,14 @@ binom_data = term_data %>% inner_join(term_reference) %>% rowwise %>%
 write_tsv(binom_data, paste0("output/gene_sets/", prefix, ".enriched_terms.tsv.gz"))
 
 jaccard_mat = readRDS(jaccard_rds_file)
-jaccard_dist = as.dist(jaccard_mat)
-jaccard_hclust = hclust(jaccard_dist)
 
 top_terms = binom_data %>% filter(l2fc > 0,p_adj < 0.05) %>% head(15) %>% pull(term)
+if(length(top_terms) < 2) {
+	pdf(paste0("output/figures/gene_sets/", prefix, ".clustered_top_terms.pdf"),height= 1,width = 2)
+		print(ggplot() + annotate("text", x = 1, y = 1, label = "0 or 1 significant terms") + theme_void())
+	dev.off()
+	quit()
+}
 top_terms_hc = jaccard_mat[top_terms,top_terms] %>% as.dist %>% hclust
 top_terms_hcd = as.dendrogram(top_terms_hc)
 top_terms_hcd_data = dendro_data(top_terms_hcd, type = "rectangle")
