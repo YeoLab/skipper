@@ -65,7 +65,7 @@ Information about the CLIP library to be analyzed is also required.
 | ----------- | ----------- |
 | UMI_SIZE            | Bases to trim for deduplication (10 for current eCLIP)       |
 | INFORMATIVE_READ    | Which read (1 or 2) reflects the crosslink site (for Paired End runs)        |
-| OVERDISPERSION_MODE | Overdispersion can be estimated from multiple input replicates or multiple CLIP replicates: "input" is recommended |
+| OVERDISPERSION_MODE | Overdispersion can be estimated from multiple input replicates ("input") or multiple CLIP replicates ("clip"): "input" is recommended |
 
 <h2>Making a manifest</h2>
 
