@@ -34,6 +34,8 @@ Several R packages are also required:
     `install.packages("BiocManager")`
 `BiocManager::install(c("GenomicRanges","fgsea"))`
 
+Paths to locally installed versions can be supplied in the config file, described below.
+
 <h2>Preparing to run Skipper</h2>
 Skipper uses a Snakemake workflow. The `Skipper.py` file contains the rules necessary to process CLIP data from fastqs. Skipper also supports running on BAMs - note that Skipper's analysis of repetitive elements will assume that non-uniquely mapping reads are contained within the BAM files.
 
