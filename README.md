@@ -74,10 +74,10 @@ Information about the CLIP library to be analyzed is also required.
 | Experiment       | CLIP samples will be compared against Input samples within an experiment. The same sample can be used in multiple experiments |
 | Sample           | Each CLIP and Input sample will be processed separately until testing for differential binding   |
 | Cells            | A place to record information on the cell sample used: this is not currently used in analysis  |
-| Input_replicate  | Replicate # per sample and experiment. The same Input replicate (fastq and number) can be used for multiple CLIP replicates |
+| Input_replicate  | Replicate # for the same Sample. The same Input replicate (fastq and number) can be used for multiple CLIP replicates |
 | Input_adapter    | Fasta of adapter sequences for Input replicate                                                     |
 | Input_fastq      | Path to Input replicate fastq (multiple files can be entered per cell to be concatenated            |
-| CLIP_replicate   | Replicate # per sample and experiment. Distinct CLIP replicates are required |
+| CLIP_replicate   | Replicate # for the same Sample. Distinct CLIP replicates are required |
 | CLIP_adapter     | Fasta of adapter sequences for CLIP replicate                                                     |
 | CLIP_fastq       | Path to CLIP replicate fastq (multiple files can be entered per cell to be concatenated            |
 
