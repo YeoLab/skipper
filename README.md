@@ -54,7 +54,7 @@ Numerous resources must be entered in the `Skipper_config.py` file.
 Other paths must be entered 
 | Resource    | Description |
 | ----------- | ----------- |
-| CONDA_DIR   | Parent directory for Mamba or Conda installation: usually in the home directory, eg `~/mamba`             |
+| CONDA_DIR   | Parent directory for Mamba or Conda installation: usually in the home directory, eg `~/mambaforge`             |
 | EXE_DIR     | For convenience to point to stable locally installed software: it is added to your Path when Skipper runs |
 | TOOL_DIR    | Directory for the tools located in the GitHub        |
 
