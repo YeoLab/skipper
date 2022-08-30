@@ -3,7 +3,7 @@
 
 Skip the peaks to examine RBP signal in CLIP data
 
-<h2>Installation</h2>
+<h2>Prerequisites</h2>
 Skipper requires several executables and packages:
 
 | Tool      | Link |
