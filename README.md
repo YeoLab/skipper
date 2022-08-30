@@ -1,5 +1,5 @@
 # skipper
-(documents/logo.png)
+[Skipper cartoon](documents/logo.png)
 Skip the peaks to examine RBP signal in CLIP data
 
 <h2>Installation</h2>
