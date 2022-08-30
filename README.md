@@ -54,7 +54,7 @@ Numerous resources must be entered in the `Skipper_config.py` file.
 
 
 Other paths must be entered 
-| Resource    | Description |
+| Path    | Description |
 | ----------- | ----------- |
 | CONDA_DIR   | Parent directory for Mamba or Conda installation: usually in the home directory, eg `~/mambaforge`             |
 | EXE_DIR     | For convenience to point to stable locally installed software: it is added to your Path when Skipper runs |
@@ -63,7 +63,7 @@ Other paths must be entered
 
 Information about the CLIP library to be analyzed is also required.
 
-| Resource      | Description |
+| Setting      | Description |
 | ----------- | ----------- |
 | UMI_SIZE            | Bases to trim for deduplication (10 for current eCLIP)       |
 | INFORMATIVE_READ    | Which read (1 or 2) reflects the crosslink site (for Paired End runs)        |
@@ -106,7 +106,7 @@ Once Snakemake has confirmed DAG creation, submit the jobs using whatever high p
 <h2>Skipper output</h2>
 
 Skipper produces a lot of output. The `output/figures` directory contains figures summarizing the data.
-| Column      | Description |
+| Output      | Description |
 | ----------- | ----------- |
 | all_reads       | Visualization of RNA region preferences based on total reads instead of called windows |
 | threshold_scan  | Visualization of selection of minimum read coverage for statistical testing  |
