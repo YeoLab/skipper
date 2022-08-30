@@ -89,7 +89,11 @@ See the example manifest for the exact formatting and to test running Skipper.
 
 Skipper can be run like any other Snakemake workflow. 
 
-Create a new directory to store output in addition to the Snakemake and config files. In the `all` rule of the `Skipper.py` file, comment out output that you do not wish to inspect.
+Create a new directory to store output, copy the Snakemake and config files, and make all edits necessary to the config file. In the `all` rule of the `Skipper.py` file, comment out output that you do not wish to inspect.
+
+Remember to load the Snakemake environment before running
+
+`mamba activate snakemake`
 
 Use the dry run function to confirm that Snakemake can parse all the information:
 
