@@ -1,7 +1,7 @@
 # skipper
 ![Skipper cartoon](documents/logo.png)
 
-Skip the peaks to expose RNA-binding in CLIP data
+Skip the peaks and expose RNA-binding in CLIP data
 
 <h2>Prerequisites</h2>
 Skipper requires several executables and packages:
