@@ -103,6 +103,8 @@ Once Snakemake has confirmed DAG creation, submit the jobs using whatever high p
 
 `snakemake -kps Skipper.py -w 15 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo"`
 
+Did Skipper terminate? Sometimes jobs fail - inspect any error output and rerun the same command if there is no apparent explanation such as uninstalled dependencies or a misformatted input file. Snakemake will try to pick up where it left off.
+
 <h2>Skipper output</h2>
 
 Skipper produces a lot of output. The `output/figures` directory contains figures summarizing the data.
