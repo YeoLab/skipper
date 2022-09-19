@@ -30,7 +30,7 @@ Skipper utilizes a specifically named conda environment - currently the only req
 
 Several R packages are also required:
 
-`install.packages("VGAM", "viridis", "ggrepel", "RColorBrewer", "Rtsne", "ggupset", "ggdendro", "cowplot")`
+`install.packages(c("VGAM", "viridis", "ggrepel", "RColorBrewer", "Rtsne", "ggupset", "ggdendro", "cowplot"))`
 
 `if (!require("BiocManager", quietly = TRUE))`
     `install.packages("BiocManager")`
