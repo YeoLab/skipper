@@ -83,6 +83,8 @@ Information about the CLIP library to be analyzed is also required.
 | CLIP_adapter     | Fasta of adapter sequences for CLIP replicate                                                     |
 | CLIP_fastq       | Path to CLIP replicate fastq (multiple files can be entered per cell to be concatenated            |
 
+Skipper requires multiple CLIP replicates of the same sample to call reproducible windows. Enter multiple replicates with the same experiment and sample columns on separate lines, incrementing the replicate number for each replicate. The same input replicate can be used in multiple experiments and repeated for the same sample if you estimate overdispersion from CLIP replicates. If the same replicate is used for multiple comparisons, the sample and replicate columns must be consistent.
+
 See the example manifest for the exact formatting and to test running Skipper.
 
 <h2>Running Skipper</h2>
