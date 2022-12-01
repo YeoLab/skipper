@@ -34,7 +34,7 @@ Several R packages are also required:
 
 `if (!require("BiocManager", quietly = TRUE))`
     `install.packages("BiocManager")`
-`BiocManager::install(c("GenomicRanges","fgsea"))`
+`BiocManager::install(c("GenomicRanges","fgsea","rtracklayer"))`
 
 Paths to locally installed versions can be supplied in the config file, described below.
 
