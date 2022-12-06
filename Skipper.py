@@ -251,9 +251,6 @@ rule sort_bam:
         job_name = "sortbam",
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
     shell:
-        "set +eu;"
-        "source {CONDA_DIR}/etc/profile.d/conda.sh;"
-        "conda activate snakeclipenv;"
         "samtools sort -T {wildcards.replicate_label} -@ {threads} -o {output.sort} {input.bam};"
         
 
@@ -271,9 +268,6 @@ rule index_bams:
         job_name = "index_bam"
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
     shell:
-        "set +eu;"
-        "source {CONDA_DIR}/etc/profile.d/conda.sh;"
-        "conda activate snakeclipenv;"
         "samtools index -@ {threads} {input.bam};"
 
 
@@ -659,9 +653,6 @@ rule get_nt_coverage:
         job_name = "get_nt_coverage"
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     shell:
-        "set +eu;"
-        "source {CONDA_DIR}/etc/profile.d/conda.sh;"
-        "conda activate snakeclipenv;"
         "zcat {input.windows} | tail -n +2 | sort -k1,1 -k2,2n | awk -v OFS=\"\t\" '{{print $1, $2 -37, $3+37,$4,$5,$6}}' | "
             "bedtools merge -i - -s -c 6 -o distinct | awk -v OFS=\"\t\" '{{for(i=$2;i< $3;i++) {{print $1,i,i+1,\"MW:\" NR \":\" i - $2,0,$4, NR}} }}' > {output.nt_census}; "
         "samtools cat {input.input_bams} | bedtools intersect -s -wa -a - -b {output.nt_census} | "

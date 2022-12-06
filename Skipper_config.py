@@ -24,8 +24,6 @@ INFORMATIVE_READ = 1
 OVERDISPERSION_MODE = "input" # input or clip
 
 # Paths to custom tools
-# Path to Anaconda/Miniconda/Mamba for Python dependencies
-CONDA_DIR = "~/miniconda3"
 # Path to tools packaged with Skipper
 TOOL_DIR = REPO_PATH + "/tools"
 # Path to additional installed tools (enter "." for the current directory if all tools are globally installed)
