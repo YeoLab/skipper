@@ -120,7 +120,8 @@ rule run_initial_fastqc:
         run_time = "3:00:00",
         job_name = "run_initial_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
-    shell:        
+    shell:
+        "module load fastqc;"
         "less {input.fq} | fastqc stdin:{wildcards.replicate_label} --extract --outdir output/fastqc/initial -t {threads}"
         
 rule trim_fastq:
@@ -190,6 +191,7 @@ rule run_trimmed_fastqc:
         job_name = "run_trimmed_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.trimmed_fastqc.txt"
     shell:
+        "module load fastqc;"
         "fastqc {input} --extract --outdir output/fastqc/processed -t {threads}"
         
 rule align_reads:
@@ -252,8 +254,7 @@ rule sort_bam:
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
     shell:
         "set +eu;"
-        "source {CONDA_DIR}/etc/profile.d/conda.sh;"
-        "conda activate snakeclipenv;"
+        "module load samtools/1.16;"
         "samtools sort -T {wildcards.replicate_label} -@ {threads} -o {output.sort} {input.bam};"
         
 
@@ -272,8 +273,7 @@ rule index_bams:
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
     shell:
         "set +eu;"
-        "source {CONDA_DIR}/etc/profile.d/conda.sh;"
-        "conda activate snakeclipenv;"
+        "module load samtools/1.16;"
         "samtools index -@ {threads} {input.bam};"
 
 
@@ -660,8 +660,7 @@ rule get_nt_coverage:
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     shell:
         "set +eu;"
-        "source {CONDA_DIR}/etc/profile.d/conda.sh;"
-        "conda activate snakeclipenv;"
+        "module load samtools/1.16;"
         "zcat {input.windows} | tail -n +2 | sort -k1,1 -k2,2n | awk -v OFS=\"\t\" '{{print $1, $2 -37, $3+37,$4,$5,$6}}' | "
             "bedtools merge -i - -s -c 6 -o distinct | awk -v OFS=\"\t\" '{{for(i=$2;i< $3;i++) {{print $1,i,i+1,\"MW:\" NR \":\" i - $2,0,$4, NR}} }}' > {output.nt_census}; "
         "samtools cat {input.input_bams} | bedtools intersect -s -wa -a - -b {output.nt_census} | "
@@ -747,4 +746,4 @@ rule consult_term_reference:
         job_name = "consult_term_reference"
     benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/consult_term_reference.R {input.enriched_windows} {input.gene_sets} {input.gene_set_reference} {input.gene_set_distance} {wildcards.experiment_label} "
+        "mkdir -p output/gene_sets/;{R_EXE} --vanilla {TOOL_DIR}/consult_term_reference.R {input.enriched_windows} {input.gene_sets} {input.gene_set_reference} {input.gene_set_distance} {wildcards.experiment_label} "
