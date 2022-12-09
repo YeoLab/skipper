@@ -3,6 +3,7 @@ from functools import reduce
 import os
 import sys
 import glob
+from time import sleep
 
 # example command
 # snakemake -kps Skipper.py -w 15 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" 
@@ -18,8 +19,22 @@ if OVERDISPERSION_MODE not in ["clip","input"]:
     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")
 
 manifest = pd.read_csv(MANIFEST, comment = "#", index_col = False)
-manifest["Input_replicate_label"] = [str(sample) + "_IN_" + str(replicate) for replicate, sample in zip(manifest.Input_replicate.tolist(),manifest.Sample.tolist())]
-manifest["CLIP_replicate_label"] = [str(sample) + "_IP_" + str(replicate) for replicate, sample in zip(manifest.CLIP_replicate.tolist(),manifest.Sample.tolist())]
+manifest["Input_fastq"] = [name.strip() for name in manifest["Input_fastq"]]
+manifest["CLIP_fastq"] = [name.strip() for name in manifest["CLIP_fastq"]]
+manifest["Input_adapter"] = [name.strip() for name in manifest["Input_adapter"]]
+manifest["CLIP_adapter"] = [name.strip() for name in manifest["CLIP_adapter"]]
+if min(manifest.groupby("Experiment")["CLIP_fastq"].agg(lambda x: len(set(x)))) < 2:
+    sys.stderr.write("WARNING: NONZERO EXPERIMENTS HAVE ONLY ONE CLIP REPLICATE.\nPIPELINE MUST HALT AFTER GENERATING RAW COUNTS\nThis usually means your manifest is incorrectly formatted\n")
+    sleep(5)
+
+if max(manifest.groupby("Sample")["Input_replicate"].agg(lambda x: min(x))) > 1:
+    raise Exception("Input replicates for samples in manifest do not increment from 1 as expected")
+
+if max(manifest.groupby("Sample")["CLIP_replicate"].agg(lambda x: min(x))) > 1:
+    raise Exception("CLIP replicates for samples in manifest do not increment from 1 as expected")
+
+manifest["Input_replicate_label"] = [(str(sample) + "_IN_" + str(replicate)).replace(" ","")  for replicate, sample in zip(manifest.Input_replicate.tolist(),manifest.Sample.tolist())]
+manifest["CLIP_replicate_label"] = [(str(sample) + "_IP_" + str(replicate)).replace(" ","") for replicate, sample in zip(manifest.CLIP_replicate.tolist(),manifest.Sample.tolist())]
 
 input_replicates = manifest.loc[:,manifest.columns.isin(["Input_replicate_label","Input_fastq","Input_bam","Input_adapter"])].drop_duplicates()
 clip_replicates = manifest.loc[:,manifest.columns.isin(["CLIP_replicate_label","CLIP_fastq","CLIP_bam","CLIP_adapter"])].drop_duplicates()
@@ -660,7 +675,7 @@ rule get_nt_coverage:
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     shell:
         "set +eu;"
-        "module load samtools/1.16;"
+        "module load samtools/1.16 bedtools;"
         "zcat {input.windows} | tail -n +2 | sort -k1,1 -k2,2n | awk -v OFS=\"\t\" '{{print $1, $2 -37, $3+37,$4,$5,$6}}' | "
             "bedtools merge -i - -s -c 6 -o distinct | awk -v OFS=\"\t\" '{{for(i=$2;i< $3;i++) {{print $1,i,i+1,\"MW:\" NR \":\" i - $2,0,$4, NR}} }}' > {output.nt_census}; "
         "samtools cat {input.input_bams} | bedtools intersect -s -wa -a - -b {output.nt_census} | "

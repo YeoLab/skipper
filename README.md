@@ -24,17 +24,13 @@ For example, below are some commands for installing Mamba and Snakemake.
 
 `mamba create -c conda-forge -c bioconda -n snakemake snakemake`
 
-Skipper utilizes a specifically named conda environment - currently the only requirement is samtools:
-
-`mamba create -n snakeclipenv -c bioconda -c conda-forge samtools`
-
 Several R packages are also required:
 
 `install.packages(c("VGAM", "viridis", "ggrepel", "RColorBrewer", "Rtsne", "ggupset", "ggdendro", "cowplot"))`
 
 `if (!require("BiocManager", quietly = TRUE))`
     `install.packages("BiocManager")`
-`BiocManager::install(c("GenomicRanges","fgsea"))`
+`BiocManager::install(c("GenomicRanges","fgsea","rtracklayer"))`
 
 Paths to locally installed versions can be supplied in the config file, described below.
 

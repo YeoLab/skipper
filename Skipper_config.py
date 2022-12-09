@@ -11,7 +11,7 @@ REPO_PATH = "/projects/ps-yeolab3/eboyle/encode/pipeline/github/skipper"
 MANIFEST = REPO_PATH + "/example/translation_manifest.csv"
 GFF = REPO_PATH + "/annotations/gencode.v38.annotation.k562_totalrna.gt1.gff3.gz"
 PARTITION = REPO_PATH + "/annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.bed.gz"
-FEATURE_ANNOTATIONS = REPO_PATH + "annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.features.tsv.gz"
+FEATURE_ANNOTATIONS = REPO_PATH + "/annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.features.tsv.gz"
 # Ranked list of gene and transcript types found in GFF annotations
 ACCESSION_RANKINGS = REPO_PATH + "/annotations/accession_type_ranking.txt"
 
@@ -24,8 +24,6 @@ INFORMATIVE_READ = 1
 OVERDISPERSION_MODE = "input" # input or clip
 
 # Paths to custom tools
-# Path to Anaconda/Miniconda/Mamba for Python dependencies
-CONDA_DIR = "~/miniconda3"
 # Path to tools packaged with Skipper
 TOOL_DIR = REPO_PATH + "/tools"
 # Path to additional installed tools (enter "." for the current directory if all tools are globally installed)
