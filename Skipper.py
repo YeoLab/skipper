@@ -1,5 +1,6 @@
 import pandas as pd
 from functools import reduce
+import re
 import os
 import sys
 import glob
@@ -439,6 +440,7 @@ rule fit_input_betabinomial_re_model:
 rule call_enriched_re:
     input:
         table = "output/counts/repeats/tables/name/{experiment_label}.tsv.gz",
+        replicate = lambda wildcards: "output/counts/repeats/vectors/" + re.sub("IP_\d$","IP_2",wildcards.clip_replicate_label) + ".counts",
         repeats = rules.uniq_repeats.output.unique_repeats,
         parameters = lambda wildcards: "output/" + OVERDISPERSION_MODE + "_model_coef_re/{experiment_label}." + overdispersion_replicate_lookup[wildcards.clip_replicate_label] + ".tsv",
     output:
@@ -562,6 +564,7 @@ rule call_enriched_windows:
     input:
         feature_annotations = FEATURE_ANNOTATIONS,
         accession_rankings = ACCESSION_RANKINGS,
+        replicate = lambda wildcards: "output/counts/repeats/vectors/" + re.sub("IP_\d$","IP_2",wildcards.clip_replicate_label) + ".counts",
         table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
         parameters = lambda wildcards: "output/" + OVERDISPERSION_MODE + "_model_coef/{experiment_label}." + overdispersion_replicate_lookup[wildcards.clip_replicate_label] + ".tsv",
         # parameters = lambda wildcards: "output/clip_model_coef/{experiment_label}.{wildcards.clip_replicate_label}.tsv",
