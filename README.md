@@ -16,13 +16,13 @@ Skipper requires several executables and packages:
 | STAR   | https://github.com/alexdobin/STAR        |
 | Java   | https://www.java.com/en/download/manual.jsp        |
 
-For example, below are some commands for installing Mamba and Snakemake.
+For example, below are some commands for installing Miniconda and Snakemake.
 
-`curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"`
+`curl -L -O "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"`
 
-`bash Mambaforge-$(uname)-$(uname -m).sh`
+`bash Miniconda3-latest-Linux-x86_64.sh`
 
-`mamba create -c conda-forge -c bioconda -n snakemake snakemake`
+`conda create -c conda-forge -c bioconda -n snakemake snakemake`
 
 Several R packages are also required:
 
