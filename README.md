@@ -39,6 +39,8 @@ Skipper uses a Snakemake workflow. The `Skipper.py` file contains the rules nece
 
 Providing an absolute path to the GitHub repository `REPO_DIR` will help Snakemake find resources regardless of the directory where Skipper is run.
 
+Internal to the Yeo lab, setting the `REPO_DIR` to `/projects/ps-yeolab3/eboyle/encode/pipeline/github/yeo` will save time on preprocessing annotation files (check the annotation folder for HepG2, K562, or HEK293T. More annotations are available at `/projects/ps-yeolab4/software/skipper/1.0.0/bin/skipper/annotations/`).
+
 Numerous resources must be entered in the `Skipper_config.py` file.
 | Resource      | Description |
 | ----------- | ----------- |
@@ -90,7 +92,7 @@ Create a new directory to store output, copy the Snakemake and config files, and
 
 Remember to load the Snakemake environment before running
 
-`mamba activate snakemake`
+`conda activate snakemake`
 
 Use the dry run function to confirm that Snakemake can parse all the information:
 
