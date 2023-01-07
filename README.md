@@ -10,7 +10,7 @@ Skipper requires several executables and packages:
 | ----------- | ----------- |
 | R           | https://www.r-project.org/       |
 | Python   | https://www.python.org/downloads/        |
-| Mamba   | https://mamba.readthedocs.io/en/latest/installation.html#installation        |
+| Conda/Mamba   | https://conda.io/projects/conda/en/latest/user-guide/install/index.html        |
 | Snakemake   | https://snakemake.readthedocs.io/en/stable/getting_started/installation.html        |
 | UMICollapse   | https://github.com/Daniel-Liu-c0deb0t/UMICollapse        |
 | STAR   | https://github.com/alexdobin/STAR        |
