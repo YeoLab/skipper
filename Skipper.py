@@ -81,7 +81,7 @@ rule all:
         expand("output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
-        # expand("output/bigwigs/plus/{replicate_label}.plus.bw", replicate_label = replicate_labels),
+        # expand("output/bigwigs/plus/{replicate_label}.plus.unscaled.bw", replicate_label = replicate_labels),
         expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
@@ -310,10 +310,10 @@ rule make_bigwig:
         CHROM_SIZES,
         bam = lambda wildcards: replicate_label_to_bams[wildcards.replicate_label],
     output:
-        bg_plus = temp("output/bedgraphs/plus/{replicate_label}.plus.bg"),
-        bg_minus = temp("output/bedgraphs/minus/{replicate_label}.plus.bg"),
-        bw_plus = "output/bigwigs/plus/{replicate_label}.plus.bw",
-        bw_minus = "output/bigwigs/minus/{replicate_label}.minus.bw",
+        bg_plus = temp("output/bedgraphs/plus/{replicate_label}.plus.unscaled.bg"),
+        bg_minus = temp("output/bedgraphs/minus/{replicate_label}.plus.unscaled.bg"),
+        bw_plus = "output/bigwigs/plus/{replicate_label}.plus.unscaled.bw",
+        bw_minus = "output/bigwigs/minus/{replicate_label}.minus.unscaled.bw",
     params:
         error_file = "stderr/{replicate_label}.make_bigwig.err",
         out_file = "stdout/{replicate_label}.make_bigwig.out",
