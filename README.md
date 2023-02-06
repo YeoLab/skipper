@@ -15,6 +15,7 @@ Skipper requires several executables and packages:
 | UMICollapse   | https://github.com/Daniel-Liu-c0deb0t/UMICollapse        |
 | STAR   | https://github.com/alexdobin/STAR        |
 | Java   | https://www.java.com/en/download/manual.jsp        |
+| samtools | http://www.htslib.org/download/        |
 
 For example, below are some commands for installing Miniconda and Snakemake.
 
