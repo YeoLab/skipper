@@ -13,6 +13,9 @@ Skipper requires several executables and packages:
 | Conda/Mamba   | https://conda.io/projects/conda/en/latest/user-guide/install/index.html        |
 | Snakemake   | https://snakemake.readthedocs.io/en/stable/getting_started/installation.html        |
 | UMICollapse   | https://github.com/Daniel-Liu-c0deb0t/UMICollapse        |
+| Skewer   | https://github.com/relipmoc/skewer        |
+| Fastp    | https://github.com/OpenGene/fastp        |
+| bedtools     | https://github.com/arq5x/bedtools2        |
 | STAR   | https://github.com/alexdobin/STAR        |
 | Java   | https://www.java.com/en/download/manual.jsp        |
 | samtools | http://www.htslib.org/download/        |
