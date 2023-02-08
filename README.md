@@ -41,9 +41,9 @@ Paths to locally installed versions can be supplied in the config file, describe
 <h2>Preparing to run Skipper</h2>
 Skipper uses a Snakemake workflow. The `Skipper.py` file contains the rules necessary to process CLIP data from fastqs. Skipper also supports running on BAMs - note that Skipper's analysis of repetitive elements will assume that non-uniquely mapping reads are contained within the BAM files.
 
-Providing an absolute path to the GitHub repository `REPO_DIR` will help Snakemake find resources regardless of the directory where Skipper is run.
+Providing an absolute path to the GitHub repository `REPO_PATH` will help Snakemake find resources regardless of the directory where Skipper is run.
 
-Internal to the Yeo lab, setting the `REPO_DIR` to `/projects/ps-yeolab3/eboyle/encode/pipeline/github/yeo` will save time on preprocessing annotation files (check the annotation folder for HepG2, K562, or HEK293T. More annotations are available at `/projects/ps-yeolab4/software/skipper/1.0.0/bin/skipper/annotations/`).
+Internal to the Yeo lab, setting the `REPO_PATH` to `/projects/ps-yeolab3/eboyle/encode/pipeline/github/yeo` will save time on preprocessing annotation files (check the annotation folder for HepG2, K562, or HEK293T. More annotations are available at `/projects/ps-yeolab4/software/skipper/1.0.0/bin/skipper/annotations/`).
 
 Numerous resources must be entered in the `Skipper_config.py` file.
 | Resource      | Description |
