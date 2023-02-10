@@ -45,30 +45,47 @@ Providing an absolute path to the GitHub repository `REPO_PATH` will help Snakem
 
 Internal to the Yeo lab, setting the `REPO_PATH` to `/projects/ps-yeolab3/eboyle/encode/pipeline/github/yeo` will save time on preprocessing annotation files (check the annotation folder for HepG2, K562, or HEK293T. More annotations are available at `/projects/ps-yeolab4/software/skipper/1.0.0/bin/skipper/annotations/`).
 
-Numerous resources must be entered in the `Skipper_config.py` file.
+Numerous resources must be entered in the `Skipper_config.py` file:
+
 | Resource      | Description |
 | ----------- | ----------- |
 | MANIFEST            | Information on samples to run                                                        |
-| GFF                 | Gene annotation to partition the transcriptome and count reads                       |
-| ACCESSION_RANKINGS  | A ranking of gene and transcript types to facilitate the transcriptome partitioning  |
-| REPEAT_TABLE        | Coordinates of repetitive elements, available from UCSC Genome Browser               |
-| GENOME              | Indexed fasta of genome                                                              |
+| GENOME              | Samtools- and STAR-indexed fasta of genome for the sample of interest                |
+| STAR_DIR            | Path to STAR reference for aligning sequencing reads                |
 
 
-Other paths must be entered 
+Other paths to help Skipper run must be entered: 
+
 | Path    | Description |
 | ----------- | ----------- |
 | EXE_DIR     | For convenience to point to stable locally installed software: it is added to your Path when Skipper runs |
 | TOOL_DIR    | Directory for the tools located in the GitHub        |
 
 
-Information about the CLIP library to be analyzed is also required.
+Information about the CLIP library to be analyzed is also required:
 
 | Setting      | Description |
 | ----------- | ----------- |
 | UMI_SIZE            | Bases to trim for deduplication (10 for current eCLIP)       |
 | INFORMATIVE_READ    | Which read (1 or 2) reflects the crosslink site (for Paired End runs)        |
 | OVERDISPERSION_MODE | Overdispersion can be estimated from multiple input replicates ("input") or multiple CLIP replicates ("clip"): "input" is recommended |
+
+
+<h2>Customizable input for Skipper</h2>
+Skipper accepts customizable files for several steps, which are also entered in the `Skipper_config.py` file: 
+
+| Input      | Description |
+| ----------- | ----------- |
+| GFF                 | Gene annotation to partition the transcriptome and count reads.                       |
+| PARTITION           | BED file of windows to test (can be generated from GFF file)                          |
+| FEATURE_ANNOTATIONS | TSV file with the following columns: chrom,start,end,name,score,strand,feature_id,feature_bin,feature_type_top,feature_types,gene_name,gene_id, transcript_ids,gene_type_top,transcript_type_top,gene_types,transcript_types (can be generated from GFF file) |
+| BLACKLIST           | Removes windows from reproducible enriched window files. Start and end coordinates must match tiled windows exactly.      |
+| ACCESSION_RANKINGS  | A ranking of gene and transcript types present in the GFF to facilitate the transcriptome partitioning  |
+| REPEAT_TABLE        | Coordinates of repetitive elements, available from UCSC Genome Browser               |
+| REPEAT_BED          | Sorted, nonoverlapping, tab-delimited annotations of repetitive elements: chr,start,end,label,score,strand,name,class,family,proportion_gc (can be generated from RepeatMasker table)  |
+| GENE_SETS           | GMT files of gene sets for gene set enrichment calculation |
+| GENE_SET_REFERENCE  | TSV of gene set name, number of windows belonging to term, and fraction of windows that lie in gene set genes |
+| GENE_SET_DISTANCE   | RDS of a matrix containing jaccard index scores for all pairs of gene sets in GMT file |
 
 <h2>Making a manifest</h2>
 
@@ -80,9 +97,11 @@ Information about the CLIP library to be analyzed is also required.
 | Input_replicate  | Replicate # for the same Sample. The same Input replicate (fastq and number) can be used for multiple CLIP replicates |
 | Input_adapter    | Fasta of adapter sequences for Input replicate                                                     |
 | Input_fastq      | Path to Input replicate fastq (multiple files can be entered per cell to be concatenated            |
+| Input_bam       | (Optional) Enter path to Input BAM file            |
 | CLIP_replicate   | Replicate # for the same Sample. Distinct CLIP replicates are required |
 | CLIP_adapter     | Fasta of adapter sequences for CLIP replicate                                                     |
 | CLIP_fastq       | Path to CLIP replicate fastq (multiple files can be entered per cell to be concatenated            |
+| CLIP_bam       | (Optional) Enter path to CLIP BAM file            |
 
 Skipper requires multiple CLIP replicates of the same sample to call reproducible windows. Enter multiple replicates with the same experiment and sample columns on separate lines, incrementing the replicate number for each replicate. The same input replicate can be used in multiple experiments and repeated for the same sample if you estimate overdispersion from CLIP replicates. If the same replicate is used for multiple comparisons, the sample and replicate columns must be consistent.
 
