@@ -333,7 +333,7 @@ rule uniq_repeats:
         genome = GENOME
     output:
         sorted_bed = temp("repeats.sort.temp.bed.gz"),
-        unique_repeats = REPEAT_TABLE.replace(".tsv", ".sort.unique.bed")
+        unique_repeats = REPEAT_BED
     params:
         error_file = "stderr/calc_partition_nuc.err",
         out_file = "stdout/calc_partition_nuc.out",
@@ -359,7 +359,7 @@ rule quantify_repeats:
     input:
         CHROM_SIZES,
         bam = lambda wildcards: replicate_label_to_bams[wildcards.replicate_label],
-        repeats = rules.uniq_repeats.output.unique_repeats
+        repeats = REPEAT_BED
     output:
         counts = "output/counts/repeats/vectors/{replicate_label}.counts"
     params:
@@ -380,7 +380,7 @@ rule quantify_repeats:
 
 rule make_repeat_count_tables:
     input:
-        unique_repeats = rules.uniq_repeats.output.unique_repeats,
+        unique_repeats = REPEAT_BED,
         replicate_counts = lambda wildcards: expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = experiment_to_replicate_labels[wildcards.experiment_label]),
     output:
         name_table = "output/counts/repeats/tables/name/{experiment_label}.tsv.gz",
@@ -441,7 +441,7 @@ rule call_enriched_re:
     input:
         table = "output/counts/repeats/tables/name/{experiment_label}.tsv.gz",
         replicate = lambda wildcards: "output/counts/repeats/vectors/" + re.sub("IP_\d$","IP_2",wildcards.clip_replicate_label) + ".counts",
-        repeats = rules.uniq_repeats.output.unique_repeats,
+        repeats = REPEAT_BED,
         parameters = lambda wildcards: "output/" + OVERDISPERSION_MODE + "_model_coef_re/{experiment_label}." + overdispersion_replicate_lookup[wildcards.clip_replicate_label] + ".tsv",
     output:
         "output/figures/clip_scatter_re/{experiment_label}.{clip_replicate_label}.clip_test_distribution.pdf",
