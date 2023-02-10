@@ -12,8 +12,6 @@ MANIFEST = REPO_PATH + "/example/translation_manifest.csv"
 GFF = REPO_PATH + "/annotations/gencode.v38.annotation.k562_totalrna.gt1.gff3.gz"
 PARTITION = REPO_PATH + "/annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.bed.gz"
 FEATURE_ANNOTATIONS = REPO_PATH + "/annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.features.tsv.gz"
-# Ranked list of gene and transcript types found in GFF annotations
-ACCESSION_RANKINGS = REPO_PATH + "/annotations/accession_type_ranking.txt"
 
 # Information about CLIP library
 UMI_SIZE = 10
@@ -44,11 +42,15 @@ GENOME = "/projects/ps-yeolab4/genomes/GRCh38/chromosomes/GRCh38_no_alt_analysis
 CHROM_SIZES = REPO_PATH + "/annotations/hg38.chrom.sizes"
 # https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=1435901349_MASaYmzfsYNwQY34JLgNir7HOyVh&clade=mammal&org=Human&db=hg38
 REPEAT_TABLE = "/projects/ps-yeolab3/eboyle/encode/pipeline/05_20220720/repeatmasker.grch38.tsv.gz"
+
 # Customizable, with defaults
-BLACKLIST = REPO_PATH + "/annotations/encode3_eclip_blacklist.bed"
+BLACKLIST = REPO_PATH + "/annotations/encode3_eclip_blacklist.bed" # set to None for no blacklisting
 GENE_SETS = REPO_PATH + "/annotations/c5.go.v7.5.1.symbols.gmt"
 GENE_SET_REFERENCE = REPO_PATH + "/annotations/encode3_go_terms.reference.tsv.gz"
 GENE_SET_DISTANCE = REPO_PATH + "/annotations/encode3_go_terms.jaccard_index.rds"
+REPEAT_BED = "/projects/ps-yeolab3/eboyle/encode/pipeline/05_20220720/repeatmasker.grch38.sort.unique.bed.gz"
+# Ranked list of gene and transcript types found in GFF annotations
+ACCESSION_RANKINGS = REPO_PATH + "/annotations/accession_type_ranking.txt"
 
 # Internal use
 UNINFORMATIVE_READ = 3 - INFORMATIVE_READ
