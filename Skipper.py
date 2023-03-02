@@ -81,7 +81,8 @@ rule all:
         expand("output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
-        # expand("output/bigwigs/plus/{replicate_label}.plus.unscaled.bw", replicate_label = replicate_labels),
+        # expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
+        # expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
         expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
@@ -305,15 +306,15 @@ rule dedup_umi:
         "{JAVA_EXE} -server -Xms8G -Xmx8G -Xss20M -jar {UMICOLLAPSE_DIR}/umicollapse.jar bam "
             "-i {input.bam} -o {output.bam_dedup} --umi-sep : --two-pass"
 
-rule make_bigwig:
+rule make_unscaled_bigwig:
     input:
         CHROM_SIZES,
         bam = lambda wildcards: replicate_label_to_bams[wildcards.replicate_label],
     output:
-        bg_plus = temp("output/bedgraphs/plus/{replicate_label}.plus.unscaled.bg"),
-        bg_minus = temp("output/bedgraphs/minus/{replicate_label}.plus.unscaled.bg"),
-        bw_plus = "output/bigwigs/plus/{replicate_label}.plus.unscaled.bw",
-        bw_minus = "output/bigwigs/minus/{replicate_label}.minus.unscaled.bw",
+        bg_plus = temp("output/bedgraphs/unscaled/plus/{replicate_label}.unscaled.plus.bg"),
+        bg_minus = temp("output/bedgraphs/unscaled/minus/{replicate_label}.unscaled.minus.bg"),
+        bw_plus = "output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw",
+        bw_minus = "output/bigwigs/unscaled/minus/{replicate_label}.unscaled.minus.bw",
     params:
         error_file = "stderr/{replicate_label}.make_bigwig.err",
         out_file = "stdout/{replicate_label}.make_bigwig.out",
@@ -322,8 +323,31 @@ rule make_bigwig:
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     shell:
-        "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | awk '($1 != \"chrEBV\")' | sort -k1,1 -k2,2n > {output.bg_plus};"
-        "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | awk '($1 != \"chrEBV\")' | sort -k1,1 -k2,2n > {output.bg_minus};"
+        "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
+        "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
+        "{TOOL_DIR}/bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
+        "{TOOL_DIR}/bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
+
+rule make_scaled_bigwig:
+    input:
+        CHROM_SIZES,
+        bam = lambda wildcards: replicate_label_to_bams[wildcards.replicate_label],
+    output:
+        bg_plus = temp("output/bedgraphs/scaled/plus/{replicate_label}.scaled.plus.bg"),
+        bg_minus = temp("output/bedgraphs/scaled/minus/{replicate_label}.scaled.minus.bg"),
+        bw_plus = "output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw",
+        bw_minus = "output/bigwigs/scaled/minus/{replicate_label}.scaled.minus.bw",
+    params:
+        error_file = "stderr/{replicate_label}.make_bigwig.err",
+        out_file = "stdout/{replicate_label}.make_bigwig.out",
+        run_time = "40:00",
+        memory = "1000",
+        job_name = "make_bigwig"
+    benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
+    shell:
+        "factor=$(samtools idxstats {input.bam} | awk '{{sum += $3}} END {{print 10**6 / sum}}');"
+        "bedtools genomecov -scale $factor -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
+        "bedtools genomecov -scale $factor -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
         "{TOOL_DIR}/bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
         "{TOOL_DIR}/bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
