@@ -81,8 +81,8 @@ rule all:
         expand("output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
-        # expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
-        # expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
         expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
@@ -137,7 +137,8 @@ rule run_initial_fastqc:
         run_time = "3:00:00",
         job_name = "run_initial_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
-    shell:        
+    shell:
+        "module load fastqc;"
         "less {input.fq} | fastqc stdin:{wildcards.replicate_label} --extract --outdir output/fastqc/initial -t {threads}"
         
 rule trim_fastq:
@@ -207,6 +208,7 @@ rule run_trimmed_fastqc:
         job_name = "run_trimmed_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.trimmed_fastqc.txt"
     shell:
+        "module load fastqc;"
         "fastqc {input} --extract --outdir output/fastqc/processed -t {threads}"
         
 rule align_reads:
@@ -268,6 +270,8 @@ rule sort_bam:
         job_name = "sortbam",
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
     shell:
+        "set +eu;"
+        "module load samtools/1.16;"
         "samtools sort -T {wildcards.replicate_label} -@ {threads} -o {output.sort} {input.bam};"
         
 
@@ -285,6 +289,8 @@ rule index_bams:
         job_name = "index_bam"
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
     shell:
+        "set +eu;"
+        "module load samtools/1.16;"
         "samtools index -@ {threads} {input.bam};"
 
 
@@ -695,6 +701,8 @@ rule get_nt_coverage:
         job_name = "get_nt_coverage"
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     shell:
+        "set +eu;"
+        "module load samtools/1.16 bedtools;"
         "zcat {input.windows} | tail -n +2 | sort -k1,1 -k2,2n | awk -v OFS=\"\t\" '{{print $1, $2 -37, $3+37,$4,$5,$6}}' | "
             "bedtools merge -i - -s -c 6 -o distinct | awk -v OFS=\"\t\" '{{for(i=$2;i< $3;i++) {{print $1,i,i+1,\"MW:\" NR \":\" i - $2,0,$4, NR}} }}' > {output.nt_census}; "
         "samtools cat {input.input_bams} | bedtools intersect -s -wa -a - -b {output.nt_census} | "
