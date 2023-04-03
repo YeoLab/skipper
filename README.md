@@ -141,6 +141,6 @@ Skipper produces a lot of output. The `output/figures` directory contains figure
 | reproducible_enriched_windows | Visualization of RNA region preferences for windows called by at least two replicates   |
 | gene_sets        | Visualization of top enriched GO terms relative to ENCODE reproducible enriched windows   |
 | clip_scatter_re  | Visualization of enriched repetitive elements   |
-| tsne       | t-SNE visuzliation of binding preferences releative to ENCODE RBPs   |
+| tsne       | t-SNE visualization of binding preferences releative to ENCODE RBPs   |
 
 Annotated reproducible enriched windows can be accessed at `output/reproducible_enriched_windows/` and Homer motif output is at `output/homer/`
