@@ -87,6 +87,8 @@ Skipper accepts customizable files for several steps, which are also entered in 
 | GENE_SET_REFERENCE  | TSV of gene set name, number of windows belonging to term, and fraction of windows that lie in gene set genes |
 | GENE_SET_DISTANCE   | RDS of a matrix containing jaccard index scores for all pairs of gene sets in GMT file |
 
+Want to make your own partition from RNA-seq of a sample? Run the tools/subset_gff.py script on RNA-seq quantifications from Salmon. We used a 1 TPM cutoff. Enter the resulting file for the GFF. This makes the window annotations more accurate but we haven’t carefully examined how important it is for the cell sample to match.
+
 <h2>Making a manifest</h2>
 
 | Column      | Description |
