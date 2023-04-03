@@ -144,3 +144,7 @@ Skipper produces a lot of output. The `output/figures` directory contains figure
 | tsne       | t-SNE visualization of binding preferences releative to ENCODE RBPs   |
 
 Annotated reproducible enriched windows can be accessed at `output/reproducible_enriched_windows/` and Homer motif output is at `output/homer/`
+
+Example CLIP fastqs and processed data are available at GEO and SRA: `https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE213867`
+
+Review our preprint form more information and cite it accordingly! https://www.biorxiv.org/content/10.1101/2022.10.08.511447v1.full
