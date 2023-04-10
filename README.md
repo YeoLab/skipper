@@ -76,16 +76,18 @@ Skipper accepts customizable files for several steps, which are also entered in 
 
 | Input      | Description |
 | ----------- | ----------- |
-| GFF                 | Gene annotation to partition the transcriptome and count reads.                       |
-| PARTITION           | BED file of windows to test (can be generated from GFF file)                          |
-| FEATURE_ANNOTATIONS | TSV file with the following columns: chrom,start,end,name,score,strand,feature_id,feature_bin,feature_type_top,feature_types,gene_name,gene_id, transcript_ids,gene_type_top,transcript_type_top,gene_types,transcript_types (can be generated from GFF file) |
+| GFF                 | Gzipped gene annotation to partition the transcriptome and count reads.                       |
+| PARTITION*           | Gzipped BED file of windows to test (can be generated from GFF file)                          |
+| FEATURE_ANNOTATIONS* | Gzipped TSV file with the following columns: chrom,start,end,name,score,strand,feature_id,feature_bin,feature_type_top,feature_types,gene_name,gene_id, transcript_ids,gene_type_top,transcript_type_top,gene_types,transcript_types (can be generated from GFF file) |
 | BLACKLIST           | Removes windows from reproducible enriched window files. Start and end coordinates must match tiled windows exactly.      |
 | ACCESSION_RANKINGS  | A ranking of gene and transcript types present in the GFF to facilitate the transcriptome partitioning  |
 | REPEAT_TABLE        | Coordinates of repetitive elements, available from UCSC Genome Browser               |
-| REPEAT_BED          | Sorted, nonoverlapping, tab-delimited annotations of repetitive elements: chr,start,end,label,score,strand,name,class,family,proportion_gc (can be generated from RepeatMasker table)  |
+| REPEAT_BED*          | Gzipped sorted, nonoverlapping, tab-delimited annotations of repetitive elements: chr,start,end,label,score,strand,name,class,family,proportion_gc  |
 | GENE_SETS           | GMT files of gene sets for gene set enrichment calculation |
 | GENE_SET_REFERENCE  | TSV of gene set name, number of windows belonging to term, and fraction of windows that lie in gene set genes |
 | GENE_SET_DISTANCE   | RDS of a matrix containing jaccard index scores for all pairs of gene sets in GMT file |
+
+*Skipper can generate these files from other input, or you can make your own versions with the appropriate columns.
 
 Want to make your own partition from RNA-seq of a sample? Run the tools/subset_gff.py script on RNA-seq quantifications from Salmon. We used a 1 TPM cutoff. Enter the resulting file for the GFF. This makes the window annotations more accurate but we haven’t carefully examined how important it is for the cell sample to match.
 
