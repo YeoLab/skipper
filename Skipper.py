@@ -108,8 +108,8 @@ rule all:
 
 rule parse_gff:
     input:
-        gff = GFF,
-        rankings = ACCESSION_RANKINGS,
+        gff = ancient(GFF),
+        rankings = ancient(ACCESSION_RANKINGS),
     output:
         partition = PARTITION,
         feature_annotations = FEATURE_ANNOTATIONS,
@@ -586,8 +586,8 @@ rule fit_clip_betabinomial_model:
 
 rule call_enriched_windows:
     input:
-        feature_annotations = FEATURE_ANNOTATIONS,
-        accession_rankings = ACCESSION_RANKINGS,
+        feature_annotations = ancient(FEATURE_ANNOTATIONS),
+        accession_rankings = ancient(ACCESSION_RANKINGS),
         replicate = lambda wildcards: "output/counts/genome/vectors/" + re.sub("IP_\d$","IP_2",wildcards.clip_replicate_label) + ".counts",
         table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
         parameters = lambda wildcards: "output/" + OVERDISPERSION_MODE + "_model_coef/{experiment_label}." + overdispersion_replicate_lookup[wildcards.clip_replicate_label] + ".tsv",
@@ -663,7 +663,7 @@ rule find_reproducible_enriched_windows:
 rule sample_background_windows_by_region:
     input:
         enriched_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
-        all_windows = FEATURE_ANNOTATIONS,
+        all_windows = ancient(FEATURE_ANNOTATIONS),
     output:
         variable_windows = "output/homer/region_matched_background/variable/{experiment_label}.sampled_variable_windows.bed.gz",
         fixed_windows = "output/homer/region_matched_background/fixed/{experiment_label}.sampled_fixed_windows.bed.gz"
