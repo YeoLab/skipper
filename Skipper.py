@@ -7,7 +7,7 @@ import glob
 from time import sleep
 
 # example command
-# snakemake -kps Skipper.py -w 15 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" 
+# snakemake -kps Skipper.py -w 25 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" 
 
 include: "Skipper_config.py"
 
