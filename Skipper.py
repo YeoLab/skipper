@@ -19,7 +19,7 @@ if EXE_DIR not in sys.path: os.environ["PATH"] = EXE_DIR + os.pathsep + os.envir
 if OVERDISPERSION_MODE not in ["clip","input"]:
     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")
 
-manifest = pd.read_csv(MANIFEST, comment = "#", index_col = False)
+manifest = pd.read_csv(MANIFEST, comment = "#", index_col = False).dropna(subset=['Experiment','Sample'])
 manifest["Input_fastq"] = [name.strip() for name in manifest["Input_fastq"]]
 manifest["CLIP_fastq"] = [name.strip() for name in manifest["CLIP_fastq"]]
 manifest["Input_adapter"] = [name.strip() for name in manifest["Input_adapter"]]
