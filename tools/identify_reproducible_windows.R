@@ -11,7 +11,7 @@ if(length(args) > 2) {
 } else {
 	blacklist = tibble(chr=character(),start=numeric(),end=numeric(),name=character(),score=numeric(),strand=character())
 }
-enriched_window_files = list.files(path = data_directory, pattern = paste0(prefix, ".*enriched_windows.tsv.gz"), full.names = TRUE)
+enriched_window_files = list.files(path = data_directory, pattern = paste0("^", prefix, ".*enriched_windows.tsv.gz"), full.names = TRUE)
 
 # specify col_type to handle case of no enriched windows
 enriched_window_data = enriched_window_files %>%
