@@ -6,7 +6,7 @@ args = commandArgs(trailingOnly=TRUE)
 data_directory = args[1]
 prefix = args[2]
 
-enriched_re_files = list.files(path = data_directory, pattern = paste0("^", prefix, ".*enriched_re.tsv.gz"), full.names = TRUE)
+enriched_re_files = list.files(path = data_directory, pattern = paste0("^", prefix, "\\..*enriched_re.tsv.gz"), full.names = TRUE)
 enriched_re_data = enriched_re_files %>%
     setNames(sub("\\.enriched_windows\\.tsv.gz", "", basename(.))) %>% 
     map(function(x) read_tsv(x)) %>% 
