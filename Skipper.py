@@ -353,8 +353,8 @@ rule make_scaled_bigwig:
 
 rule uniq_repeats:
     input:
-        repeatmasker = REPEAT_TABLE,
-        genome = GENOME
+        repeatmasker = ancient(REPEAT_TABLE),
+        genome = ancient(GENOME)
     output:
         sorted_bed = temp("repeats.sort.temp.bed.gz"),
         unique_repeats = REPEAT_BED
