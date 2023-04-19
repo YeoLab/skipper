@@ -20,6 +20,8 @@ if OVERDISPERSION_MODE not in ["clip","input"]:
     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")
 
 manifest = pd.read_csv(MANIFEST, comment = "#", index_col = False).dropna(subset=['Experiment','Sample'])
+manifest["CLIP_replicate"] = pd.to_numeric(manifest.CLIP_replicate, downcast="integer")
+manifest["Input_replicate"] = pd.to_numeric(manifest.Input_replicate, downcast="integer")
 manifest["Input_fastq"] = [name.strip() for name in manifest["Input_fastq"]]
 manifest["CLIP_fastq"] = [name.strip() for name in manifest["CLIP_fastq"]]
 manifest["Input_adapter"] = [name.strip() for name in manifest["Input_adapter"]]
