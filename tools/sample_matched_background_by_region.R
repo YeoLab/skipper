@@ -35,7 +35,7 @@ sampled_data = enriched_windows %>%
 	group_by(sampling_group) %>% count(name="n_enriched") %>% 
 	inner_join(all_windows %>% select(name, sampling_group)) %>% group_by(sampling_group) %>% 
 	summarize(tibble(name = sample(name[!name %in% enriched_windows$name],pmin(sampling_factor*n_enriched[1],sum(!name %in% enriched_windows$name)) ))) %>%
-	ungroup %>% select(name) %>% inner_join(all_windows)
+	ungroup %>% select(name) %>% inner_join(all_windows,.)
 
 write_tsv(sampled_data[,1:7], paste0(output_directory, "/variable/", output_stem, ".sampled_variable_windows.bed.gz"), col_names = FALSE)
 
