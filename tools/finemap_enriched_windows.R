@@ -45,6 +45,7 @@ localMaxima = function(x) {
 
 # pick the most enriched <window_size nt> window per enriched feature and retain other local maxima above the median enrichment
 # mark overlapping windows as claimed
+set.seed(0)
 candidate_sites = smoothed_data %>% 
         mutate(window_n = window_n, pos = pos,enrichment_heuristic =log2((clip_sum+20) / (input_sum+20))) %>% 
         group_by(window_n,strand,chr) %>% 
