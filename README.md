@@ -19,6 +19,7 @@ Skipper requires several executables and packages:
 | STAR   | https://github.com/alexdobin/STAR        |
 | Java   | https://www.java.com/en/download/manual.jsp        |
 | samtools | http://www.htslib.org/download/        |
+| FastQC | https://www.bioinformatics.babraham.ac.uk/projects/fastqc/ |
 
 For example, below are some commands for installing Miniconda and Snakemake.
 
