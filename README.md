@@ -2,6 +2,7 @@
 ![Skipper cartoon](documents/logo.png)
 
 Skip the peaks and expose RNA-binding in CLIP data
+
 See published article in Cell Genomics: https://www.cell.com/cell-genomics/fulltext/S2666-979X(23)00085-X
 
 <h2>Prerequisites</h2>
