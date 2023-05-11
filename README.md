@@ -2,6 +2,7 @@
 ![Skipper cartoon](documents/logo.png)
 
 Skip the peaks and expose RNA-binding in CLIP data
+See published article in Cell Genomics: https://www.cell.com/cell-genomics/fulltext/S2666-979X(23)00085-X
 
 <h2>Prerequisites</h2>
 Skipper requires several executables and packages:
@@ -151,5 +152,3 @@ Skipper produces a lot of output. The `output/figures` directory contains figure
 Annotated reproducible enriched windows can be accessed at `output/reproducible_enriched_windows/` and Homer motif output is at `output/homer/`
 
 Example CLIP fastqs and processed data are available at GEO and SRA: `https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE213867`
-
-Review our preprint form more information and cite it accordingly! https://www.biorxiv.org/content/10.1101/2022.10.08.511447v1.full
