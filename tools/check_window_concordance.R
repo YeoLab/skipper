@@ -14,7 +14,7 @@ if(length(args) > 2) {
 } else {
 	blacklist = tibble(chr=character(),start=numeric(),end=numeric(),name=character(),score=numeric(),strand=character())
 }
-tested_window_files = list.files(path = data_directory, pattern = paste0(prefix, ".*tested_windows.tsv.*"), full.names = TRUE)
+tested_window_files = list.files(path = data_directory, pattern = paste0("^", prefix, "\\..*tested_windows.tsv.*"), full.names = TRUE)
 
 tested_window_data = tested_window_files %>%
     setNames(sub("\\.tested_windows\\.tsv.*", "", basename(.))) %>% 
