@@ -33,7 +33,7 @@ For example, below are some commands for installing Miniconda and Snakemake.
 
 Several R packages are also required:
 
-`install.packages(c("VGAM", "viridis", "ggrepel", "RColorBrewer", "Rtsne", "ggupset", "ggdendro", "cowplot"))`
+`install.packages(c("tidyverse", "VGAM", "viridis", "ggrepel", "RColorBrewer", "Rtsne", "ggupset", "ggdendro", "cowplot"))`
 
 `if (!require("BiocManager", quietly = TRUE))`
     `install.packages("BiocManager")`
