@@ -19,7 +19,7 @@ Skipper requires several executables and packages:
 | Fastp    | https://github.com/OpenGene/fastp        |
 | bedtools     | https://github.com/arq5x/bedtools2        |
 | STAR   | https://github.com/alexdobin/STAR        |
-| Java   | https://www.java.com/en/download/manual.jsp        |
+| Java   | https://jdk.java.net/20/        |
 | samtools | http://www.htslib.org/download/        |
 | FastQC | https://www.bioinformatics.babraham.ac.uk/projects/fastqc/ |
 
