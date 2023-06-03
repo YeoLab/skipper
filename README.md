@@ -22,6 +22,7 @@ Skipper requires several executables and packages:
 | Java   | https://jdk.java.net/20/        |
 | samtools | http://www.htslib.org/download/        |
 | FastQC | https://www.bioinformatics.babraham.ac.uk/projects/fastqc/ |
+| HOMER | http://homer.ucsd.edu/homer/introduction/install.html |
 
 For example, below are some commands for installing Miniconda and Snakemake.
 
@@ -61,7 +62,7 @@ Other paths to help Skipper run must be entered:
 
 | Path    | Description |
 | ----------- | ----------- |
-| EXE_DIR     | For convenience to point to stable locally installed software: it is added to your Path when Skipper runs |
+| EXE_DIR     | For convenience to point to stable locally installed software: it is added to PATH when Skipper runs |
 | TOOL_DIR    | Directory for the tools located in the GitHub        |
 
 
