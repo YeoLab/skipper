@@ -40,9 +40,9 @@ Use conda to create an environment for installing R:
 
 Use the get_R.sh script to complete installation of R. Expect the whole process to take around 4 hours. Provide your conda directory as the first argument and the directory you wish to install R as the second:
 
-`bash -l get_R.sh /home/eboyle/miniconda3 /projects/ps-yeolab3/eboyle/encode/pipeline/gran`
+`bash -l tools/get_R.sh /home/eboyle/miniconda3 /projects/ps-yeolab3/eboyle/encode/pipeline/gran`
 
-As of this writing, Skipper is compatible with the newest version of R and its packages. The required packages can be installed as follows:
+Alternatively, at least as of this writing, Skipper is compatible with the newest version of R and its packages. The required packages can be installed for an existing R installation as follows:
 
 `install.packages(c("tidyverse", "VGAM", "viridis", "ggrepel", "RColorBrewer", "Rtsne", "ggupset", "ggdendro", "cowplot"))`
 
