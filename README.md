@@ -32,7 +32,17 @@ For example, below are some commands for installing Miniconda and Snakemake.
 
 `conda create -c conda-forge -c bioconda -n snakemake snakemake`
 
-Several R packages are also required:
+Skipper requires several R packages. In order to install the precise versions used in the manuscript, we have scripts to install the used versions of R and corresponding packages from source.
+
+Use conda to create an environment for installing R:
+
+`conda env create -f documents/rskipper.yml`
+
+Use the get_R.sh script to complete installation of R. Expect the whole process to take around 4 hours. Provide your conda directory as the first argument and the directory you wish to install R as the second:
+
+`bash -l get_R.sh /home/eboyle/miniconda3 /projects/ps-yeolab3/eboyle/encode/pipeline/gran`
+
+As of this writing, Skipper is compatible with the newest version of R and its packages. The required packages can be installed as follows:
 
 `install.packages(c("tidyverse", "VGAM", "viridis", "ggrepel", "RColorBrewer", "Rtsne", "ggupset", "ggdendro", "cowplot"))`
 
