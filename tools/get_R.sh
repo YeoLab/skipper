@@ -5,7 +5,7 @@
 CONDA_DIR=$1 # CONDA_DIR=/home/eboyle/miniconda3
 R_DIR=$2 # R_DIR=/projects/ps-yeolab3/eboyle/encode/pipeline/gran
 
-# make conda environments for R dependencies
+# load conda environment for R dependencies
 conda activate rskipper
 
 # make directories for downloading source
@@ -43,9 +43,8 @@ cd R-4.1.3
 make && \
 make install
 
-# install versioned R packages using MRAN and BiocManager
+# install versioned R packages using groundhog and BiocManager
 cd ${R_DIR}/bin
-./R -e "install.packages('groundhog',repos = 'http://cran.us.r-project.org')"
-./R -e "groundhog::set.groundhog.folder(\"${R_DIR}/groundhog\")"
 ./R -e "dir.create(Sys.getenv('R_LIBS_USER'),recursive=TRUE)"
+./R -e "install.packages('groundhog',repos = 'http://cran.us.r-project.org')"
 ./R -e "groundhog::groundhog.library(c('tidyverse', 'VGAM', 'viridis', 'ggrepel', 'RColorBrewer', 'Rtsne', 'ggupset', 'ggdendro', 'cowplot', 'BiocManager'), '2022-03-11', force.install=TRUE)" && ./R -q -e "BiocManager::install(c('GenomicRanges','fgsea','rtracklayer'))"
