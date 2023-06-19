@@ -139,7 +139,8 @@ rule run_initial_fastqc:
         run_time = "3:00:00",
         job_name = "run_initial_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
-    shell:        
+    shell:
+        "module load fastqc;"
         "less {input.fq} | fastqc stdin:{wildcards.replicate_label} --extract --outdir output/fastqc/initial -t {threads}"
         
 rule trim_fastq:
@@ -209,6 +210,7 @@ rule run_trimmed_fastqc:
         job_name = "run_trimmed_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.trimmed_fastqc.txt"
     shell:
+        "module load fastqc;"
         "fastqc {input} --extract --outdir output/fastqc/processed -t {threads}"
         
 rule align_reads:
@@ -270,6 +272,8 @@ rule sort_bam:
         job_name = "sortbam",
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
     shell:
+        "set +eu;"
+        "module load samtools/1.16;"
         "samtools sort -T {wildcards.replicate_label} -@ {threads} -o {output.sort} {input.bam};"
         
 
@@ -287,6 +291,8 @@ rule index_bams:
         job_name = "index_bam"
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
     shell:
+        "set +eu;"
+        "module load samtools/1.16;"
         "samtools index -@ {threads} {input.bam};"
 
 
@@ -325,6 +331,8 @@ rule make_unscaled_bigwig:
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     shell:
+        "set +eu;"
+        "module load samtools/1.16 bedtools;"
         "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
         "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
         "{TOOL_DIR}/bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
@@ -347,6 +355,8 @@ rule make_scaled_bigwig:
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     shell:
+        "set +eu;"
+        "module load samtools/1.16 bedtools;"
         "factor=$(samtools idxstats {input.bam} | awk '{{sum += $3}} END {{print 10**6 / sum}}');"
         "bedtools genomecov -scale $factor -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
         "bedtools genomecov -scale $factor -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
@@ -697,6 +707,8 @@ rule get_nt_coverage:
         job_name = "get_nt_coverage"
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     shell:
+        "set +eu;"
+        "module load samtools/1.16 bedtools;"
         "zcat {input.windows} | tail -n +2 | sort -k1,1 -k2,2n | awk -v OFS=\"\t\" '{{print $1, $2 -37, $3+37,$4,$5,$6}}' | "
             "bedtools merge -i - -s -c 6 -o distinct | awk -v OFS=\"\t\" '{{for(i=$2;i< $3;i++) {{print $1,i,i+1,\"MW:\" NR \":\" i - $2,0,$4, NR}} }}' > {output.nt_census}; "
         "samtools cat {input.input_bams} | bedtools intersect -s -wa -a - -b {output.nt_census} | "
