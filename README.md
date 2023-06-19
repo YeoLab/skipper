@@ -38,7 +38,7 @@ Use conda to create an environment for installing R:
 
 `conda env create -f documents/rskipper.yml`
 
-Use the get_R.sh script to complete installation of R. Expect the whole process to take around 4 hours. Provide your conda directory as the first argument and the directory you wish to install R as the second:
+Use the get_R.sh script to complete installation of R. Expect the whole process to take around 4 hours. Provide your conda (miniconda, anaconda, mamba) directory as the first argument and the directory you wish to install R as the second:
 
 `bash -l tools/get_R.sh /home/eboyle/miniconda3 /projects/ps-yeolab3/eboyle/encode/pipeline/gran`
 
