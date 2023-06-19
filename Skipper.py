@@ -136,7 +136,8 @@ rule run_initial_fastqc:
     params:
         error_file = "stderr/{replicate_label}.fastqc_initial.err",
         out_file = "stdout/{replicate_label}.fastqc_initial.out",
-        run_time = "3:00:00",
+        run_time = "4:30:00",
+        memory = "20000",
         job_name = "run_initial_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
     shell:        
@@ -151,7 +152,7 @@ rule trim_fastq:
         metrics = "output/fastqs/trimmed/{replicate_label}-trimmed.log"
     threads: 8
     params:
-        run_time = "3:30:00",
+        run_time = "4:00:00",
         memory = "15000",
         error_file = "stderr/{replicate_label}.trim.err",
         out_file = "stdout/{replicate_label}.trim.out",
@@ -176,7 +177,7 @@ rule extract_umi:
         error_file = "stderr/{replicate_label}.extract_umi.err",
         out_file = "stdout/{replicate_label}.extract_umi.out",
         run_time = "45:00",
-        memory = "10000",
+        memory = "5000",
         job_name = "extract_umi",
         umi_length = UMI_SIZE,
     benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.extract_umi.txt"
@@ -202,8 +203,8 @@ rule run_trimmed_fastqc:
     threads: 1
     params:
         outdir="output/fastqc/processed/",
-        run_time = "03:00:00",
-        memory = "15000",
+        run_time = "02:30:00",
+        memory = "4000",
         error_file = "stderr/{replicate_label}.run_trimmed_fastqc.err",
         out_file = "stdout/{replicate_label}.run_trimmed_fastqc.out",
         job_name = "run_trimmed_fastqc"
@@ -363,8 +364,8 @@ rule uniq_repeats:
     params:
         error_file = "stderr/calc_partition_nuc.err",
         out_file = "stdout/calc_partition_nuc.out",
-        run_time = "40:00",
-        memory = "1000",
+        run_time = "1:00:00",
+        memory = "8000",
         job_name = "uniq_repeats_nuc"
     benchmark: "benchmarks/uniq_repeats.txt"
     shell:
@@ -440,8 +441,8 @@ rule fit_clip_betabinomial_re_model:
     params:
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.out",
-        run_time = "10:00",
-        memory = "2000",
+        run_time = "20:00",
+        memory = "10000",
         job_name = "fit_clip_betabinomial_re_model"
     benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     shell:
@@ -456,8 +457,8 @@ rule fit_input_betabinomial_re_model:
     params:
         error_file = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.err",
         out_file = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.out",
-        run_time = "10:00",
-        memory = "2000",
+        run_time = "20:00",
+        memory = "10000",
         job_name = "fit_input_betabinomial_re_model"
     benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
     shell:
@@ -476,7 +477,7 @@ rule call_enriched_re:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label],
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_re.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_re.out",
-        run_time = "00:25:00",
+        run_time = "00:15:00",
         memory = "3000",
         job_name = "call_enriched_re"
     benchmark: "benchmarks/call_enriched_re/{experiment_label}.{clip_replicate_label}.call_enriched_re.txt"
@@ -622,7 +623,7 @@ rule call_enriched_windows:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label],
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_windows.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_windows.out",
-        run_time = "00:45:00",
+        run_time = "02:30:00",
         memory = "6000",
         job_name = "call_enriched_windows"
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
@@ -692,7 +693,7 @@ rule get_nt_coverage:
     params:
         error_file = "stderr/{experiment_label}.get_nt_coverage.err",
         out_file = "stdout/{experiment_label}.get_nt_coverage.out",
-        run_time = "1:00:00",
+        run_time = "2:00:00",
         memory = "15000",
         job_name = "get_nt_coverage"
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
