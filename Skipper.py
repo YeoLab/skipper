@@ -329,6 +329,8 @@ rule make_unscaled_bigwig:
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     shell:
+        "set +eu;"
+        "module load samtools/1.16 bedtools;"
         "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
         "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
         "{TOOL_DIR}/bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
@@ -351,6 +353,8 @@ rule make_scaled_bigwig:
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     shell:
+        "set +eu;"
+        "module load samtools/1.16 bedtools;"
         "factor=$(samtools idxstats {input.bam} | awk '{{sum += $3}} END {{print 10**6 / sum}}');"
         "bedtools genomecov -scale $factor -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
         "bedtools genomecov -scale $factor -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
