@@ -7,7 +7,7 @@ import glob
 from time import sleep
 
 # example command
-# snakemake -kps Skipper.py -w 25 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" 
+# snakemake --keep-going -kps Skipper.py -w 25 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" > Skipper.log 2>&1 &
 
 include: "Skipper_config.py"
 
@@ -83,8 +83,8 @@ rule all:
         expand("output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
-        # expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
-        # expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
         expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
@@ -95,6 +95,9 @@ rule all:
         expand("output/homer/finemapped_results/{experiment_label}/homerResults.html", experiment_label = manifest.Experiment),
         expand("output/gene_sets/{experiment_label}.enriched_terms.tsv.gz", experiment_label = manifest.Experiment),
         "output/figures/tsne/skipper.tsne_query.pdf",
+        expand("output/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
+        expand("output/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
+        expand("output/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment)
     output:
         "land_ho.txt"
     threads: 1
@@ -132,11 +135,11 @@ rule run_initial_fastqc:
         report = "output/fastqc/initial/{replicate_label}_fastqc.html",
         zip_file = "output/fastqc/initial/{replicate_label}_fastqc.zip",
         directory = directory("output/fastqc/initial/{replicate_label}_fastqc")
-    threads: 1
+    threads: 2
     params:
         error_file = "stderr/{replicate_label}.fastqc_initial.err",
         out_file = "stdout/{replicate_label}.fastqc_initial.out",
-        run_time = "3:00:00",
+        run_time = "6:00:00",
         job_name = "run_initial_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
     shell:
@@ -152,8 +155,8 @@ rule trim_fastq:
         metrics = "output/fastqs/trimmed/{replicate_label}-trimmed.log"
     threads: 8
     params:
-        run_time = "3:30:00",
-        memory = "15000",
+        run_time = "5:30:00",
+        memory = "30000",
         error_file = "stderr/{replicate_label}.trim.err",
         out_file = "stdout/{replicate_label}.trim.out",
         job_name = "trim_fastq"
@@ -200,7 +203,7 @@ rule run_trimmed_fastqc:
     output:
         report = "output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html",
         zip_file = "output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.zip",
-    threads: 1
+    threads: 2
     params:
         outdir="output/fastqc/processed/",
         run_time = "03:00:00",
@@ -224,8 +227,8 @@ rule align_reads:
     params:
         error_file = "stderr/{replicate_label}.align_reads_genome.err",
         out_file = "stdout/{replicate_label}.align_reads_genome.out",
-        run_time = "02:00:00",
-        memory = "40000",
+        run_time = "04:00:00",
+        memory = "50000",
         job_name = "align_reads",
         star_sjdb = STAR_DIR,
         outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
@@ -245,7 +248,7 @@ rule align_reads:
             "--outMultimapperOrder Random "
             "--outFilterScoreMin 10 "
             "--outFilterType BySJout "
-            "--limitOutSJcollapsed 5000000 "
+            "--limitOutSJcollapsed 10000000 "
             "--outReadsUnmapped None "
             "--outSAMattrRGline ID:{wildcards.replicate_label} "
             "--outSAMattributes All "
@@ -263,12 +266,12 @@ rule sort_bam:
         bam="output/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.out.bam",
     output:
         sort = "output/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.sort.bam",
-    threads: 2
+    threads: 4
     params:
         error_file = "stderr/{ref}_{replicate_label}.sort_bam.err",
         out_file = "stdout/{ref}_{replicate_label}.sort_bam.out",
-        run_time = "00:30:00",
-        memory = "10000",
+        run_time = "02:00:00",
+        memory = "20000",
         job_name = "sortbam",
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
     shell:
@@ -305,8 +308,8 @@ rule dedup_umi:
     params:
         error_file = "stderr/{replicate_label}.dedup_umi.err",
         out_file = "stdout/{replicate_label}.dedup_umi.out",
-        run_time = "1:00:00",
-        memory = "10000",
+        run_time = "12:00:00",
+        memory = "60000",
         job_name = "dedup_bam",
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
@@ -326,8 +329,8 @@ rule make_unscaled_bigwig:
     params:
         error_file = "stderr/{replicate_label}.make_bigwig.err",
         out_file = "stdout/{replicate_label}.make_bigwig.out",
-        run_time = "40:00",
-        memory = "1000",
+        run_time = "4:00:00",
+        memory = "10000",
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     shell:
@@ -373,8 +376,8 @@ rule uniq_repeats:
     params:
         error_file = "stderr/calc_partition_nuc.err",
         out_file = "stdout/calc_partition_nuc.out",
-        run_time = "40:00",
-        memory = "1000",
+        run_time = "4:00:00",
+        memory = "16000",
         job_name = "uniq_repeats_nuc"
     benchmark: "benchmarks/uniq_repeats.txt"
     shell:
@@ -401,8 +404,8 @@ rule quantify_repeats:
     params:
         error_file = "stderr/{replicate_label}.quantify_repeats.err",
         out_file = "stdout/{replicate_label}.quantify_repeats.out",
-        run_time = "15:00",
-        memory = "20000",
+        run_time = "24:00:00",
+        memory = "60000",
         job_name = "dedup_bam",
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/repeats/unassigned_experiment.{replicate_label}.quantify_repeats.txt"
@@ -425,9 +428,9 @@ rule make_repeat_count_tables:
     params:
         error_file = "stderr/{experiment_label}.make_repeat_count_tables.err",
         out_file = "stdout/{experiment_label}.make_repeat_count_tables.out",
-        run_time = "00:15:00",
+        run_time = "02:00:00",
         cores = "1",
-        memory = "200",
+        memory = "2000",
         job_name = "make_repeat_count_tables"
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_repeat_count_table.txt"
     shell:
@@ -450,8 +453,8 @@ rule fit_clip_betabinomial_re_model:
     params:
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.out",
-        run_time = "10:00",
-        memory = "2000",
+        run_time = "2:00:00",
+        memory = "8000",
         job_name = "fit_clip_betabinomial_re_model"
     benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     shell:
@@ -466,8 +469,8 @@ rule fit_input_betabinomial_re_model:
     params:
         error_file = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.err",
         out_file = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.out",
-        run_time = "10:00",
-        memory = "2000",
+        run_time = "2:00:00",
+        memory = "8000",
         job_name = "fit_input_betabinomial_re_model"
     benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
     shell:
@@ -479,6 +482,7 @@ rule call_enriched_re:
         replicate = lambda wildcards: "output/counts/repeats/vectors/" + re.sub("IP_\d$","IP_2",wildcards.clip_replicate_label) + ".counts",
         repeats = REPEAT_BED,
         parameters = lambda wildcards: "output/" + OVERDISPERSION_MODE + "_model_coef_re/{experiment_label}." + overdispersion_replicate_lookup[wildcards.clip_replicate_label] + ".tsv",
+    threads: 2
     output:
         "output/figures/clip_scatter_re/{experiment_label}.{clip_replicate_label}.clip_test_distribution.pdf",
         "output/enriched_re/{experiment_label}.{clip_replicate_label}.enriched_re.tsv.gz"
@@ -486,8 +490,8 @@ rule call_enriched_re:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label],
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_re.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_re.out",
-        run_time = "00:25:00",
-        memory = "3000",
+        run_time = "3:00:00",
+        memory = "16000",
         job_name = "call_enriched_re"
     benchmark: "benchmarks/call_enriched_re/{experiment_label}.{clip_replicate_label}.call_enriched_re.txt"
     shell:
@@ -501,8 +505,8 @@ rule find_reproducible_enriched_re:
     params:
         error_file = "stderr/{experiment_label}.find_reproducible_enriched_re.err",
         out_file = "stdout/{experiment_label}.find_reproducible_enriched_re.out",
-        run_time = "5:00",
-        memory = "1000",
+        run_time = "2:00:00",
+        memory = "8000",
         job_name = "find_reproducible_enriched_re"
     benchmark: "benchmarks/find_reproducible_enriched_re/{experiment_label}.all_replicates.reproducible.txt"
     shell:
@@ -518,9 +522,8 @@ rule partition_bam_reads:
     params:
         error_file = "stderr/{replicate_label}.partition_bam_reads.err",
         out_file = "stdout/{replicate_label}.partition_bam_reads.out",
-        run_time = "20:00",
-        cores = "1",
-        memory = "10000",
+        run_time = "12:00:00",
+        memory = "60000",
         job_name = "partition_bam_reads"
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
     shell:
@@ -540,8 +543,8 @@ rule calc_partition_nuc:
     params:
         error_file = "stderr/calc_partition_nuc.err",
         out_file = "stdout/calc_partition_nuc.out",
-        run_time = "00:10:00",
-        memory = "1000",
+        run_time = "2:00:00",
+        memory = "16000",
         job_name = "calc_partition_nuc"
     benchmark: "benchmarks/partition_nuc.txt"
     shell:
@@ -553,6 +556,7 @@ rule make_genome_count_table:
         replicate_counts = lambda wildcards: expand("output/counts/genome/vectors/{replicate_label}.counts", replicate_label = experiment_to_replicate_labels[wildcards.experiment_label]),
     output:
         count_table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
+    threads: 4
     params:
         error_file = "stderr/{experiment_label}.make_count_table.err",
         out_file = "stdout/{experiment_label}.make_count_table.out",
@@ -570,11 +574,12 @@ rule fit_input_betabinomial_model:
     output:
         coef = "output/input_model_coef/{experiment_label}.{input_replicate_label}.tsv",
         # plot = lambda wildcards: expand("output/figures/input_distributions/{{experiment_label}}.{{input_replicate_label}}.{other_label}.input_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
+    threads: 4
     params:
         error_file = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinom.err",
         out_file = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinom.out",
-        run_time = "1:00:00",
-        memory = "10000",
+        run_time = "3:00:00",
+        memory = "20000",
         job_name = "fit_input_betabinomial_model"
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
     shell:
@@ -586,11 +591,12 @@ rule fit_clip_betabinomial_model:
     output:
         coef = "output/clip_model_coef/{experiment_label}.{clip_replicate_label}.tsv",
         # plot = lambda wildcards: expand("output/figures/clip_distributions/{{experiment_label}}.{{clip_replicate_label}}.{other_label}.clip_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
+    threads: 2
     params:
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.out",
-        run_time = "1:00:00",
-        memory = "1000",
+        run_time = "6:00:00",
+        memory = "16000",
         job_name = "fit_clip_betabinomial_model"
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     shell:
@@ -628,12 +634,13 @@ rule call_enriched_windows:
         "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature.pdf",
         "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.all_transcript_types.pdf",
         "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature_gc.pdf"
+    threads: 4
     params:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label],
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_windows.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_windows.out",
-        run_time = "00:45:00",
-        memory = "6000",
+        run_time = "06:00:00",
+        memory = "24000",
         job_name = "call_enriched_windows"
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
     shell:
@@ -699,11 +706,12 @@ rule get_nt_coverage:
         nt_input_counts = temp("output/finemapping/nt_coverage/{experiment_label}.nt_coverage.input.counts"),
         nt_clip_counts = temp("output/finemapping/nt_coverage/{experiment_label}.nt_coverage.clip.counts"),
         nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
+    threads: 6
     params:
         error_file = "stderr/{experiment_label}.get_nt_coverage.err",
         out_file = "stdout/{experiment_label}.get_nt_coverage.out",
-        run_time = "1:00:00",
-        memory = "15000",
+        run_time = "6:00:00",
+        memory = "45000",
         job_name = "get_nt_coverage"
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     shell:
@@ -730,11 +738,12 @@ rule finemap_windows:
         nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed",        
     output:
         finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
+    threads: 6,
     params:
         error_file = "stderr/{experiment_label}.finemap_windows.err",
         out_file = "stdout/{experiment_label}.finemap_windows.out",
-        run_time = "1:00:00",
-        memory = "10000",
+        run_time = "6:00:00",
+        memory = "60000",
         job_name = "finemap_windows"
     benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
     shell:
@@ -795,3 +804,28 @@ rule consult_term_reference:
     benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
     shell:
         "{R_EXE} --vanilla {TOOL_DIR}/consult_term_reference.R {input.enriched_windows} {input.gene_sets} {input.gene_set_reference} {input.gene_set_distance} {wildcards.experiment_label} "
+
+rule multiqc:
+    input: 
+        trimmed_fastqc = lambda wildcards: [f"output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.zip" for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]],
+        initial_fastqc = lambda wildcards: [f"output/fastqc/initial/{replicate_label}_fastqc.zip" for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]],
+        star_log = lambda wildcards: [f"output/bams/raw/genome/{replicate_label}.genome.Log.final.out" for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]],
+        fastp = lambda wildcards: [f"output/fastp/{replicate_label}.fastp.json" for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]],
+        trimmed = lambda wildcards: [f"output/fastqs/trimmed/{replicate_label}-trimmed.log" for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]]
+    output:
+        multiqc_results = directory("output/multiqc/{experiment_label}/multiqc_data/"),
+        multiqc_plots = directory("output/multiqc/{experiment_label}/multiqc_plots/"),
+        multiqc_report = "output/multiqc/{experiment_label}/multiqc_report.html"
+    params:
+        error_file = "stderr/{experiment_label}.multiqc.err",
+        out_file = "stdout/{experiment_label}.multiqc.out",
+        run_time = "15:00",
+        memory = "4000",
+        job_name = "multiqc"
+    benchmark: "benchmarks/multiqc/{experiment_label}.multiqc.txt"
+    shell:
+        """
+        module load multiqc/1.6;
+        ls {input.trimmed_fastqc} {input.initial_fastqc} {input.star_log} {input.fastp} {input.trimmed} > output/multiqc/{wildcards.experiment_label}/files.txt
+        multiqc --outdir output/multiqc/{wildcards.experiment_label} -f --export --data-format json --file-list output/multiqc/{wildcards.experiment_label}/files.txt
+        """
