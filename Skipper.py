@@ -764,7 +764,7 @@ rule run_homer:
         job_name = "run_homer"
     benchmark: "benchmarks/run_homer/{experiment_label}.all_replicates.reproducible.txt"
     shell:
-        "findMotifsGenome.pl <(less {input.finemapped_windows} | awk -v OFS=\"\t\" '{{print $4 \":\"$9,$1,$2+1,$3,$6}}') "
+        "module load homer;findMotifsGenome.pl <(less {input.finemapped_windows} | awk -v OFS=\"\t\" '{{print $4 \":\"$9,$1,$2+1,$3,$6}}') "
             "{input.genome} output/homer/finemapped_results/{wildcards.experiment_label} -preparsedDir output/homer/preparsed -size given -rna -nofacts -S 20 -len 5,6,7,8,9 -nlen 1 "
             "-bg <(zcat {input.background} | awk -v OFS=\"\t\" '{{print $4,$1,$2+1,$3,$6}}') "
 
