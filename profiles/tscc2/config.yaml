@@ -1,0 +1,12 @@
+verbose: true
+notemp: false
+latency: 60
+printshellcmds: true
+cores: 8
+skip-script-cleanup: true
+nolock: true
+keep-going: true
+cluster: "sbatch --qos=hotel --nodes=1 --tasks-per-node={threads} --error={params.error_file} --output={params.out_file} --time={params.run_time}"
+use-singularity: true
+singularity-args: "--bind /tscc"
+jobs: 8
