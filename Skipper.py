@@ -5,6 +5,8 @@ import os
 import sys
 import glob
 from time import sleep
+from pathlib import Path
+import warnings 
 
 # example command
 # snakemake --keep-going -kps Skipper.py -w 25 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" > Skipper.log 2>&1 &
@@ -77,6 +79,13 @@ for experiment_label, label_list in zip(experiment_data.index, experiment_data.I
                 replicates.add(other_entry)
         experiment_to_input_replicate_labels[experiment_label].update({entry : list(replicates)})
 
+# Fool-proof Detect misalignment for GFF and PARTITION
+if Path(GFF).name.replace('.gff.gz', '') != Path(FEATURE_ANNOTATIONS).name.replace('.tiled_partition.features.tsv.gz', ''):
+    warnings.warn(f'''Detected Name Mismatch in GFF and FEATURE ANNOTATIONS:
+    FEATURE_ANNOTATIONS={FEATURE_ANNOTATIONS}
+    GFF={GFF}
+    Check if they are the same cell line
+    ''')
 rule all:
     input:
         expand("output/fastqc/initial/{replicate_label}_fastqc.html", replicate_label = replicate_labels), 
