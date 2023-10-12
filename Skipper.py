@@ -10,8 +10,7 @@ import warnings
 
 # example command
 # snakemake --keep-going -kps Skipper.py -w 25 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" > Skipper.log 2>&1 &
-
-include: "Skipper_config.py"
+locals().update(config)
 
 if not os.path.exists("stderr"): os.makedirs("stderr")
 if not os.path.exists("stdout"): os.makedirs("stdout")
@@ -86,6 +85,9 @@ if Path(GFF).name.replace('.gff.gz', '') != Path(FEATURE_ANNOTATIONS).name.repla
     GFF={GFF}
     Check if they are the same cell line
     ''')
+
+config = {'replicate_labels': replicate_labels}
+
 rule all:
     input:
         expand("output/fastqc/initial/{replicate_label}_fastqc.html", replicate_label = replicate_labels), 
