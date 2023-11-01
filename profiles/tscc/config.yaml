@@ -1,9 +1,0 @@
-cluster: "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo"
-verbose: true
-notemp: false
-latency: 15
-printshellcmds: true
-jobs: 30
-skip-script-cleanup: true
-nolock: true
-keep-going: true
