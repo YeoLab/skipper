@@ -102,7 +102,7 @@ rule all:
         error_file = "stderr/all.err",
         out_file = "stdout/all.out",
         run_time = "00:04:00",
-        memory = "20",
+        memory = "200",
         job_name = "all"
     shell:
         "echo $(date)  > {output};"
