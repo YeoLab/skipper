@@ -5,7 +5,7 @@ Skip the peaks and expose RNA-binding in CLIP data
 
 See published article in Cell Genomics: https://www.cell.com/cell-genomics/fulltext/S2666-979X(23)00085-X
 
-<h2>Prerequisites (If using Docker containers, please proceed to "Preparing to run Skipper" section)</h2>
+<h2>Prerequisites (If using Docker containers, please follow steps below to install Miniconda and snakemake, then proceed to "Preparing to run Skipper" section)</h2>
 Skipper requires several executables and packages:
 
 | Tool      | Link |
