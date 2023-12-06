@@ -15,20 +15,24 @@ snakemake -kps Skipper.py \
     -j 30 \
     --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" \
     --configfile /home/hsher/projects/skipper/encore_configs/Skipper_config_small_test.yaml \
+    --conda-prefix /home/hsher/snakeconda \
+    --use-conda \
     -n
 
 # ENCODE 3
 snakemake -kps Skipper.py \
     -j 30 \
     --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" \
-    --configfile /home/hsher/projects/skipper/encode_configs/Skipper_pe_small_test.yaml \
+    --configfile /home/hsher/projects/skipper/encode_configs/encode_pe_rules_config_HepG2_20230620.yaml \
+    --conda-prefix /home/hsher/snakeconda \
+    --use-conda \
     -n
 
 """
 
 locals().update(config)
 
-WORKDIR: config['WORKDIR']
+workdir: config['WORKDIR']
 
 if not os.path.exists("stderr"): os.makedirs("stderr")
 if not os.path.exists("stdout"): os.makedirs("stdout")
@@ -135,6 +139,9 @@ if Path(GFF).name.replace('.gff3.gz', '') != Path(FEATURE_ANNOTATIONS).name.repl
     Check if they are the same cell line
     ''')
 
+config['manifest'] = manifest
+
+
 rule all:
     input:
         # expand("output/fastqc/initial/{replicate_label}_fastqc.html", replicate_label = replicate_labels
@@ -157,9 +164,14 @@ rule all:
         expand("output/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
         expand("output/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
         expand("output/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment),
-        "output/counts/genome/megatables/megatable.tsv.gz",
-        expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family'])
-
+        expand("output/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
+        expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
+        "output/QC/unique_fragments.csv",
+        expand("output/ml/sequence/{experiment_label}.foreground.fa", experiment_label = manifest.Experiment),
+        expand("output/ml/gkmsvm/{experiment_label}.cvpred.txt", experiment_label = manifest.Experiment),
+        expand("output/ml/gkmsvm/{experiment_label}.model.txt", experiment_label = manifest.Experiment),
+        "output/ml/gkmsvm/AUPRC.txt",
+        "variants_done.txt"
 module se_preprocess:
     snakefile:
         "rules/se_preprocess.smk"
@@ -207,6 +219,19 @@ module bigwig:
         "rules/bigwig.smk"
     config:
         config
+module prep_ml:
+    snakefile:
+        "rules/prep_ml.smk"
+    config:
+        config
+
+module variants:
+    snakefile:
+        "rules/variants.smk"
+    config:
+        config
+
+
 
 if config['protocol']=='ENCODE4':
     use rule * from se_preprocess as se_*
@@ -220,5 +245,6 @@ use rule * from repeat
 use rule * from finemap
 use rule * from analysis
 use rule * from meta_analysis
-
+use rule * from prep_ml as ml_*
+use rule * from variants as variants_*
 
