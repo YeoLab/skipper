@@ -31,6 +31,7 @@ rule partition_bam_reads:
         job_name = "partition_bam_reads"
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
     shell:
+        "module load bedtools;"
         "bedtools bamtobed -i {input.bam} | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
         "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
         "bedtools shift -p 1 -m -1 -g {CHROM_SIZES} -i - | "
@@ -74,7 +75,7 @@ rule make_genome_count_table:
 
 rule fit_input_betabinomial_model:
     input:
-        table = "output/counts/genome/tables/{experiment_label}.tsv.gz"
+        table = rules.make_genome_count_table.output.count_table
     output:
         coef = "output/input_model_coef/{experiment_label}.{input_replicate_label}.tsv",
         # plot = lambda wildcards: expand("output/figures/input_distributions/{{experiment_label}}.{{input_replicate_label}}.{other_label}.input_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
@@ -91,7 +92,7 @@ rule fit_input_betabinomial_model:
 
 rule fit_clip_betabinomial_model:
     input:
-        table = "output/counts/genome/tables/{experiment_label}.tsv.gz"
+        table = rules.make_genome_count_table.output.count_table
     output:
         coef = "output/clip_model_coef/{experiment_label}.{clip_replicate_label}.tsv",
         # plot = lambda wildcards: expand("output/figures/clip_distributions/{{experiment_label}}.{{clip_replicate_label}}.{other_label}.clip_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
@@ -111,7 +112,7 @@ rule call_enriched_windows:
         feature_annotations = ancient(FEATURE_ANNOTATIONS),
         accession_rankings = ancient(ACCESSION_RANKINGS),
         replicate = lambda wildcards: "output/counts/genome/vectors/" + re.sub("IP_\d$","IP_2",wildcards.clip_replicate_label) + ".counts",
-        table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
+        table = rules.make_genome_count_table.output.count_table,
         parameters = lambda wildcards: "output/" + OVERDISPERSION_MODE + "_model_coef/{experiment_label}." + overdispersion_replicate_lookup[wildcards.clip_replicate_label] + ".tsv",
         # parameters = lambda wildcards: "output/clip_model_coef/{experiment_label}.{wildcards.clip_replicate_label}.tsv",
     output:
@@ -185,7 +186,7 @@ rule find_reproducible_enriched_windows:
 
 rule sample_background_windows_by_region:
     input:
-        enriched_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
+        enriched_windows = rules.find_reproducible_enriched_windows.output.reproducible_windows,
         all_windows = ancient(FEATURE_ANNOTATIONS),
     output:
         variable_windows = "output/homer/region_matched_background/variable/{experiment_label}.sampled_variable_windows.bed.gz",

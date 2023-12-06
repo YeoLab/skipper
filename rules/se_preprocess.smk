@@ -1,5 +1,4 @@
-#locals().update(config)
-
+locals().update(config) # JAVA_EXE
 rule run_initial_fastqc:
     input:
         fq = lambda wildcards: config['replicate_label_to_fastqs'][wildcards.replicate_label].split(" "),
@@ -33,6 +32,7 @@ rule trim_fastq:
         out_file = "stdout/{replicate_label}.trim.out",
         job_name = "trim_fastq"
     benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
+    conda: "envs/skewer.yaml"
     shell:
         "less {input.fq} | skewer "
           "-t {threads} "
@@ -42,7 +42,7 @@ rule trim_fastq:
 
 rule extract_umi:
     input:
-        fq = "output/fastqs/trimmed/{replicate_label}-trimmed.fastq.gz",
+        fq = rules.trim_fastq.output.fq_trimmed,
     output:
         fq_umi = "output/fastqs/umi/{replicate_label}.trimmed.umi.fq.gz",
         json = "output/fastp/{replicate_label}.fastp.json",
@@ -71,7 +71,7 @@ rule extract_umi:
 
 rule run_trimmed_fastqc:
     input:
-        "output/fastqs/umi/{replicate_label}.trimmed.umi.fq.gz",
+        rules.extract_umi.output.fq_umi,
     output:
         report = "output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html",
         zip_file = "output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.zip",
@@ -90,7 +90,7 @@ rule run_trimmed_fastqc:
         
 rule align_reads:
     input:
-        fq= "output/fastqs/umi/{replicate_label}.trimmed.umi.fq.gz",
+        fq= rules.extract_umi.output.fq_umi,
     output:
         ubam = temp("output/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
         # unmapped= "output/bams/raw/genome/{replicate_label}.genome.Unmapped.out.mate1",
@@ -106,7 +106,8 @@ rule align_reads:
         outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
         rg = "{replicate_label}"
     benchmark: "benchmarks/align/unassigned_experiment.{replicate_label}.align_reads_genome.txt"
-    shell:        
+    shell:  
+        "module load star;"      
         "STAR "
             "--alignEndsType EndToEnd "
             "--genomeDir {params.star_sjdb} "
@@ -188,3 +189,22 @@ rule dedup_umi:
     shell:
         "{JAVA_EXE} -server -Xms8G -Xmx8G -Xss20M -jar {UMICOLLAPSE_DIR}/umicollapse.jar bam "
             "-i {input.bam} -o {output.bam_dedup} --umi-sep : --two-pass"
+
+rule obtain_unique_reads:
+    input:
+        rules.dedup_umi.output.bam_dedup
+    output:
+        "output/QC/{replicate_label}.uniq_fragments"
+    params:
+        error_file = "stderr/{replicate_label}.count_uniq_fragments.txt",
+        out_file = "stdout/{replicate_label}.count_uniq_fragments.txt",
+        run_time = "5:00",
+        memory = "10000",
+        job_name = "count_uniq_fragments",
+    benchmark:
+        "benchmarks/{replicate_label}.count_uniq_fragments.txt"
+    shell:
+        """
+        module load samtools
+        samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
+        """

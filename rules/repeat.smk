@@ -79,7 +79,7 @@ rule make_repeat_count_tables:
 
 rule fit_clip_betabinomial_re_model:
     input:
-        table = "output/counts/repeats/tables/name/{experiment_label}.tsv.gz",
+        table = rules.make_repeat_count_tables.output.name_table,
     output:
         coef = "output/clip_model_coef_re/{experiment_label}.{clip_replicate_label}.tsv",
         # plot = lambda wildcards: expand("output/figures/clip_distributions/{{experiment_label}}.{{clip_replicate_label}}.{other_label}.clip_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
@@ -95,7 +95,7 @@ rule fit_clip_betabinomial_re_model:
 
 rule fit_input_betabinomial_re_model:
     input:
-        table = "output/counts/repeats/tables/name/{experiment_label}.tsv.gz",
+        table = rules.make_repeat_count_tables.output.name_table,
     output:
         coef = "output/input_model_coef_re/{experiment_label}.{input_replicate_label}.tsv",
         # plot = lambda wildcards: expand("output/figures/input_distributions/{{experiment_label}}.{{input_replicate_label}}.{other_label}.input_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
@@ -111,7 +111,7 @@ rule fit_input_betabinomial_re_model:
 
 rule call_enriched_re:
     input:
-        table = "output/counts/repeats/tables/name/{experiment_label}.tsv.gz",
+        table = rules.make_repeat_count_tables.output.name_table,
         replicate = lambda wildcards: "output/counts/repeats/vectors/" + re.sub("IP_\d$","IP_2",wildcards.clip_replicate_label) + ".counts",
         repeats = REPEAT_BED,
         parameters = lambda wildcards: "output/" + OVERDISPERSION_MODE + "_model_coef_re/{experiment_label}." + overdispersion_replicate_lookup[wildcards.clip_replicate_label] + ".tsv",

@@ -38,7 +38,7 @@ rule get_nt_coverage:
 
 rule finemap_windows:
     input:
-        nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed",        
+        nt_coverage = rules.get_nt_coverage.output.nt_coverage,        
     output:
         finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     threads: 6,

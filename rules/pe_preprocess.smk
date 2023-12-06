@@ -87,8 +87,8 @@ rule copy_with_umi:
 
 rule run_initial_fastqc:
     input:
-        r1 = "output/fastqs/copy/{replicate_label}-1.fastq.gz",
-        r2 = "output/fastqs/copy/{replicate_label}-2.fastq.gz"
+        r1 = rules.copy_with_umi.output.fq_1,
+        r2 = rules.copy_with_umi.output.fq_2
     output:
         report_r1 = "output/fastqc/initial/{replicate_label}-1_fastqc.html",
         zip_file_r1 = "output/fastqc/initial/{replicate_label}-1_fastqc.zip",
@@ -112,8 +112,8 @@ rule trim_fastq_encode:
     input:
         # fq_1 = lambda wildcards: replicate_label_to_fastq_1[wildcards.replicate_label],
         # fq_2 = lambda wildcards: replicate_label_to_fastq_2[wildcards.replicate_label],
-        fq_1 = "output/fastqs/copy/{replicate_label}-1.fastq.gz",
-        fq_2 = "output/fastqs/copy/{replicate_label}-2.fastq.gz",
+        fq_1 = rules.copy_with_umi.output.fq_1,
+        fq_2 = rules.copy_with_umi.output.fq_2,
         adapter_1 = lambda wildcards: config['replicate_label_to_adapter_1'][wildcards.replicate_label],
         adapter_2 = lambda wildcards: config['replicate_label_to_adapter_2'][wildcards.replicate_label],
     output:
@@ -128,6 +128,7 @@ rule trim_fastq_encode:
         out_file = "stdout/{replicate_label}.trim.out",
         job_name = "trim_fastq"
     benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
+    conda: "envs/skewer.yaml"
     shell:
         "skewer "
           "-t {threads} "
@@ -139,8 +140,8 @@ rule trim_fastq_encode:
 
 rule run_trimmed_fastqc:
     input:
-        r1 = "output/fastqs/trimmed/{replicate_label}-trimmed-pair1.fastq.gz",
-        r2 = "output/fastqs/trimmed/{replicate_label}-trimmed-pair2.fastq.gz",
+        r1 = rules.trim_fastq_encode.output.fq_1_trimmed,
+        r2 = rules.trim_fastq_encode.output.fq_2_trimmed,
     output:
         report_r1 = "output/fastqc/processed/{replicate_label}-trimmed-pair1_fastqc.html",
         zip_file_r1 = "output/fastqc/processed/{replicate_label}-trimmed-pair1_fastqc.zip",
@@ -162,8 +163,8 @@ rule run_trimmed_fastqc:
         
 rule align_reads_encode:
     input:
-        fq_1 = "output/fastqs/trimmed/{replicate_label}-trimmed-pair1.fastq.gz",
-        fq_2 = "output/fastqs/trimmed/{replicate_label}-trimmed-pair2.fastq.gz"
+        fq_1 = rules.trim_fastq_encode.output.fq_1_trimmed,
+        fq_2 = rules.trim_fastq_encode.output.fq_2_trimmed
     output:
         ubam = temp("output/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
         # unmapped= "output/bams/raw/genome/{replicate_label}.genome.Unmapped.out.mate1",
@@ -179,7 +180,8 @@ rule align_reads_encode:
         outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
         rg = "{replicate_label}"
     benchmark: "benchmarks/align/unassigned_experiment.{replicate_label}.align_reads_genome.txt"
-    shell:        
+    shell:    
+        "module load star;"    
         "STAR "
             "--alignEndsType EndToEnd "
             "--genomeDir {params.star_sjdb} "
@@ -277,3 +279,22 @@ rule select_informative_read:
         "set +eu;"
         "module load samtools/1.16;"
         "samtools view -bF " + str(64 if UNINFORMATIVE_READ == 1 else 128) + " {input.bam_combined} > {output.bam_informative}"
+
+rule obtain_unique_reads:
+    input:
+        rules.select_informative_read.output.bam_informative
+    output:
+        "output/QC/{replicate_label}.uniq_fragments"
+    params:
+        error_file = "stderr/{replicate_label}.count_uniq_fragments.txt",
+        out_file = "stdout/{replicate_label}.count_uniq_fragments.txt",
+        run_time = "5:00",
+        memory = "10000",
+        job_name = "count_uniq_fragments",
+    benchmark:
+        "benchmarks/{replicate_label}.count_uniq_fragments.txt"
+    shell:
+        """
+        module load samtools
+        samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
+        """
