@@ -100,8 +100,4 @@ checkpoint gkmsvm_AUPRC:
 
 # rule make_prismnet_tsv:
 
-def find_well_trained_model(auprc_threshold = 0.6):
-    print(dir(checkpoints))
-    auprc_df =  pd.read_csv(checkpoints.gkmsvm_AUPRC.output[0], index_col = 0)
-    return auprc_df.loc[auprc_df['AUPRC']>auprc_threshold, 'Experiment'].tolist()
 
