@@ -17,16 +17,23 @@ snakemake -kps Skipper.py \
     --configfile /home/hsher/projects/skipper/encore_configs/Skipper_config_small_test.yaml \
     --conda-prefix /home/hsher/snakeconda \
     --use-conda \
+    --use-singularity \
+    --singularity-prefix /home/hsher/scratch/singularity \
+    --singularity-args "--bind /oasis --bind /projects --bind /scratch" \
     -n
 
 # ENCODE 3
 snakemake -kps Skipper.py \
     -j 30 \
     --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" \
-    --configfile /home/hsher/projects/skipper/encode_configs/encode_pe_rules_config_HepG2_20230620.yaml \
+    --configfile /home/hsher/projects/skipper/encode_configs/Skipper_pe_small_test.yaml \
     --conda-prefix /home/hsher/snakeconda \
     --use-conda \
-    -n
+    --use-singularity \
+    --singularity-prefix /home/hsher/scratch/singularity \
+    --singularity-args "--bind /oasis --bind /projects --bind /scratch" \
+    output/ml/gkmsvm/RBFOX2_HepG2_ENCSR987FTF.cvpred.txt
+
 
 """
 
@@ -37,7 +44,6 @@ workdir: config['WORKDIR']
 if not os.path.exists("stderr"): os.makedirs("stderr")
 if not os.path.exists("stdout"): os.makedirs("stdout")
 
-if EXE_DIR not in sys.path: os.environ["PATH"] = EXE_DIR + os.pathsep + os.environ["PATH"]
 
 if OVERDISPERSION_MODE not in ["clip","input"]:
     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")

@@ -13,8 +13,10 @@ rule parse_gff:
         run_time = "3:00:00",
         job_name = "parse_gff"
     benchmark: "benchmarks/parse_gff.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:        
-        "{R_EXE} --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
+        "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
 
 rule partition_bam_reads:
     input:
@@ -30,8 +32,9 @@ rule partition_bam_reads:
         memory = "60000",
         job_name = "partition_bam_reads"
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
-        "module load bedtools;"
         "bedtools bamtobed -i {input.bam} | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
         "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
         "bedtools shift -p 1 -m -1 -g {CHROM_SIZES} -i - | "
@@ -52,6 +55,8 @@ rule calc_partition_nuc:
         memory = "16000",
         job_name = "calc_partition_nuc"
     benchmark: "benchmarks/partition_nuc.txt"
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         "bedtools nuc -s -fi {input.genome} -bed {input.partition} | gzip -c > {output.nuc}"
 
@@ -70,6 +75,8 @@ rule make_genome_count_table:
         memory = "200",
         job_name = "make_genome_count_table"
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_genome_count_table.txt"
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         "paste <(zcat {input.partition} | awk -v OFS=\"\\t\" 'BEGIN {{print \"chr\\tstart\\tend\\tname\\tscore\\tstrand\\tgc\"}} NR > 1 {{print $1,$2,$3,$4,$5,$6,$8}}' ) {input.replicate_counts} | gzip -c > {output.count_table};"
 
@@ -87,8 +94,10 @@ rule fit_input_betabinomial_model:
         memory = "20000",
         job_name = "fit_input_betabinomial_model"
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_input_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
 rule fit_clip_betabinomial_model:
     input:
@@ -104,8 +113,10 @@ rule fit_clip_betabinomial_model:
         memory = "16000",
         job_name = "fit_clip_betabinomial_model"
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_clip_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
 rule call_enriched_windows:
     input:
@@ -148,8 +159,10 @@ rule call_enriched_windows:
         memory = "24000",
         job_name = "call_enriched_windows"
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/call_enriched_windows.R {input.table} {input.accession_rankings} {input.feature_annotations} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/call_enriched_windows.R {input.table} {input.accession_rankings} {input.feature_annotations} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
 rule check_window_concordance:
     input:
@@ -164,8 +177,10 @@ rule check_window_concordance:
         memory = "1000",
         job_name = "check_window_concordance"
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/check_window_concordance.R output/tested_windows {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
+        "Rscript --vanilla {TOOL_DIR}/check_window_concordance.R output/tested_windows {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
 rule find_reproducible_enriched_windows:
     input:
@@ -181,8 +196,10 @@ rule find_reproducible_enriched_windows:
         memory = "2000",
         job_name = "find_reproducible_enriched_windows"
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/identify_reproducible_windows.R output/enriched_windows/ {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
+        "Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R output/enriched_windows/ {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
 rule sample_background_windows_by_region:
     input:
@@ -198,5 +215,7 @@ rule sample_background_windows_by_region:
         memory = "3000",
         job_name = "sample_background_windows"
     benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/sample_matched_background_by_region.R {input.enriched_windows} {input.all_windows} 75 output/homer/region_matched_background {wildcards.experiment_label};"
+        "Rscript --vanilla {TOOL_DIR}/sample_matched_background_by_region.R {input.enriched_windows} {input.all_windows} 75 output/homer/region_matched_background {wildcards.experiment_label};"

@@ -32,9 +32,10 @@ rule multiqc:
         memory = "4000",
         job_name = "multiqc"
     benchmark: "benchmarks/multiqc/{experiment_label}.multiqc.txt"
+    container:
+        "docker://jeltje/multiqc:1.6"
     shell:
         """
-        module load multiqc/1.6;
         ls {input.trimmed_fastqc} {input.initial_fastqc} {input.star_log} {input.fastp} {input.trimmed} > output/multiqc/{wildcards.experiment_label}/files.txt
         multiqc --outdir output/multiqc/{wildcards.experiment_label} -f --export --data-format json --file-list output/multiqc/{wildcards.experiment_label}/files.txt
         """

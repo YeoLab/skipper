@@ -1,6 +1,5 @@
-WORKDIR: /home/hsher/scratch/ENCORE_test
+WORKDIR: /home/hsher/scratch/ENCORE_test_2
 protocol: ENCODE4
-REPO_PATH : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper
 MANIFEST : /home/hsher/projects/skipper/encore_configs/Skipper_manifest_small.csv
 GFF : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v40.annotation.hepg2_totalrna.gt1.gff3.gz
 PARTITION : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v40.annotation.hepg2_totalrna.gt1.tiled_partition.bed.gz
@@ -9,13 +8,9 @@ ACCESSION_RANKINGS : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/a
 UMI_SIZE : 10
 INFORMATIVE_READ : 1
 OVERDISPERSION_MODE : input
-CONDA_DIR : 
-TOOL_DIR : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/tools
-EXE_DIR : /projects/ps-yeolab4/software/skipper/bb63a25/bin
+TOOL_DIR : /projects/ps-yeolab3/hsher/skipper/tools
 STAR_DIR : /projects/ps-yeolab4/software/eclip/0.7.1/examples/inputs/star_2_7_gencode40_sjdb/
-R_EXE : /projects/ps-yeolab4/software/yeolabconda3/envs/skipper-bb63a25/bin/Rscript
-UMICOLLAPSE_DIR : /projects/ps-yeolab4/software/skipper/bb63a25/bin/UMICollapse
-JAVA_EXE : /projects/ps-yeolab4/software/yeolabconda3/envs/skipper-bb63a25/bin/java
+
 GENOME : /projects/ps-yeolab4/genomes/GRCh38/chromosomes/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta
 CHROM_SIZES : /projects/ps-yeolab4/software/eclip/0.7.1/examples/inputs/star_2_7_gencode40_sjdb/chrNameLength.txt
 REPEAT_TABLE : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/repeatmasker.grch38.tsv.gz

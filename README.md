@@ -72,7 +72,6 @@ Other paths to help Skipper run must be entered:
 
 | Path    | Description |
 | ----------- | ----------- |
-| EXE_DIR     | For convenience to point to stable locally installed software: it is added to PATH when Skipper runs |
 | TOOL_DIR    | Directory for the tools located in the GitHub        |
 
 

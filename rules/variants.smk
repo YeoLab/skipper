@@ -16,9 +16,10 @@ rule fetch_gnomAD_SNP:
         out_file = "stdout/fetch_snp.{experiment_label}.{chr}",
         run_time = "3:20:00",
         cores = 1,
+    container:
+        "docker://miguelpmachado/bcftools:1.9-01"
     shell:
         """
-        module load bcftools
         bcftools query -R {input.finemapped_windows} -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%INFO/AC\t%INFO/AN\n' \
             https://gnomad-public-us-east-1.s3.amazonaws.com/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.{wildcards.chr}.vcf.bgz > {output}
         """
@@ -53,9 +54,10 @@ rule reannotate_vcf:
         out_file = "stdout/rename_chr",
         run_time = "3:20:00",
         cores = 1,
+    container:
+        "docker://miguelpmachado/bcftools:1.9-01"
     shell:
         """
-        module load bcftools
         bcftools annotate --rename-chrs {input.rename} \
             {input.vcf} -Oz -o {output}
         bcftools index {output}
@@ -74,9 +76,10 @@ rule fetch_Clinvar_SNP:
         out_file = "stdout/fetch_clinvar_snp.{experiment_label}",
         run_time = "3:20:00",
         cores = 1,
+    container:
+        "docker://miguelpmachado/bcftools:1.9-01"
     shell:
         """
-        module load bcftools 
         bcftools query -R {input.finemapped_windows} \
             -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%INFO/CLNDN\t%INFO/CLNVC\t%INFO/CLNSIG\t%INFO/CLNDISDB\t%INFO/AF_ESP\t%INFO/AF_EXAC\t%INFO/AF_TGP\t%INFO/ALLELEID\n' \
             {input.vcf} > {output}
@@ -94,9 +97,10 @@ rule fetch_COSMIC_SNP:
         out_file = "stdout/fetch_cosmic_snp.{experiment_label}",
         run_time = "3:20:00",
         cores = 1,
+    container:
+        "docker://miguelpmachado/bcftools:1.9-01"
     shell:
         """
-        module load bcftools 
         bcftools query -R {input.finemapped_windows} \
             -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%INFO/AA\t%INFO/SAMPLE_COUNT\t%INFO/TIER\n' \
             {input.vcf} > {output}
@@ -113,9 +117,10 @@ rule fetch_COSMIC_NONCODING_SNP:
         out_file = "stdout/fetch_cosmic_snp.{experiment_label}",
         run_time = "3:20:00",
         cores = 1,
+    container:
+        "docker://miguelpmachado/bcftools:1.9-01"
     shell:
         """
-        module load bcftools 
         bcftools query -R {input.finemapped_windows} \
             -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%INFO/SAMPLE_COUNT\t%INFO/TIER\n' \
             {input.vcf} > {output}
@@ -147,7 +152,7 @@ rule fetch_sequence:
             {input.finemapped_windows} \
             {params.out_prefix}
         """
-rule score_variants:
+rule score_variants: #TODO: containerize
     input:
         ref_fa = rules.fetch_sequence.output.ref_fa,
         alt_fa = rules.fetch_sequence.output.alt_fa,
@@ -160,10 +165,12 @@ rule score_variants:
         out_file = "stdout/score_variants.{subset}.{experiment_label}",
         run_time = "04:20:00",
         cores = 1,
+    container:
+        "docker://kundajelab/lsgkm"
     shell:
         """
-        /home/hsher/bin/lsgkm-0.1.1/bin/gkmpredict {input.ref_fa} {input.model} {output.ref_score}
-        /home/hsher/bin/lsgkm-0.1.1/bin/gkmpredict {input.alt_fa} {input.model} {output.alt_score}
+        gkmpredict {input.ref_fa} {input.model} {output.ref_score}
+        gkmpredict {input.alt_fa} {input.model} {output.alt_score}
         """
 
 def find_well_trained_model(wildcards):

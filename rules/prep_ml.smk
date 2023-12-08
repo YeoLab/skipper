@@ -14,9 +14,10 @@ rule fetch_sequence:
         memory = "2000",
         job_name = "run_homer",
         fa = config['GENOME']
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         '''
-        module load bedtools
         bedtools getfasta -fo {output.finemapped_fa} -fi {params.fa} -bed {input.finemapped_windows} -s
         bedtools getfasta -fo {output.background_fa} -fi {params.fa} -bed {input.background} -s
         '''
@@ -35,9 +36,11 @@ rule train_gkmsvm:
         memory = "2000",
         job_name = "run_homer",
         prefix = lambda wildcards, output: output.model.replace('.model.txt', '')
+    container:
+        "docker://kundajelab/lsgkm"
     shell:
         """
-        timeout 3h /home/hsher/bin/lsgkm-0.1.1/bin/gkmtrain \
+        timeout 3h gkmtrain \
             -R \
             -T 4 \
             -m 2000 \
@@ -64,9 +67,11 @@ rule cv_gkmsvm:
         memory = "2000",
         job_name = "gkmsvm_cv",
         prefix = lambda wildcards, output: output.cv.replace('.cvpred.txt', '')
+    container:
+        "docker://kundajelab/lsgkm"
     shell:
         """
-        timeout 6h /home/hsher/bin/lsgkm-0.1.1/bin/gkmtrain \
+        timeout 6h gkmtrain \
             -x 5 \
             -T 4 \
             -R \

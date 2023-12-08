@@ -13,6 +13,8 @@ rule uniq_repeats:
         memory = "16000",
         job_name = "uniq_repeats_nuc"
     benchmark: "benchmarks/uniq_repeats.txt"
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         "zcat {REPEAT_TABLE} | awk -v OFS=\"\\t\" '{{print $6,$7,$8,$11 \":\" name_count[$11]++, $2, $10,$11,$12,$13}} "
             "$13 == \"L1\" || $13 == \"Alu\" {{$11 = $11 \"_AS\"; $12 = $12 \"_AS\"; $13 = $13 \"_AS\"; "
@@ -42,6 +44,8 @@ rule quantify_repeats:
         job_name = "dedup_bam",
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/repeats/unassigned_experiment.{replicate_label}.quantify_repeats.txt"
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         "bedtools bamtobed -i {input.bam} | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
             "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
@@ -90,8 +94,10 @@ rule fit_clip_betabinomial_re_model:
         memory = "8000",
         job_name = "fit_clip_betabinomial_re_model"
     benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_clip_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
 rule fit_input_betabinomial_re_model:
     input:
@@ -106,8 +112,10 @@ rule fit_input_betabinomial_re_model:
         memory = "8000",
         job_name = "fit_input_betabinomial_re_model"
     benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_input_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
 rule call_enriched_re:
     input:
@@ -127,8 +135,10 @@ rule call_enriched_re:
         memory = "16000",
         job_name = "call_enriched_re"
     benchmark: "benchmarks/call_enriched_re/{experiment_label}.{clip_replicate_label}.call_enriched_re.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/call_enriched_re.R {input.table} {input.repeats} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/call_enriched_re.R {input.table} {input.repeats} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
 rule find_reproducible_enriched_re:
     input:
@@ -142,6 +152,8 @@ rule find_reproducible_enriched_re:
         memory = "8000",
         job_name = "find_reproducible_enriched_re"
     benchmark: "benchmarks/find_reproducible_enriched_re/{experiment_label}.all_replicates.reproducible.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/identify_reproducible_re.R output/enriched_re/ {wildcards.experiment_label}"
+        "Rscript --vanilla {TOOL_DIR}/identify_reproducible_re.R output/enriched_re/ {wildcards.experiment_label}"
         

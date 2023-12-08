@@ -1,4 +1,4 @@
-locals().update(config) # JAVA_EXE
+locals().update(config) 
 rule run_initial_fastqc:
     input:
         fq = lambda wildcards: config['replicate_label_to_fastqs'][wildcards.replicate_label].split(" "),
@@ -13,9 +13,10 @@ rule run_initial_fastqc:
         run_time = "6:00:00",
         job_name = "run_initial_fastqc",
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
+    container:
+        "docker://howardxu520/skipper:fastqc_0.12.1"
     shell:
-        "module load fastqc;"
-        "less {input.fq} | fastqc stdin:{wildcards.replicate_label} --extract --outdir output/fastqc/initial -t {threads}"
+        "zcat {input.fq} | fastqc stdin:{wildcards.replicate_label} --extract --outdir output/fastqc/initial -t {threads}"
         
 rule trim_fastq:
     input:
@@ -32,9 +33,10 @@ rule trim_fastq:
         out_file = "stdout/{replicate_label}.trim.out",
         job_name = "trim_fastq"
     benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
-    conda: "envs/skewer.yaml"
+    container:
+        "docker://howardxu520/skipper:skewer_0.2.2"
     shell:
-        "less {input.fq} | skewer "
+        "zcat {input.fq} | skewer "
           "-t {threads} "
           "-x {input.adapter} "
           "-o output/fastqs/trimmed/{wildcards.replicate_label} "
@@ -56,6 +58,8 @@ rule extract_umi:
         job_name = "extract_umi",
         umi_length = config['UMI_SIZE'],
     benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.extract_umi.txt"
+    container:
+        "docker://howardxu520/skipper:fastp_0.23.4"
     shell:      
         "fastp "
             "-i {input.fq} "
@@ -84,8 +88,9 @@ rule run_trimmed_fastqc:
         out_file = "stdout/{replicate_label}.run_trimmed_fastqc.out",
         job_name = "run_trimmed_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.trimmed_fastqc.txt"
+    container:
+        "docker://howardxu520/skipper:fastqc_0.12.1"
     shell:
-        "module load fastqc;"
         "fastqc {input} --extract --outdir output/fastqc/processed -t {threads}"
         
 rule align_reads:
@@ -106,8 +111,9 @@ rule align_reads:
         outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
         rg = "{replicate_label}"
     benchmark: "benchmarks/align/unassigned_experiment.{replicate_label}.align_reads_genome.txt"
-    shell:  
-        "module load star;"      
+    container:
+        "docker://howardxu520/skipper:star_2.7.10b"
+    shell:
         "STAR "
             "--alignEndsType EndToEnd "
             "--genomeDir {params.star_sjdb} "
@@ -147,9 +153,9 @@ rule sort_bam:
         memory = "20000",
         job_name = "sortbam",
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
+    container:
+        "docker://howardxu520/skipper:samtools_1.17"
     shell:
-        "set +eu;"
-        "module load samtools/1.16;"
         "samtools sort -T {wildcards.replicate_label} -@ {threads} -o {output.sort} {input.bam};"
         
 
@@ -166,9 +172,9 @@ rule index_bams:
         memory = "1000",
         job_name = "index_bam"
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
+    container:
+        "docker://howardxu520/skipper:samtools_1.17"
     shell:
-        "set +eu;"
-        "module load samtools/1.16;"
         "samtools index -@ {threads} {input.bam};"
 
 
@@ -186,8 +192,10 @@ rule dedup_umi:
         job_name = "dedup_bam",
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
+    container:
+        "docker://howardxu520/skipper:umicollapse_1.0.0"
     shell:
-        "{JAVA_EXE} -server -Xms8G -Xmx8G -Xss20M -jar {UMICOLLAPSE_DIR}/umicollapse.jar bam "
+        "java -server -Xms8G -Xmx8G -Xss20M -jar /UMICollapse/umicollapse.jar bam "
             "-i {input.bam} -o {output.bam_dedup} --umi-sep : --two-pass"
 
 rule obtain_unique_reads:
@@ -203,8 +211,9 @@ rule obtain_unique_reads:
         job_name = "count_uniq_fragments",
     benchmark:
         "benchmarks/{replicate_label}.count_uniq_fragments.txt"
+    container:
+        "docker://howardxu520/skipper:samtools_1.17"
     shell:
         """
-        module load samtools
         samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
         """
