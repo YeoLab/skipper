@@ -166,11 +166,11 @@ rule score_variants: #TODO: containerize
         run_time = "04:20:00",
         cores = 1,
     container:
-        "docker://kundajelab/lsgkm"
+        "docker://algaebrown/lsgkm"
     shell:
         """
-        gkmpredict {input.ref_fa} {input.model} {output.ref_score}
-        gkmpredict {input.alt_fa} {input.model} {output.alt_score}
+        /usr/src/lsgkm/bin/gkmpredict {input.ref_fa} {input.model} {output.ref_score}
+        /usr/src/lsgkm/bin/gkmpredict {input.alt_fa} {input.model} {output.alt_score}
         """
 
 def find_well_trained_model(wildcards):

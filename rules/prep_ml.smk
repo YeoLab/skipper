@@ -37,23 +37,22 @@ rule train_gkmsvm:
         job_name = "run_homer",
         prefix = lambda wildcards, output: output.model.replace('.model.txt', '')
     container:
-        "docker://kundajelab/lsgkm"
+        "docker://algaebrown/lsgkm"
     shell:
         """
-        timeout 3h gkmtrain \
+        timeout -t 10800 /usr/src/lsgkm/bin/gkmtrain \
             -R \
             -T 4 \
             -m 2000 \
             {input.foreground} \
             {input.background} \
-            {params.prefix}  || true
-        
-        if ! test -f {output.model} ; then
-            echo "Timeout. gkmsvm does not converge" > {output.model}
-        fi
+            {params.prefix}  || ( [[ $? -eq 124 ]] && \
+            echo "Timeout. gkmsvm does not converge" > {output.model} )
         """
-# TODO: need to containerize lsgkm latest version with -R option. The ones on conda does not have it
-# lsgkm does not have maximal iterations, leading to infinite training/cv for some dataset such as RBFOX3
+# TODO: optimize memory usage and timeoue.
+# on TSCC 1.0 -m 2000 used to work
+# but after containerize -m 1000 goes segmentation fault
+# -T causes segmentation fault anyways
 rule cv_gkmsvm:
     input:
         foreground = rules.fetch_sequence.output.finemapped_fa,
@@ -61,29 +60,26 @@ rule cv_gkmsvm:
     output:
         cv = "output/ml/gkmsvm/{experiment_label}.cvpred.txt",
     params:
-        error_file = "stderr/{experiment_label}.fetch_sequence.err",
-        out_file = "stdout/{experiment_label}.fetch_sequence.out",
+        error_file = "stderr/{experiment_label}.cv.err",
+        out_file = "stdout/{experiment_label}.cv.out",
         run_time = "6:10:00",
         memory = "2000",
         job_name = "gkmsvm_cv",
         prefix = lambda wildcards, output: output.cv.replace('.cvpred.txt', '')
     container:
-        "docker://kundajelab/lsgkm"
+        "docker://algaebrown/lsgkm"
     shell:
         """
-        timeout 6h gkmtrain \
+        timeout -t 21600 /usr/src/lsgkm/bin/gkmtrain \
             -x 5 \
-            -T 4 \
             -R \
-            -m 2000 \
             {input.foreground} \
             {input.background} \
-            {params.prefix} || true
-
-        if ! test -f {output.cv} ; then
-            echo "Timeout. gkmsvm does not converge" > {output.cv}
-        fi
+            {params.prefix} || ( [[ $? -eq 124 ]] && \
+            echo "Timeout. gkmsvm does not converge" > {output.cv} )
         """
+        # https://stackoverflow.com/questions/50382603/how-to-timeout-with-exit0-from-bash
+
 checkpoint gkmsvm_AUPRC:
     input:
         cv_output = expand(rules.cv_gkmsvm.output.cv, experiment_label = config['manifest'].Experiment)
