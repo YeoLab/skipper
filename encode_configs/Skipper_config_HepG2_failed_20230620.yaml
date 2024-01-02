@@ -1,0 +1,20 @@
+MANIFEST : /projects/ps-yeolab5/encode/processing/rerun_failed/Skipper_manifest_HepG2_20230620_bam.csv
+GFF : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v40.annotation.hepg2_totalrna.gt1.gff3.gz
+PARTITION : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v40.annotation.hepg2_totalrna.gt1.tiled_partition.bed.gz
+FEATURE_ANNOTATIONS : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v40.annotation.hepg2_totalrna.gt1.tiled_partition.features.tsv.gz
+ACCESSION_RANKINGS : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/accession_type_ranking.txt
+UMI_SIZE : 10
+INFORMATIVE_READ : 2
+OVERDISPERSION_MODE : clip
+TOOL_DIR : /projects/ps-yeolab3/hsher/skipper/tools
+STAR_DIR : /projects/ps-yeolab4/software/eclip/0.7.1/examples/inputs/star_2_7_gencode40_sjdb/
+GENOME : /projects/ps-yeolab4/genomes/GRCh38/chromosomes/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta
+CHROM_SIZES : /projects/ps-yeolab4/software/eclip/0.7.1/examples/inputs/star_2_7_gencode40_sjdb/chrNameLength.txt
+REPEAT_TABLE : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/repeatmasker.grch38.tsv.gz
+BLACKLIST : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/encode3_eclip_blacklist.bed
+GENE_SETS : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/c5.go.v7.5.1.symbols.gmt
+GENE_SET_REFERENCE : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/encode3_go_terms.reference.tsv.gz
+GENE_SET_DISTANCE : /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/encode3_go_terms.jaccard_index.rds
+UNINFORMATIVE_READ : 1
+REPEAT_BED : /projects/ps-yeolab3/eboyle/encode/pipeline/05_20220720/repeatmasker.grch38.sort.unique.bed.gz
+
