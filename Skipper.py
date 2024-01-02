@@ -156,7 +156,7 @@ rule all:
         # expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
         # expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
         expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
-        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
+        # expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
         expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
@@ -173,11 +173,11 @@ rule all:
         expand("output/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
         expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
         "output/QC/unique_fragments.csv",
-        expand("output/ml/sequence/{experiment_label}.foreground.fa", experiment_label = manifest.Experiment),
-        expand("output/ml/gkmsvm/{experiment_label}.cvpred.txt", experiment_label = manifest.Experiment),
-        expand("output/ml/gkmsvm/{experiment_label}.model.txt", experiment_label = manifest.Experiment),
-        "output/ml/gkmsvm/AUPRC.txt",
-        "variants_done.txt"
+        # expand("output/ml/sequence/{experiment_label}.foreground.fa", experiment_label = manifest.Experiment),
+        # expand("output/ml/gkmsvm/{experiment_label}.cvpred.txt", experiment_label = manifest.Experiment),
+        # expand("output/ml/gkmsvm/{experiment_label}.model.txt", experiment_label = manifest.Experiment),
+        # "output/ml/gkmsvm/AUPRC.txt",
+        # "variants_done.txt"
 module se_preprocess:
     snakefile:
         "rules/se_preprocess.smk"

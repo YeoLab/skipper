@@ -18,6 +18,7 @@ rule make_unscaled_bigwig:
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
     shell:
+        "samtools index {input.bam};"
         "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
         "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
         "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 

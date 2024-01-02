@@ -78,7 +78,8 @@ rule copy_with_umi:
         run_time = "6:00:00",
         error_file = "stderr/{replicate_label}.copy_with_umi.err",
         out_file = "stdout/{replicate_label}.copy_with_umi.out",
-        job_name = "copy_with_umi"
+        job_name = "copy_with_umi",
+        memory = "1000",
     benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.copy_with_umi.txt"
     shell:
         "zcat {input.fq_1} | awk 'NR % 4 != 1 {{print}} NR % 4 == 1 {{split($1,header,\":\"); print $1 \":\" substr(header[1],2,length(header[1]) - 1) }}' | gzip > {output.fq_1};"

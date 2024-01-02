@@ -174,7 +174,7 @@ rule check_window_concordance:
         error_file = "stderr/{experiment_label}.check_window_concordance.err",
         out_file = "stdout/{experiment_label}.check_window_concordance.out",
         run_time = "0:15:00",
-        memory = "1000",
+        memory = "8000",
         job_name = "check_window_concordance"
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
     container:

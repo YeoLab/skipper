@@ -33,8 +33,8 @@ rule train_gkmsvm:
         error_file = "stderr/{experiment_label}.train_gkmsvm.err",
         out_file = "stdout/{experiment_label}.train_gkmsvm.out",
         run_time = "3:10:00",
-        memory = "2000",
-        job_name = "run_homer",
+        memory = "8000",
+        job_name = "train_gkmsvm",
         prefix = lambda wildcards, output: output.model.replace('.model.txt', '')
     container:
         "docker://algaebrown/lsgkm"

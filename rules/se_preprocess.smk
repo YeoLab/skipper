@@ -12,6 +12,7 @@ rule run_initial_fastqc:
         out_file = "stdout/{replicate_label}.fastqc_initial.out",
         run_time = "6:00:00",
         job_name = "run_initial_fastqc",
+        memory = "8000",
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
     container:
         "docker://howardxu520/skipper:fastqc_0.12.1"

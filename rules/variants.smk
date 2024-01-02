@@ -16,6 +16,7 @@ rule fetch_gnomAD_SNP:
         out_file = "stdout/fetch_snp.{experiment_label}.{chr}",
         run_time = "3:20:00",
         cores = 1,
+        memory = "16000",
     container:
         "docker://miguelpmachado/bcftools:1.9-01"
     shell:
@@ -36,6 +37,7 @@ rule combine_gnomAD_vcf:
         out_file = "stdout/combine_snp.{experiment_label}",
         run_time = "20:00",
         cores = 1,
+        memory = "16000",
     shell:
         """
         cat {input} > {output}
@@ -54,6 +56,7 @@ rule reannotate_vcf:
         out_file = "stdout/rename_chr",
         run_time = "3:20:00",
         cores = 1,
+        memory = "16000",
     container:
         "docker://miguelpmachado/bcftools:1.9-01"
     shell:
@@ -76,6 +79,7 @@ rule fetch_Clinvar_SNP:
         out_file = "stdout/fetch_clinvar_snp.{experiment_label}",
         run_time = "3:20:00",
         cores = 1,
+        memory = "16000",
     container:
         "docker://miguelpmachado/bcftools:1.9-01"
     shell:
@@ -97,6 +101,7 @@ rule fetch_COSMIC_SNP:
         out_file = "stdout/fetch_cosmic_snp.{experiment_label}",
         run_time = "3:20:00",
         cores = 1,
+        memory = "16000",
     container:
         "docker://miguelpmachado/bcftools:1.9-01"
     shell:
@@ -117,6 +122,7 @@ rule fetch_COSMIC_NONCODING_SNP:
         out_file = "stdout/fetch_cosmic_snp.{experiment_label}",
         run_time = "3:20:00",
         cores = 1,
+        memory = "16000",
     container:
         "docker://miguelpmachado/bcftools:1.9-01"
     shell:
@@ -141,7 +147,8 @@ rule fetch_sequence:
         out_file = "stdout/fetch_sequence.{subset}.{experiment_label}",
         run_time = "03:20:00",
         cores = 1,
-        out_prefix = lambda wildcards, output: output.csv.replace('.csv', '')
+        out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
+        memory = "16000",
     conda:
         "/home/hsher/projects/oligoCLIP/rules/envs/metadensity.yaml"
     shell:
@@ -165,6 +172,7 @@ rule score_variants: #TODO: containerize
         out_file = "stdout/score_variants.{subset}.{experiment_label}",
         run_time = "04:20:00",
         cores = 1,
+        memory = "16000",
     container:
         "docker://algaebrown/lsgkm"
     shell:
@@ -196,6 +204,7 @@ rule variants_done:
         out_file = "stdout/variants_done",
         run_time = "04:20:00",
         cores = 1,
+        memory = "1000",
     shell:
         """
         touch {output}
