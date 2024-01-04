@@ -11,7 +11,7 @@ rule make_genome_mega_table:
     params:
         error_file = "stderr/make_mega_table.err",
         out_file = "stdout/make_mega_table.out",
-        run_time = "00:25:00",
+        run_time = "01:25:00",
         cores = "1",
         memory = "200",
         job_name = "make_genome_mega_table"
@@ -32,7 +32,7 @@ rule make_repeat_mega_tables:
     params:
         error_file = "stderr/make_repeat_mega_tables.err",
         out_file = "stdout/make_repeat_mega_tables.out",
-        run_time = "06:00:00",
+        run_time = "01:30:00",
         cores = "1",
         memory = "2000",
         job_name = "make_repeat_mega_tables"
@@ -56,7 +56,7 @@ rule join_unique_fragments:
     params:
         error_file = "stderr/join_fragment_counts.err",
         out_file = "stdout/join_fragment_counts.out",
-        run_time = "05:00",
+        run_time = "25:00",
         cores = "1",
         memory = "2000",
         job_name = "join_unique_fragments"
@@ -75,8 +75,8 @@ rule summarize_genome_megatable:
     params:
         error_file = "stderr/summarize_genome_megatable.err",
         out_file = "stdout/summarize_genome_megatable.out",
-        run_time = "20:00",
-        cores = "1",
+        run_time = "60:00",
+        cores = "2",
         memory = "2000",
         job_name = "summarize_genome_megatable"
     conda:
