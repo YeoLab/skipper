@@ -1,9 +1,9 @@
 import pandas as pd
 locals().update(config)
 # fetch GnomAD, ClinVar and cancer somatic mutations in RBP binding sites and prepare sequence for ML inference
-CLINVAR_VCF='/projects/ps-yeolab5/hsher/clinvar/clinvar.vcf.gz'
-COSMIC_CODING_VCF='/projects/ps-yeolab5/hsher/cosmic_data/Cosmic_GenomeScreensMutant_Normal_v98_GRCh38.vcf.gz'
-COSMIC_NONCODING_VCF='/projects/ps-yeolab5/hsher/cosmic_data/Cosmic_NonCodingVariants_Normal_v98_GRCh38.vcf.gz'
+CLINVAR_VCF='/tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.vcf.gz'
+COSMIC_CODING_VCF='/tscc/projects/ps-yeolab5/hsher/cosmic_data/Cosmic_GenomeScreensMutant_Normal_v98_GRCh38.vcf.gz'
+COSMIC_NONCODING_VCF='/tscc/projects/ps-yeolab5/hsher/cosmic_data/Cosmic_NonCodingVariants_Normal_v98_GRCh38.vcf.gz'
 
 rule fetch_gnomAD_SNP:
     ''' fetch gnomAD variants from database '''
@@ -11,13 +11,15 @@ rule fetch_gnomAD_SNP:
         finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     output:
         temp("output/variants/gnomAD/{experiment_label}.{chr}.vcf")
+    threads: 2
     params:
         error_file = "stderr/fetch_snp.{experiment_label}.{chr}",
         out_file = "stdout/fetch_snp.{experiment_label}.{chr}",
         run_time = "3:20:00",
         cores = 1,
-    container:
-        "docker://miguelpmachado/bcftools:1.9-01"
+        memory = 40000,
+    conda:
+        "envs/bcftools.yaml"
     shell:
         """
         bcftools query -R {input.finemapped_windows} -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%INFO/AC\t%INFO/AN\n' \
@@ -31,11 +33,13 @@ rule combine_gnomAD_vcf:
             experiment_label = ['{experiment_label}'])
     output:
         "output/variants/gnomAD/{experiment_label}.vcf"
+    threads: 2
     params:
         error_file = "stderr/combine_snp.{experiment_label}",
         out_file = "stdout/combine_snp.{experiment_label}",
         run_time = "20:00",
         cores = 1,
+        memory = 30000,
     shell:
         """
         cat {input} > {output}
@@ -49,13 +53,15 @@ rule reannotate_vcf:
         rename="/home/hsher/projects/oligoCLIP/utils/rename_chr.txt"
     output:
         "{anything}.rename.vcf.gz",
+    threads: 2
     params:
         error_file = "stderr/rename_chr",
         out_file = "stdout/rename_chr",
         run_time = "3:20:00",
         cores = 1,
-    container:
-        "docker://miguelpmachado/bcftools:1.9-01"
+        memory = 60000,
+    conda:
+        "envs/bcftools.yaml"
     shell:
         """
         bcftools annotate --rename-chrs {input.rename} \
@@ -71,13 +77,15 @@ rule fetch_Clinvar_SNP:
         vcf = CLINVAR_VCF.replace('.vcf.gz', '.rename.vcf.gz')
     output:
         "output/variants/clinvar/{experiment_label}.vcf"
+    threads: 2
     params:
         error_file = "stderr/fetch_clinvar_snp.{experiment_label}",
         out_file = "stdout/fetch_clinvar_snp.{experiment_label}",
         run_time = "3:20:00",
         cores = 1,
-    container:
-        "docker://miguelpmachado/bcftools:1.9-01"
+        memory = 60000,
+    conda:
+        "envs/bcftools.yaml"
     shell:
         """
         bcftools query -R {input.finemapped_windows} \
@@ -92,13 +100,15 @@ rule fetch_COSMIC_SNP:
         vcf = COSMIC_CODING_VCF.replace('.vcf.gz', '.rename.vcf.gz')
     output:
         "output/variants/cosmic_coding/{experiment_label}.vcf"
+    threads: 2
     params:
         error_file = "stderr/fetch_cosmic_snp.{experiment_label}",
         out_file = "stdout/fetch_cosmic_snp.{experiment_label}",
         run_time = "3:20:00",
         cores = 1,
-    container:
-        "docker://miguelpmachado/bcftools:1.9-01"
+        memory = 60000,
+    conda:
+        "envs/bcftools.yaml"
     shell:
         """
         bcftools query -R {input.finemapped_windows} \
@@ -117,8 +127,10 @@ rule fetch_COSMIC_NONCODING_SNP:
         out_file = "stdout/fetch_cosmic_snp.{experiment_label}",
         run_time = "3:20:00",
         cores = 1,
-    container:
-        "docker://miguelpmachado/bcftools:1.9-01"
+        memory = 60000,
+    threads: 2
+    conda:
+        "envs/bcftools.yaml"
     shell:
         """
         bcftools query -R {input.finemapped_windows} \
@@ -136,14 +148,16 @@ rule fetch_sequence:
         ref_fa = "variants/{subset}/{experiment_label}.ref.fa",
         alt_fa = "variants/{subset}/{experiment_label}.alt.fa",
         csv = "variants/{subset}/{experiment_label}.csv"
+    threads: 2
     params:
         error_file = "stderr/fetch_sequence.{subset}.{experiment_label}",
         out_file = "stdout/fetch_sequence.{subset}.{experiment_label}",
         run_time = "03:20:00",
         cores = 1,
-        out_prefix = lambda wildcards, output: output.csv.replace('.csv', '')
+        out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
+        memory = 20000,
     conda:
-        "/home/hsher/projects/oligoCLIP/rules/envs/metadensity.yaml"
+        "envs/metadensity.yaml"
     shell:
         """
         python {TOOL_DIR}/generate_variant_sequence.py \
@@ -152,7 +166,7 @@ rule fetch_sequence:
             {input.finemapped_windows} \
             {params.out_prefix}
         """
-rule score_variants: #TODO: containerize
+rule score_variants: 
     input:
         ref_fa = rules.fetch_sequence.output.ref_fa,
         alt_fa = rules.fetch_sequence.output.alt_fa,
@@ -160,11 +174,13 @@ rule score_variants: #TODO: containerize
     output:
         ref_score = "variants/{subset}/{experiment_label}.ref.score.txt",
         alt_score = "variants/{subset}/{experiment_label}.alt.score.txt"
+    threads: 2
     params:
         error_file = "stderr/score_variants.{subset}.{experiment_label}",
         out_file = "stdout/score_variants.{subset}.{experiment_label}",
         run_time = "04:20:00",
         cores = 1,
+        memory = 640000,
     container:
         "docker://algaebrown/lsgkm"
     shell:
@@ -181,9 +197,11 @@ def find_well_trained_model(wildcards):
     print(auprc_df.loc[auprc_df['mean AUPRC']>auprc_threshold])
     with_good_model = auprc_df.loc[auprc_df['mean AUPRC']>auprc_threshold, 'Experiment'].tolist()
     
+
     return expand("variants/{variant_set}/{experiment_label}.{type}.score.txt",
         experiment_label = with_good_model, 
-        variant_set = ['gnomAD', 'clinvar', 'cosmic_coding', 'cosmic_noncoding'], type = ['alt', 'ref'])
+        variant_set = ['gnomAD', 'clinvar', 'cosmic_coding', 'cosmic_noncoding'], 
+        type = ['alt', 'ref'])
         
 
 rule variants_done:
@@ -191,11 +209,13 @@ rule variants_done:
         find_well_trained_model
     output:
         "variants_done.txt"
+    threads: 2
     params:
         error_file = "stderr/variants_done",
         out_file = "stdout/variants_done",
         run_time = "04:20:00",
         cores = 1,
+        memory = 100,
     shell:
         """
         touch {output}
