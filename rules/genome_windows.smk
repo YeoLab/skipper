@@ -11,14 +11,14 @@ rule parse_gff:
         error_file = "stderr/parse_gff.err",
         out_file = "stdout/parse_gff.out",
         run_time = "3:00:00",
-        job_name = "parse_gff"
-        memory = 48000
+        job_name = "parse_gff",
+        memory = "48000"
     benchmark: "benchmarks/parse_gff.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
         mem_mb=48000
-    shell:        
+    shell:
         "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
 
 rule partition_bam_reads:

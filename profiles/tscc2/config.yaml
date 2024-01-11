@@ -1,12 +1,16 @@
 verbose: true
-notemp: false
+notemp: true
 latency: 60
 printshellcmds: true
 cores: 8
 skip-script-cleanup: true
 nolock: true
 keep-going: true
-cluster: "sbatch --qos=hcg-csd792 --account csd792 --partition gold --nodes=1 --tasks-per-node={threads} --error={params.error_file} --output={params.out_file} --time={params.run_time}"
+cluster: "sbatch --qos=hcg-csd792 --account csd792 --partition gold --nodes=1 --tasks-per-node={threads} --error={params.error_file} --output={params.out_file} --time={params.run_time} --mem={params.memory}M"
 use-singularity: true
 singularity-args: "--bind /tscc"
-jobs: 8
+jobs: 30
+use-conda: true
+rerun-incomplete: true
+conda-prefix: "/tscc/projects/ps-yeolab4/software/skipper/1.99.0/bin/.conda"
+singularity-prefix: "/tscc/projects/ps-yeolab4/software/skipper/1.99.0/bin/.singularity"

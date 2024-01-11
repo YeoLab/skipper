@@ -61,7 +61,7 @@ rule consult_term_reference:
         job_name = "consult_term_reference"
     benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3_1"'
+        "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
         mem_mb=1000
     shell:
