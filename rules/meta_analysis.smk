@@ -13,8 +13,10 @@ rule make_genome_mega_table:
         out_file = "stdout/make_mega_table.out",
         run_time = "00:25:00",
         cores = "1",
-        memory = "200",
+        memory = "1000",
         job_name = "make_genome_mega_table"
+    resources:
+        mem_mb=1000
     shell:
         """
         paste <(zcat {input.feature}) {input.replicate_counts} | gzip > {output}
@@ -36,6 +38,8 @@ rule make_repeat_mega_tables:
         cores = "1",
         memory = "2000",
         job_name = "make_repeat_mega_tables"
+    resources:
+        mem_mb=2000
     shell:
         "echo \"repeat_name\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.name_table};"
         "echo \"repeat_class\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.class_table};"
@@ -60,6 +64,8 @@ rule join_unique_fragments:
         cores = "1",
         memory = "2000",
         job_name = "join_unique_fragments"
+    resources:
+        mem_mb=2000
     shell:
         """
         awk '{{print FILENAME "," $0}}' {input} > {output}
@@ -81,6 +87,8 @@ rule summarize_genome_megatable:
         job_name = "summarize_genome_megatable"
     conda:
         "envs/metadensity.yaml"
+    resources:
+        mem_mb=2000
     shell:
         """
         python {TOOL_DIR}/group_genome_megatable.py {input} {output.f} {output.t}

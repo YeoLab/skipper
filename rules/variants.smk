@@ -19,6 +19,8 @@ rule fetch_gnomAD_SNP:
         memory = "16000",
     container:
         "docker://miguelpmachado/bcftools:1.9-01"
+    resources:
+        mem_mb=16000
     shell:
         """
         bcftools query -R {input.finemapped_windows} -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%INFO/AC\t%INFO/AN\n' \
@@ -38,6 +40,8 @@ rule combine_gnomAD_vcf:
         run_time = "20:00",
         cores = 1,
         memory = "16000",
+    resources:
+        mem_mb=16000
     shell:
         """
         cat {input} > {output}
@@ -59,6 +63,8 @@ rule reannotate_vcf:
         memory = "16000",
     container:
         "docker://miguelpmachado/bcftools:1.9-01"
+    resources:
+        mem_mb=16000
     shell:
         """
         bcftools annotate --rename-chrs {input.rename} \
@@ -82,6 +88,8 @@ rule fetch_Clinvar_SNP:
         memory = "16000",
     container:
         "docker://miguelpmachado/bcftools:1.9-01"
+    resources:
+        mem_mb=16000
     shell:
         """
         bcftools query -R {input.finemapped_windows} \
@@ -104,6 +112,8 @@ rule fetch_COSMIC_SNP:
         memory = "16000",
     container:
         "docker://miguelpmachado/bcftools:1.9-01"
+    resources:
+        mem_mb=16000
     shell:
         """
         bcftools query -R {input.finemapped_windows} \
@@ -125,6 +135,8 @@ rule fetch_COSMIC_NONCODING_SNP:
         memory = "16000",
     container:
         "docker://miguelpmachado/bcftools:1.9-01"
+    resources:
+        mem_mb=16000
     shell:
         """
         bcftools query -R {input.finemapped_windows} \
@@ -151,6 +163,8 @@ rule fetch_sequence:
         memory = "16000",
     conda:
         "/home/hsher/projects/oligoCLIP/rules/envs/metadensity.yaml"
+    resources:
+        mem_mb=16000
     shell:
         """
         python {TOOL_DIR}/generate_variant_sequence.py \
@@ -175,6 +189,8 @@ rule score_variants: #TODO: containerize
         memory = "16000",
     container:
         "docker://algaebrown/lsgkm"
+    resources:
+        mem_mb=16000
     shell:
         """
         /usr/src/lsgkm/bin/gkmpredict {input.ref_fa} {input.model} {output.ref_score}
@@ -205,6 +221,8 @@ rule variants_done:
         run_time = "04:20:00",
         cores = 1,
         memory = "1000",
+    resources:
+        mem_mb=1000
     shell:
         """
         touch {output}
