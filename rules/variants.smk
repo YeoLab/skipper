@@ -10,7 +10,7 @@ rule fetch_gnomAD_SNP:
     input:
         finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     output:
-        temp("output/variants/gnomAD/{experiment_label}.{chr}.vcf")
+        "output/variants/gnomAD/{experiment_label}.{chr}.vcf"
     params:
         error_file = "stderr/fetch_snp.{experiment_label}.{chr}",
         out_file = "stdout/fetch_snp.{experiment_label}.{chr}",
@@ -18,7 +18,7 @@ rule fetch_gnomAD_SNP:
         cores = 1,
         memory = "16000",
     container:
-        "docker://miguelpmachado/bcftools:1.9-01"
+        "docker://brianyee/bcftools:1.17"
     resources:
         mem_mb=16000
     shell:
