@@ -145,9 +145,9 @@ rule fetch_sequence:
         seq_fa = "output/ml/sequence/{experiment_label}.foreground.fa",
         finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     output:
-        ref_fa = "variants/{subset}/{experiment_label}.ref.fa",
-        alt_fa = "variants/{subset}/{experiment_label}.alt.fa",
-        csv = "variants/{subset}/{experiment_label}.csv"
+        ref_fa = "output/variants/{subset}/{experiment_label}.ref.fa",
+        alt_fa = "output/variants/{subset}/{experiment_label}.alt.fa",
+        csv = "output/variants/{subset}/{experiment_label}.csv"
     threads: 2
     params:
         error_file = "stderr/fetch_sequence.{subset}.{experiment_label}",
@@ -172,8 +172,8 @@ rule score_variants:
         alt_fa = rules.fetch_sequence.output.alt_fa,
         model = "output/ml/gkmsvm/{experiment_label}.model.txt",
     output:
-        ref_score = "variants/{subset}/{experiment_label}.ref.score.txt",
-        alt_score = "variants/{subset}/{experiment_label}.alt.score.txt"
+        ref_score = "output/variants/{subset}/{experiment_label}.ref.score.txt",
+        alt_score = "output/variants/{subset}/{experiment_label}.alt.score.txt"
     threads: 2
     params:
         error_file = "stderr/score_variants.{subset}.{experiment_label}",
@@ -198,7 +198,7 @@ def find_well_trained_model(wildcards):
     with_good_model = auprc_df.loc[auprc_df['mean AUPRC']>auprc_threshold, 'Experiment'].tolist()
     
 
-    return expand("variants/{variant_set}/{experiment_label}.{type}.score.txt",
+    return expand("output/variants/{variant_set}/{experiment_label}.{type}.score.txt",
         experiment_label = with_good_model, 
         variant_set = ['gnomAD', 'clinvar', 'cosmic_coding', 'cosmic_noncoding'], 
         type = ['alt', 'ref'])
