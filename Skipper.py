@@ -14,8 +14,6 @@ include: "Skipper_config.py"
 if not os.path.exists("stderr"): os.makedirs("stderr")
 if not os.path.exists("stdout"): os.makedirs("stdout")
 
-if EXE_DIR not in sys.path: os.environ["PATH"] = EXE_DIR + os.pathsep + os.environ["PATH"]
-
 if OVERDISPERSION_MODE not in ["clip","input"]:
     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")
 
@@ -83,8 +81,8 @@ rule all:
         expand("output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
-        # expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
-        # expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
         expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
@@ -123,7 +121,7 @@ rule parse_gff:
         job_name = "parse_gff"
     benchmark: "benchmarks/parse_gff.txt"
     shell:        
-        "{R_EXE} --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
+        "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
 
 rule run_initial_fastqc:
     input:
@@ -306,8 +304,7 @@ rule dedup_umi:
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
     shell:
-        "{JAVA_EXE} -server -Xms8G -Xmx8G -Xss20M -jar {UMICOLLAPSE_DIR}/umicollapse.jar bam "
-            "-i {input.bam} -o {output.bam_dedup} --umi-sep : --two-pass"
+        "umicollapse bam -i {input.bam} -o {output.bam_dedup} --umi-sep : --two-pass"
 
 rule make_unscaled_bigwig:
     input:
@@ -328,8 +325,8 @@ rule make_unscaled_bigwig:
     shell:
         "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
         "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
-        "{TOOL_DIR}/bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
-        "{TOOL_DIR}/bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
+        "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
+        "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
 rule make_scaled_bigwig:
     input:
@@ -351,8 +348,8 @@ rule make_scaled_bigwig:
         "factor=$(samtools idxstats {input.bam} | awk '{{sum += $3}} END {{print 10**6 / sum}}');"
         "bedtools genomecov -scale $factor -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
         "bedtools genomecov -scale $factor -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
-        "{TOOL_DIR}/bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
-        "{TOOL_DIR}/bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
+        "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
+        "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
 rule uniq_repeats:
     input:
@@ -446,7 +443,7 @@ rule fit_clip_betabinomial_re_model:
         job_name = "fit_clip_betabinomial_re_model"
     benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_clip_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
 rule fit_input_betabinomial_re_model:
     input:
@@ -462,7 +459,7 @@ rule fit_input_betabinomial_re_model:
         job_name = "fit_input_betabinomial_re_model"
     benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_input_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
 rule call_enriched_re:
     input:
@@ -482,7 +479,7 @@ rule call_enriched_re:
         job_name = "call_enriched_re"
     benchmark: "benchmarks/call_enriched_re/{experiment_label}.{clip_replicate_label}.call_enriched_re.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/call_enriched_re.R {input.table} {input.repeats} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/call_enriched_re.R {input.table} {input.repeats} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
 rule find_reproducible_enriched_re:
     input:
@@ -497,7 +494,7 @@ rule find_reproducible_enriched_re:
         job_name = "find_reproducible_enriched_re"
     benchmark: "benchmarks/find_reproducible_enriched_re/{experiment_label}.all_replicates.reproducible.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/identify_reproducible_re.R output/enriched_re/ {wildcards.experiment_label}"
+        "Rscript --vanilla {TOOL_DIR}/identify_reproducible_re.R output/enriched_re/ {wildcards.experiment_label}"
         
 rule partition_bam_reads:
     input:
@@ -569,7 +566,7 @@ rule fit_input_betabinomial_model:
         job_name = "fit_input_betabinomial_model"
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_input_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
 rule fit_clip_betabinomial_model:
     input:
@@ -585,7 +582,7 @@ rule fit_clip_betabinomial_model:
         job_name = "fit_clip_betabinomial_model"
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_clip_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
 rule call_enriched_windows:
     input:
@@ -628,7 +625,7 @@ rule call_enriched_windows:
         job_name = "call_enriched_windows"
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/call_enriched_windows.R {input.table} {input.accession_rankings} {input.feature_annotations} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/call_enriched_windows.R {input.table} {input.accession_rankings} {input.feature_annotations} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
 rule check_window_concordance:
     input:
@@ -644,7 +641,7 @@ rule check_window_concordance:
         job_name = "check_window_concordance"
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/check_window_concordance.R output/tested_windows {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
+        "Rscript --vanilla {TOOL_DIR}/check_window_concordance.R output/tested_windows {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
 rule find_reproducible_enriched_windows:
     input:
@@ -661,7 +658,7 @@ rule find_reproducible_enriched_windows:
         job_name = "find_reproducible_enriched_windows"
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/identify_reproducible_windows.R output/enriched_windows/ {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
+        "Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R output/enriched_windows/ {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
 rule sample_background_windows_by_region:
     input:
@@ -678,7 +675,7 @@ rule sample_background_windows_by_region:
         job_name = "sample_background_windows"
     benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/sample_matched_background_by_region.R {input.enriched_windows} {input.all_windows} 75 output/homer/region_matched_background {wildcards.experiment_label};"
+        "Rscript --vanilla {TOOL_DIR}/sample_matched_background_by_region.R {input.enriched_windows} {input.all_windows} 75 output/homer/region_matched_background {wildcards.experiment_label};"
 
 rule get_nt_coverage:
     input:
@@ -727,7 +724,7 @@ rule finemap_windows:
         job_name = "finemap_windows"
     benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/finemap_enriched_windows.R {input.nt_coverage} output/finemapping/mapped_sites/ {wildcards.experiment_label}"
+        "Rscript --vanilla {TOOL_DIR}/finemap_enriched_windows.R {input.nt_coverage} output/finemapping/mapped_sites/ {wildcards.experiment_label}"
 
 rule run_homer:
     input:
@@ -764,7 +761,7 @@ rule consult_encode_reference:
         job_name = "consult_encode_reference"
     benchmark: "benchmarks/consult_encode_reference/skipper.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/consult_encode_reference.R output/reproducible_enriched_windows output/reproducible_enriched_re {TOOL_DIR} skipper "
+        "Rscript --vanilla {TOOL_DIR}/consult_encode_reference.R output/reproducible_enriched_windows output/reproducible_enriched_re {TOOL_DIR} skipper "
 
 rule consult_term_reference:
     input:
@@ -783,4 +780,4 @@ rule consult_term_reference:
         job_name = "consult_term_reference"
     benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/consult_term_reference.R {input.enriched_windows} {input.gene_sets} {input.gene_set_reference} {input.gene_set_distance} {wildcards.experiment_label} "
+        "Rscript --vanilla {TOOL_DIR}/consult_term_reference.R {input.enriched_windows} {input.gene_sets} {input.gene_set_reference} {input.gene_set_distance} {wildcards.experiment_label} "

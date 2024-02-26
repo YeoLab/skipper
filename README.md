@@ -24,25 +24,23 @@ Skipper requires several executables and packages:
 | FastQC | https://www.bioinformatics.babraham.ac.uk/projects/fastqc/ |
 | HOMER | http://homer.ucsd.edu/homer/introduction/install.html |
 
-For example, below are some commands for installing Miniconda and Snakemake.
+For example, below are some commands for installing Miniconda.
 
 `curl -L -O "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"`
 
 `bash Miniconda3-latest-Linux-x86_64.sh`
 
-`conda create -c conda-forge -c bioconda -n snakemake snakemake`
+Skipper requires several python and R packages. In order to install the precise versions used in the manuscript, we have provided skipper_env.yaml to install the used versions of R and corresponding packages from source.
 
-Skipper requires several R packages. In order to install the precise versions used in the manuscript, we have scripts to install the used versions of R and corresponding packages from source.
+Use conda to create a snakemake environment for installing required packages:
 
-Use conda to create an environment for installing R:
+`conda env create -f installation/skipper_env.yaml`
 
-`conda env create -f documents/rskipper.yml`
+Use the install_samtools.sh and install_homer.sh scripts to complete installation of samtools and homer. Expect the whole process to take around 1 hours. 
 
-Use the get_R.sh script to complete installation of R. Expect the whole process to take around 4 hours. Provide your conda (miniconda, anaconda, mamba) directory as the first argument and the directory you wish to install R as the second:
+`./installation/install_samtools.sh && ./installation/install_homer.sh && source ~/.bashrc`
 
-`bash -l tools/get_R.sh /home/eboyle/miniconda3 /projects/ps-yeolab3/eboyle/encode/pipeline/gran`
-
-Alternatively, at least as of this writing, Skipper is compatible with the newest version of R and its packages. The required packages can be installed for an existing R installation as follows:
+Alternatively, at least as of this writing, Skipper is compatible with the newest version of R and its packages. The required R packages can be installed for an existing R installation as follows:
 
 `install.packages(c("tidyverse", "VGAM", "viridis", "ggrepel", "RColorBrewer", "Rtsne", "ggupset", "ggdendro", "cowplot"))`
 
