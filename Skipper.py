@@ -304,7 +304,8 @@ rule dedup_umi:
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
     shell:
-        "umicollapse bam -i {input.bam} -o {output.bam_dedup} --umi-sep : --two-pass"
+        "java -server -Xms8G -Xmx8G -Xss20M -jar installation/UMICollapse-1.0.0/umicollapse.jar bam "
+            "-i {input.bam} -o {output.bam_dedup} --umi-sep : --two-pass"
 
 rule make_unscaled_bigwig:
     input:
