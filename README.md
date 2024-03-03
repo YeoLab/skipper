@@ -147,11 +147,11 @@ Use the dry run function to confirm that Snakemake can parse all the information
 
 Once Snakemake has confirmed DAG creation, submit the jobs using whatever high performance computing infrastructure options suit you:
 
-<h3>Option 1: use manual installed packages</h3>
+<h3>Option 1: Manually installed packages</h3>
 
 `snakemake -kps Skipper.py -w 15 -j 30 --cluster "sbatch -t {params.run_time} -e {params.error_file} -o {params.out_file} -p condo -q condo -A csd792 --tasks-per-node {threads} --job-name {params.job_name} --mem {params.memory}"`
 
-<h3>Option 1: use singularity</h3>
+<h3>Option 2: Singularity</h3>
 
 `snakemake -kps Skipper.py -w 15 -j 30 --use-singularity --singularity-args "--bind /tscc" --cluster "sbatch -t {params.run_time} -e {params.error_file} -o {params.out_file} -p condo -q condo -A csd792 --tasks-per-node {threads} --job-name {params.job_name} --mem {params.memory}"`
 
