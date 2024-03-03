@@ -32,7 +32,7 @@ For example, below are some commands for installing Miniconda.
 
 Skipper requires several python and R packages. In order to install the precise versions used in the manuscript, we have provided skipper_env.yaml to install the used versions of R and corresponding packages from source.
 
-<h3>Option 1: Manual installation (linux-amd64)</h3>
+<h3>Option 1: Manual installation (Linux-amd64)</h3>
 
 Use conda to create a snakemake environment for installing required packages:
 
@@ -52,7 +52,7 @@ Alternatively, at least as of this writing, Skipper is compatible with the newes
 
 Paths to locally installed versions can be supplied in the config file, described below.
 
-<h3>Option 2: Singularity installation (linux-amd64)</h3>
+<h3>Option 2: Singularity installation (Linux-amd64)</h3>
 
 `conda create -n snakemake snakemake==7.32.3 star==2.7.10b`
 
@@ -129,7 +129,7 @@ Want to make your own partition from RNA-seq of a sample? Run the tools/subset_g
 
 Skipper requires multiple CLIP replicates of the same sample to call reproducible windows. Enter multiple replicates with the same experiment and sample columns on separate lines, incrementing the replicate number for each replicate. The same input replicate can be used in multiple experiments and repeated for the same sample if you estimate overdispersion from CLIP replicates. If the same replicate is used for multiple comparisons, the sample and replicate columns must be consistent.
 
-See the example manifest for the exact formatting and to test running Skipper.
+See the example manifest in the example folder for the exact formatting and to test running Skipper.
 
 <h2>Running Skipper</h2>
 
@@ -145,13 +145,17 @@ Use the dry run function to confirm that Snakemake can parse all the information
 
 `snakemake -ns Skipper.py -j 1`
 
-Once Snakemake has confirmed DAG creation, submit the jobs using whatever high performance computing infrastructure options suit you:
+Once Snakemake has confirmed DAG creation, if applicable, submit the jobs using high performance computing infrastructure options suit you:
 
 <h3>Option 1: Manually installed packages</h3>
+
+`snakemake -kps Skipper.py -w 15 -j 30`
 
 `snakemake -kps Skipper.py -w 15 -j 30 --cluster "sbatch -t {params.run_time} -e {params.error_file} -o {params.out_file} -p condo -q condo -A csd792 --tasks-per-node {threads} --job-name {params.job_name} --mem {params.memory}"`
 
 <h3>Option 2: Singularity</h3>
+
+`snakemake -kps Skipper.py -w 15 -j 30 --use-singularity --singularity-args "--bind /tscc"`
 
 `snakemake -kps Skipper.py -w 15 -j 30 --use-singularity --singularity-args "--bind /tscc" --cluster "sbatch -t {params.run_time} -e {params.error_file} -o {params.out_file} -p condo -q condo -A csd792 --tasks-per-node {threads} --job-name {params.job_name} --mem {params.memory}"`
 
