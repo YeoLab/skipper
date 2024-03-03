@@ -9,10 +9,9 @@ REPO_PATH = "."
 
 # Input data
 ########################################
-# Files provided in the annotation folder, default paramters, only adjust paths if needed 
+# Files provided in the annotation folder, only adjust paths if needed 
 
 # Use a GFF filtered for genes expressed in the cell type of interest
-MANIFEST = REPO_PATH + "/example/Example_manifest.csv"
 GFF = REPO_PATH + "/annotations/gencode.v38.annotation.k562_totalrna.gt1.gff3.gz"
 PARTITION = REPO_PATH + "/annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.bed.gz"
 # Skipper will partition the transcriptome and create feature annotations from the GFF
@@ -32,12 +31,15 @@ TOOL_DIR = REPO_PATH + "/tools"
 ########################################
 # Files not provided, setup required 
 
+MANIFEST = REPO_PATH + "/example/Example_manifest.csv"
 # General resources
 REPEAT_TABLE = REPO_PATH + "/annotations/repeatmasker.grch38.tsv.gz"
 # indexed genome fasta
 GENOME = REPO_PATH + "/annotations/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta"
 # STAR reference
 STAR_DIR = REPO_PATH + "/annotations/genome_ref"
+# Use singularity, if False, make sure to download UMICollapse v1.0.0 into installation folder
+SINGULARITY = False
 
 ########################################
 # Customizable Parameters
