@@ -32,13 +32,15 @@ For example, below are some commands for installing Miniconda.
 
 Skipper requires several python and R packages. In order to install the precise versions used in the manuscript, we have provided skipper_env.yaml to install the used versions of R and corresponding packages from source.
 
+<h3>Option 1: Manual installation (linux-amd64)</h3>
+
 Use conda to create a snakemake environment for installing required packages:
 
 `conda env create -f installation/skipper_env.yaml`
 
-Use the install_samtools.sh and install_homer.sh scripts to complete installation of samtools and homer. Expect the whole process to take around 1 hours. 
+Use the install_umicollapse.sh script to complete installation of UMICollapse v1.0.0 in the installation folder. Expect the whole process to take around 30 seconds. 
 
-`./installation/install_samtools.sh && ./installation/install_homer.sh && source ~/.bashrc`
+`cd installation && ./install_umicollapse.sh`
 
 Alternatively, at least as of this writing, Skipper is compatible with the newest version of R and its packages. The required R packages can be installed for an existing R installation as follows:
 
@@ -49,6 +51,12 @@ Alternatively, at least as of this writing, Skipper is compatible with the newes
 `BiocManager::install(c("GenomicRanges","fgsea","rtracklayer"))`
 
 Paths to locally installed versions can be supplied in the config file, described below.
+
+<h3>Option 2: Singularity installation (linux-amd64)</h3>
+
+`conda create -n snakemake snakemake==7.32.3 star==2.7.10b`
+
+Singularity setup: https://docs.sylabs.io/guides/3.11/admin-guide/installation.html
 
 <h2>Preparing to run Skipper</h2>
 Skipper uses a Snakemake workflow. The `Skipper.py` file contains the rules necessary to process CLIP data from fastqs. Skipper also supports running on BAMs - note that Skipper's analysis of repetitive elements will assume that non-uniquely mapping reads are contained within the BAM files.
@@ -139,7 +147,13 @@ Use the dry run function to confirm that Snakemake can parse all the information
 
 Once Snakemake has confirmed DAG creation, submit the jobs using whatever high performance computing infrastructure options suit you:
 
-`snakemake -kps Skipper.py -w 15 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo"`
+<h3>Option 1: use manual installed packages</h3>
+
+`snakemake -kps Skipper.py -w 15 -j 30 --cluster "sbatch -t {params.run_time} -e {params.error_file} -o {params.out_file} -p condo -q condo -A csd792 --tasks-per-node {threads} --job-name {params.job_name} --mem {params.memory}"`
+
+<h3>Option 1: use singularity</h3>
+
+`snakemake -kps Skipper.py -w 15 -j 30 --use-singularity --singularity-args "--bind /tscc" --cluster "sbatch -t {params.run_time} -e {params.error_file} -o {params.out_file} -p condo -q condo -A csd792 --tasks-per-node {threads} --job-name {params.job_name} --mem {params.memory}"`
 
 Did Skipper terminate? Sometimes jobs fail - inspect any error output and rerun the same command if there is no apparent explanation such as uninstalled dependencies or a misformatted input file. Snakemake will try to pick up where it left off.
 
