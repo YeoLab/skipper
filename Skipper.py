@@ -75,13 +75,12 @@ for experiment_label, label_list in zip(experiment_data.index, experiment_data.I
                 replicates.add(other_entry)
         experiment_to_input_replicate_labels[experiment_label].update({entry : list(replicates)})
 
-if SINGULARITY:
-    umicollapse_path = "/UMICollapse"
+if os.path.exists("installation/UMICollapse-1.0.0/umicollapse.jar") and os.path.exists("installation/UMICollapse-1.0.0/lib/htsjdk-2.19.0.jar") and os.path.exists("installation/UMICollapse-1.0.0/lib/snappy-java-1.1.7.3.jar"):
+    umicollapse_path = 'installation/UMICollapse-1.0.0'
 else:
-    umicollapse_path = "installation/UMICollapse-1.0.0"
-
-
-
+    umicollapse_path = '/UMICollapse'
+    
+    
 rule all:
     input:
         expand("output/fastqc/initial/{replicate_label}_fastqc.html", replicate_label = replicate_labels), 

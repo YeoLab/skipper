@@ -32,8 +32,6 @@ ACCESSION_RANKINGS = REPO_PATH + "/annotations/accession_type_ranking.txt"
 ########################################
 # Customizable parameters
 
-# Use singularity, if False, make sure to download UMICollapse v1.0.0 into installation folder
-SINGULARITY = True
 # Information about CLIP library
 UMI_SIZE = 10
 # Single-end: enter 1. Paired-end: enter read (1 or 2) corresponding to crosslink site
