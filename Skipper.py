@@ -288,7 +288,7 @@ rule sort_bam:
         job_name = "sortbam",
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
     container:
-        "docker://howardxu520/skipper:samtools_1.17"
+        "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
     shell:
         "samtools sort -T {wildcards.replicate_label} -@ {threads} -o {output.sort} {input.bam};"
         
@@ -307,7 +307,7 @@ rule index_bams:
         job_name = "index_bam"
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
     container:
-        "docker://howardxu520/skipper:samtools_1.17"
+        "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
     shell:
         "samtools index -@ {threads} {input.bam};"
 
