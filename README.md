@@ -129,7 +129,7 @@ Want to make your own partition from RNA-seq of a sample? Run the tools/subset_g
 
 Skipper requires multiple CLIP replicates of the same sample to call reproducible windows. Enter multiple replicates with the same experiment and sample columns on separate lines, incrementing the replicate number for each replicate. The same input replicate can be used in multiple experiments and repeated for the same sample if you estimate overdispersion from CLIP replicates. If the same replicate is used for multiple comparisons, the sample and replicate columns must be consistent.
 
-See the example manifest in the example folder for the exact formatting and to test running Skipper.
+See the example manifest in the example folder for the exact formatting and to test running Skipper by downloading the example dataset: https://zenodo.org/records/10636793.
 
 <h2>Running Skipper</h2>
 
@@ -163,7 +163,7 @@ Did Skipper terminate? Sometimes jobs fail - inspect any error output and rerun 
 
 <h2>Skipper output</h2>
 
-Skipper produces a lot of output. The `output/figures` directory contains figures summarizing the data.
+Skipper produces numerous output files. The `output/figures` directory contains figures summarizing the data.
 | Output      | Description |
 | ----------- | ----------- |
 | all_reads       | Visualization of RNA region preferences based on total reads instead of called windows |
@@ -177,6 +177,6 @@ Skipper produces a lot of output. The `output/figures` directory contains figure
 | clip_scatter_re  | Visualization of enriched repetitive elements   |
 | tsne       | t-SNE visualization of binding preferences releative to ENCODE RBPs   |
 
-Annotated reproducible enriched windows can be accessed at `output/reproducible_enriched_windows/` and Homer motif output is at `output/homer/`
+Key outputs: Annotated reproducible enriched windows can be accessed at `output/reproducible_enriched_windows/` and Homer motif output is at `output/homer/`
 
 Example CLIP fastqs and processed data are available at GEO and SRA: `https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE213867`
