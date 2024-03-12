@@ -14,8 +14,6 @@ include: "Skipper_config.py"
 if not os.path.exists("stderr"): os.makedirs("stderr")
 if not os.path.exists("stdout"): os.makedirs("stdout")
 
-if EXE_DIR not in sys.path: os.environ["PATH"] = EXE_DIR + os.pathsep + os.environ["PATH"]
-
 if OVERDISPERSION_MODE not in ["clip","input"]:
     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")
 
@@ -77,14 +75,20 @@ for experiment_label, label_list in zip(experiment_data.index, experiment_data.I
                 replicates.add(other_entry)
         experiment_to_input_replicate_labels[experiment_label].update({entry : list(replicates)})
 
+if os.path.exists("installation/UMICollapse-1.0.0/umicollapse.jar") and os.path.exists("installation/UMICollapse-1.0.0/lib/htsjdk-2.19.0.jar") and os.path.exists("installation/UMICollapse-1.0.0/lib/snappy-java-1.1.7.3.jar"):
+    umicollapse_path = 'installation/UMICollapse-1.0.0'
+else:
+    umicollapse_path = '/UMICollapse'
+    
+    
 rule all:
     input:
         expand("output/fastqc/initial/{replicate_label}_fastqc.html", replicate_label = replicate_labels), 
         expand("output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
-        # expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
-        # expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
         expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
@@ -102,7 +106,7 @@ rule all:
         error_file = "stderr/all.err",
         out_file = "stdout/all.out",
         run_time = "00:04:00",
-        memory = "20",
+        memory = "200",
         job_name = "all"
     shell:
         "echo $(date)  > {output};"
@@ -122,8 +126,11 @@ rule parse_gff:
         run_time = "3:00:00",
         job_name = "parse_gff"
     benchmark: "benchmarks/parse_gff.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:        
-        "{R_EXE} --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
+        "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
+
 
 rule run_initial_fastqc:
     input:
@@ -140,8 +147,10 @@ rule run_initial_fastqc:
         memory = "20000",
         job_name = "run_initial_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
+    container:
+        "docker://howardxu520/skipper:fastqc_0.12.1"
     shell:        
-        "less {input.fq} | fastqc stdin:{wildcards.replicate_label} --extract --outdir output/fastqc/initial -t {threads}"
+        "zcat {input.fq} | fastqc stdin:{wildcards.replicate_label} --extract --outdir output/fastqc/initial -t {threads}"
         
 rule trim_fastq:
     input:
@@ -158,8 +167,10 @@ rule trim_fastq:
         out_file = "stdout/{replicate_label}.trim.out",
         job_name = "trim_fastq"
     benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
+    container:
+        "docker://howardxu520/skipper:skewer_0.2.2"
     shell:
-        "less {input.fq} | skewer "
+        "zcat {input.fq} | skewer "
           "-t {threads} "
           "-x {input.adapter} "
           "-o output/fastqs/trimmed/{wildcards.replicate_label} "
@@ -181,6 +192,8 @@ rule extract_umi:
         job_name = "extract_umi",
         umi_length = UMI_SIZE,
     benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.extract_umi.txt"
+    container:
+        "docker://howardxu520/skipper:fastp_0.23.4"
     shell:      
         "fastp "
             "-i {input.fq} "
@@ -209,6 +222,8 @@ rule run_trimmed_fastqc:
         out_file = "stdout/{replicate_label}.run_trimmed_fastqc.out",
         job_name = "run_trimmed_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.trimmed_fastqc.txt"
+    container:
+        "docker://howardxu520/skipper:fastqc_0.12.1"
     shell:
         "fastqc {input} --extract --outdir output/fastqc/processed -t {threads}"
         
@@ -230,6 +245,8 @@ rule align_reads:
         outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
         rg = "{replicate_label}"
     benchmark: "benchmarks/align/unassigned_experiment.{replicate_label}.align_reads_genome.txt"
+    container:
+        "docker://howardxu520/skipper:star_2.7.10b"
     shell:        
         "STAR "
             "--alignEndsType EndToEnd "
@@ -270,6 +287,8 @@ rule sort_bam:
         memory = "10000",
         job_name = "sortbam",
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
+    container:
+        "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
     shell:
         "samtools sort -T {wildcards.replicate_label} -@ {threads} -o {output.sort} {input.bam};"
         
@@ -287,9 +306,10 @@ rule index_bams:
         memory = "1000",
         job_name = "index_bam"
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
+    container:
+        "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
     shell:
         "samtools index -@ {threads} {input.bam};"
-
 
 rule dedup_umi:
     input:
@@ -305,8 +325,10 @@ rule dedup_umi:
         job_name = "dedup_bam",
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
+    container:
+        "docker://howardxu520/skipper:umicollapse_1.0.0"
     shell:
-        "{JAVA_EXE} -server -Xms8G -Xmx8G -Xss20M -jar {UMICOLLAPSE_DIR}/umicollapse.jar bam "
+        "java -server -Xms8G -Xmx8G -Xss20M -jar {umicollapse_path}/umicollapse.jar bam "
             "-i {input.bam} -o {output.bam_dedup} --umi-sep : --two-pass"
 
 rule make_unscaled_bigwig:
@@ -325,11 +347,13 @@ rule make_unscaled_bigwig:
         memory = "1000",
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
+    container:
+        "docker://howardxu520/skipper:bigwig_1.0"
     shell:
         "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
         "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
-        "{TOOL_DIR}/bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
-        "{TOOL_DIR}/bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
+        "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
+        "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
 rule make_scaled_bigwig:
     input:
@@ -347,12 +371,14 @@ rule make_scaled_bigwig:
         memory = "1000",
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
+    container:
+        "docker://howardxu520/skipper:bigwig_1.0"
     shell:
-        "factor=$(samtools idxstats {input.bam} | awk '{{sum += $3}} END {{print 10**6 / sum}}');"
+        "factor=$(samtools idxstats {input.bam} | cut -f 3 | paste -sd+ | bc | xargs -I {{}} echo 'scale=6; 10^6 / {{}}' | bc);"
         "bedtools genomecov -scale $factor -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
         "bedtools genomecov -scale $factor -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
-        "{TOOL_DIR}/bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
-        "{TOOL_DIR}/bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
+        "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
+        "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
 rule uniq_repeats:
     input:
@@ -368,6 +394,8 @@ rule uniq_repeats:
         memory = "8000",
         job_name = "uniq_repeats_nuc"
     benchmark: "benchmarks/uniq_repeats.txt"
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         "zcat {REPEAT_TABLE} | awk -v OFS=\"\\t\" '{{print $6,$7,$8,$11 \":\" name_count[$11]++, $2, $10,$11,$12,$13}} "
             "$13 == \"L1\" || $13 == \"Alu\" {{$11 = $11 \"_AS\"; $12 = $12 \"_AS\"; $13 = $13 \"_AS\"; "
@@ -397,6 +425,8 @@ rule quantify_repeats:
         job_name = "dedup_bam",
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/repeats/unassigned_experiment.{replicate_label}.quantify_repeats.txt"
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         "bedtools bamtobed -i {input.bam} | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
             "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
@@ -445,8 +475,10 @@ rule fit_clip_betabinomial_re_model:
         memory = "10000",
         job_name = "fit_clip_betabinomial_re_model"
     benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_clip_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
 rule fit_input_betabinomial_re_model:
     input:
@@ -461,8 +493,10 @@ rule fit_input_betabinomial_re_model:
         memory = "10000",
         job_name = "fit_input_betabinomial_re_model"
     benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_input_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
 rule call_enriched_re:
     input:
@@ -481,8 +515,10 @@ rule call_enriched_re:
         memory = "3000",
         job_name = "call_enriched_re"
     benchmark: "benchmarks/call_enriched_re/{experiment_label}.{clip_replicate_label}.call_enriched_re.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/call_enriched_re.R {input.table} {input.repeats} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/call_enriched_re.R {input.table} {input.repeats} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
 rule find_reproducible_enriched_re:
     input:
@@ -496,8 +532,10 @@ rule find_reproducible_enriched_re:
         memory = "1000",
         job_name = "find_reproducible_enriched_re"
     benchmark: "benchmarks/find_reproducible_enriched_re/{experiment_label}.all_replicates.reproducible.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/identify_reproducible_re.R output/enriched_re/ {wildcards.experiment_label}"
+        "Rscript --vanilla {TOOL_DIR}/identify_reproducible_re.R output/enriched_re/ {wildcards.experiment_label}"
         
 rule partition_bam_reads:
     input:
@@ -514,6 +552,8 @@ rule partition_bam_reads:
         memory = "10000",
         job_name = "partition_bam_reads"
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         "bedtools bamtobed -i {input.bam} | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
         "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
@@ -535,6 +575,8 @@ rule calc_partition_nuc:
         memory = "1000",
         job_name = "calc_partition_nuc"
     benchmark: "benchmarks/partition_nuc.txt"
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         "bedtools nuc -s -fi {input.genome} -bed {input.partition} | gzip -c > {output.nuc}"
 
@@ -552,6 +594,8 @@ rule make_genome_count_table:
         memory = "200",
         job_name = "make_genome_count_table"
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_genome_count_table.txt"
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         "paste <(zcat {input.partition} | awk -v OFS=\"\\t\" 'BEGIN {{print \"chr\\tstart\\tend\\tname\\tscore\\tstrand\\tgc\"}} NR > 1 {{print $1,$2,$3,$4,$5,$6,$8}}' ) {input.replicate_counts} | gzip -c > {output.count_table};"
 
@@ -568,8 +612,10 @@ rule fit_input_betabinomial_model:
         memory = "10000",
         job_name = "fit_input_betabinomial_model"
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_input_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
 rule fit_clip_betabinomial_model:
     input:
@@ -584,8 +630,10 @@ rule fit_clip_betabinomial_model:
         memory = "1000",
         job_name = "fit_clip_betabinomial_model"
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_clip_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
 rule call_enriched_windows:
     input:
@@ -627,8 +675,10 @@ rule call_enriched_windows:
         memory = "6000",
         job_name = "call_enriched_windows"
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/call_enriched_windows.R {input.table} {input.accession_rankings} {input.feature_annotations} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/call_enriched_windows.R {input.table} {input.accession_rankings} {input.feature_annotations} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
 rule check_window_concordance:
     input:
@@ -643,8 +693,10 @@ rule check_window_concordance:
         memory = "1000",
         job_name = "check_window_concordance"
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/check_window_concordance.R output/tested_windows {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
+        "Rscript --vanilla {TOOL_DIR}/check_window_concordance.R output/tested_windows {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
 rule find_reproducible_enriched_windows:
     input:
@@ -660,8 +712,10 @@ rule find_reproducible_enriched_windows:
         memory = "2000",
         job_name = "find_reproducible_enriched_windows"
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/identify_reproducible_windows.R output/enriched_windows/ {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
+        "Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R output/enriched_windows/ {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
 rule sample_background_windows_by_region:
     input:
@@ -677,8 +731,10 @@ rule sample_background_windows_by_region:
         memory = "3000",
         job_name = "sample_background_windows"
     benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/sample_matched_background_by_region.R {input.enriched_windows} {input.all_windows} 75 output/homer/region_matched_background {wildcards.experiment_label};"
+        "Rscript --vanilla {TOOL_DIR}/sample_matched_background_by_region.R {input.enriched_windows} {input.all_windows} 75 output/homer/region_matched_background {wildcards.experiment_label};"
 
 rule get_nt_coverage:
     input:
@@ -697,6 +753,8 @@ rule get_nt_coverage:
         memory = "15000",
         job_name = "get_nt_coverage"
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
+    container:
+        "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
     shell:
         "zcat {input.windows} | tail -n +2 | sort -k1,1 -k2,2n | awk -v OFS=\"\t\" '{{print $1, $2 -37, $3+37,$4,$5,$6}}' | "
             "bedtools merge -i - -s -c 6 -o distinct | awk -v OFS=\"\t\" '{{for(i=$2;i< $3;i++) {{print $1,i,i+1,\"MW:\" NR \":\" i - $2,0,$4, NR}} }}' > {output.nt_census}; "
@@ -726,8 +784,10 @@ rule finemap_windows:
         memory = "10000",
         job_name = "finemap_windows"
     benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/finemap_enriched_windows.R {input.nt_coverage} output/finemapping/mapped_sites/ {wildcards.experiment_label}"
+        "Rscript --vanilla {TOOL_DIR}/finemap_enriched_windows.R {input.nt_coverage} output/finemapping/mapped_sites/ {wildcards.experiment_label}"
 
 rule run_homer:
     input:
@@ -743,8 +803,10 @@ rule run_homer:
         memory = "2000",
         job_name = "run_homer"
     benchmark: "benchmarks/run_homer/{experiment_label}.all_replicates.reproducible.txt"
+    container:
+        "docker://howardxu520/skipper:Homer_4.11"
     shell:
-        "findMotifsGenome.pl <(less {input.finemapped_windows} | awk -v OFS=\"\t\" '{{print $4 \":\"$9,$1,$2+1,$3,$6}}') "
+        "findMotifsGenome.pl <(zcat {input.finemapped_windows} | awk -v OFS=\"\t\" '{{print $4 \":\"$9,$1,$2+1,$3,$6}}') "
             "{input.genome} output/homer/finemapped_results/{wildcards.experiment_label} -preparsedDir output/homer/preparsed -size given -rna -nofacts -S 20 -len 5,6,7,8,9 -nlen 1 "
             "-bg <(zcat {input.background} | awk -v OFS=\"\t\" '{{print $4,$1,$2+1,$3,$6}}') "
 
@@ -763,8 +825,10 @@ rule consult_encode_reference:
         memory = "1000",
         job_name = "consult_encode_reference"
     benchmark: "benchmarks/consult_encode_reference/skipper.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/consult_encode_reference.R output/reproducible_enriched_windows output/reproducible_enriched_re {TOOL_DIR} skipper "
+        "Rscript --vanilla {TOOL_DIR}/consult_encode_reference.R output/reproducible_enriched_windows output/reproducible_enriched_re {TOOL_DIR} skipper "
 
 rule consult_term_reference:
     input:
@@ -782,5 +846,7 @@ rule consult_term_reference:
         memory = "1000",
         job_name = "consult_term_reference"
     benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/consult_term_reference.R {input.enriched_windows} {input.gene_sets} {input.gene_set_reference} {input.gene_set_distance} {wildcards.experiment_label} "
+        "Rscript --vanilla {TOOL_DIR}/consult_term_reference.R {input.enriched_windows} {input.gene_sets} {input.gene_set_reference} {input.gene_set_distance} {wildcards.experiment_label} "

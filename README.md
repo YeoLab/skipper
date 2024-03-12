@@ -24,25 +24,25 @@ Skipper requires several executables and packages:
 | FastQC | https://www.bioinformatics.babraham.ac.uk/projects/fastqc/ |
 | HOMER | http://homer.ucsd.edu/homer/introduction/install.html |
 
-For example, below are some commands for installing Miniconda and Snakemake.
+For example, below are some commands for installing Miniconda.
 
 `curl -L -O "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"`
 
 `bash Miniconda3-latest-Linux-x86_64.sh`
 
-`conda create -c conda-forge -c bioconda -n snakemake snakemake`
+Skipper requires several python and R packages. In order to install the precise versions used in the manuscript, we have provided skipper_env.yaml to install the used versions of R and corresponding packages from source.
 
-Skipper requires several R packages. In order to install the precise versions used in the manuscript, we have scripts to install the used versions of R and corresponding packages from source.
+<h3>Option 1: Manual installation (Linux-amd64)</h3>
 
-Use conda to create an environment for installing R:
+Use conda to create a snakemake environment for installing required packages:
 
-`conda env create -f documents/rskipper.yml`
+`conda env create -f installation/skipper_env.yaml`
 
-Use the get_R.sh script to complete installation of R. Expect the whole process to take around 4 hours. Provide your conda (miniconda, anaconda, mamba) directory as the first argument and the directory you wish to install R as the second:
+Use the install_umicollapse.sh script to complete installation of UMICollapse v1.0.0 in the installation folder. Expect the whole process to take around 30 seconds. 
 
-`bash -l tools/get_R.sh /home/eboyle/miniconda3 /projects/ps-yeolab3/eboyle/encode/pipeline/gran`
+`cd installation && ./install_umicollapse.sh`
 
-Alternatively, at least as of this writing, Skipper is compatible with the newest version of R and its packages. The required packages can be installed for an existing R installation as follows:
+Alternatively, at least as of this writing, Skipper is compatible with the newest version of R and its packages. The required R packages can be installed for an existing R installation as follows:
 
 `install.packages(c("tidyverse", "VGAM", "viridis", "ggrepel", "RColorBrewer", "Rtsne", "ggupset", "ggdendro", "cowplot"))`
 
@@ -51,6 +51,12 @@ Alternatively, at least as of this writing, Skipper is compatible with the newes
 `BiocManager::install(c("GenomicRanges","fgsea","rtracklayer"))`
 
 Paths to locally installed versions can be supplied in the config file, described below.
+
+<h3>Option 2: Singularity installation (Linux-amd64)</h3>
+
+`conda create -n snakemake snakemake==7.32.3 star==2.7.10b`
+
+Singularity setup: https://docs.sylabs.io/guides/3.11/admin-guide/installation.html
 
 <h2>Preparing to run Skipper</h2>
 Skipper uses a Snakemake workflow. The `Skipper.py` file contains the rules necessary to process CLIP data from fastqs. Skipper also supports running on BAMs - note that Skipper's analysis of repetitive elements will assume that non-uniquely mapping reads are contained within the BAM files.
@@ -123,7 +129,7 @@ Want to make your own partition from RNA-seq of a sample? Run the tools/subset_g
 
 Skipper requires multiple CLIP replicates of the same sample to call reproducible windows. Enter multiple replicates with the same experiment and sample columns on separate lines, incrementing the replicate number for each replicate. The same input replicate can be used in multiple experiments and repeated for the same sample if you estimate overdispersion from CLIP replicates. If the same replicate is used for multiple comparisons, the sample and replicate columns must be consistent.
 
-See the example manifest for the exact formatting and to test running Skipper.
+See the example manifest in the example folder for the exact formatting and to test running Skipper by downloading the example dataset: https://zenodo.org/records/10636793.
 
 <h2>Running Skipper</h2>
 
@@ -139,15 +145,25 @@ Use the dry run function to confirm that Snakemake can parse all the information
 
 `snakemake -ns Skipper.py -j 1`
 
-Once Snakemake has confirmed DAG creation, submit the jobs using whatever high performance computing infrastructure options suit you:
+Once Snakemake has confirmed DAG creation, if applicable, submit the jobs using high performance computing infrastructure options suit you:
 
-`snakemake -kps Skipper.py -w 15 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo"`
+<h3>Option 1: Manually installed packages</h3>
+
+`snakemake -kps Skipper.py -w 15 -j 30`
+
+`snakemake -kps Skipper.py -w 15 -j 30 --cluster "sbatch -t {params.run_time} -e {params.error_file} -o {params.out_file} -p condo -q condo -A csd792 --tasks-per-node {threads} --job-name {params.job_name} --mem {params.memory}"`
+
+<h3>Option 2: Singularity</h3>
+
+`snakemake -kps Skipper.py -w 15 -j 30 --use-singularity --singularity-args "--bind /tscc"`
+
+`snakemake -kps Skipper.py -w 15 -j 30 --use-singularity --singularity-args "--bind /tscc" --cluster "sbatch -t {params.run_time} -e {params.error_file} -o {params.out_file} -p condo -q condo -A csd792 --tasks-per-node {threads} --job-name {params.job_name} --mem {params.memory}"`
 
 Did Skipper terminate? Sometimes jobs fail - inspect any error output and rerun the same command if there is no apparent explanation such as uninstalled dependencies or a misformatted input file. Snakemake will try to pick up where it left off.
 
 <h2>Skipper output</h2>
 
-Skipper produces a lot of output. The `output/figures` directory contains figures summarizing the data.
+Skipper produces numerous output files. The `output/figures` directory contains figures summarizing the data.
 | Output      | Description |
 | ----------- | ----------- |
 | all_reads       | Visualization of RNA region preferences based on total reads instead of called windows |
@@ -161,6 +177,6 @@ Skipper produces a lot of output. The `output/figures` directory contains figure
 | clip_scatter_re  | Visualization of enriched repetitive elements   |
 | tsne       | t-SNE visualization of binding preferences releative to ENCODE RBPs   |
 
-Annotated reproducible enriched windows can be accessed at `output/reproducible_enriched_windows/` and Homer motif output is at `output/homer/`
+Key outputs: Annotated reproducible enriched windows can be accessed at `output/reproducible_enriched_windows/` and Homer motif output is at `output/homer/`
 
 Example CLIP fastqs and processed data are available at GEO and SRA: `https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE213867`
