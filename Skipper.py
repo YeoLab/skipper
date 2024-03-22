@@ -350,8 +350,8 @@ rule make_unscaled_bigwig:
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
     shell:
-        "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
-        "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
+        "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sortBed | grep -v EBV > {output.bg_plus};"
+        "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sortBed | grep -v EBV > {output.bg_minus};"
         "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
         "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
@@ -375,8 +375,8 @@ rule make_scaled_bigwig:
         "docker://howardxu520/skipper:bigwig_1.0"
     shell:
         "factor=$(samtools idxstats {input.bam} | cut -f 3 | paste -sd+ | bc | xargs -I {{}} echo 'scale=6; 10^6 / {{}}' | bc);"
-        "bedtools genomecov -scale $factor -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
-        "bedtools genomecov -scale $factor -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
+        "bedtools genomecov -scale $factor -5 -strand + -bg -ibam {input.bam} | sortBed | grep -v EBV > {output.bg_plus};"
+        "bedtools genomecov -scale $factor -5 -strand - -bg -ibam {input.bam} | sortBed | grep -v EBV > {output.bg_minus};"
         "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
         "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
