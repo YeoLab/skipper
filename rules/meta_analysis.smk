@@ -71,6 +71,25 @@ rule join_unique_fragments:
         awk '{{print FILENAME "," $0}}' {input} > {output}
         """
 
+rule join_aligned_reads:
+    input:
+        expand("output/QC/{replicate_label}.aligned_reads", replicate_label = replicate_labels)
+    output:
+        "output/QC/aligned_reads.csv"
+    params:
+        error_file = "stderr/join_aligned_reads.err",
+        out_file = "stdout/join_aligned_reads.out",
+        run_time = "05:00",
+        cores = "1",
+        memory = "2000",
+        job_name = "join_aligned_reads"
+    resources:
+        mem_mb=2000
+    shell:
+        """
+        awk '{{print FILENAME "," $0}}' {input} > {output}
+        """
+
 # summarize per transcript type and family type
 rule summarize_genome_megatable:
     input:

@@ -155,7 +155,7 @@ rule sort_bam:
     input:
         bam="output/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.out.bam",
     output:
-        sort = "output/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.sort.bam",
+        sort="output/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.sort.bam",
     threads: 4
     params:
         error_file = "stderr/{ref}_{replicate_label}.sort_bam.err",

@@ -14,7 +14,7 @@ rule fetch_gnomAD_SNP:
     params:
         error_file = "stderr/fetch_snp.{experiment_label}.{chr}",
         out_file = "stdout/fetch_snp.{experiment_label}.{chr}",
-        run_time = "3:20:00",
+        run_time = "8:00:00",
         cores = 1,
         memory = "16000",
     container:

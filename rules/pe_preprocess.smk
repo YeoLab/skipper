@@ -325,3 +325,25 @@ rule obtain_unique_reads:
         """
         samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
         """
+
+rule obtain_aligned_reads:
+    input:
+        rules.align_reads_encode.output.ubam
+    output:
+        "output/QC/{replicate_label}.aligned_reads"
+    params:
+        error_file = "stderr/{replicate_label}.count_aligned_reads.txt",
+        out_file = "stdout/{replicate_label}.count_aligned_reads.txt",
+        run_time = "00:30:00",
+        memory = "8000",
+        job_name = "count_aligned_reads",
+    benchmark:
+        "benchmarks/{replicate_label}.count_aligned_reads.txt"
+    container:
+        "docker://howardxu520/skipper:samtools_1.17"
+    resources:
+        mem_mb=8000
+    shell:
+        """
+        samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
+        """

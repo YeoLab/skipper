@@ -6,3 +6,8 @@ cores: 8
 skip-script-cleanup: true
 nolock: true
 keep-going: true
+--singularity-prefix: /tscc/projects/ps-yeolab4/software/skipper/1.99.0/bin/.singularity/
+use-singularity: true
+singularity-args: "--bind /tscc"
+retries: 3
+resources: mem_mb=16000
