@@ -16,6 +16,8 @@ rule fetch_sequence:
         fa = config['GENOME']
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
+    resources:
+        mem_mb=2000
     shell:
         '''
         bedtools getfasta -fo {output.finemapped_fa} -fi {params.fa} -bed {input.finemapped_windows} -s
@@ -38,6 +40,8 @@ rule train_gkmsvm:
         prefix = lambda wildcards, output: output.model.replace('.model.txt', '')
     container:
         "docker://algaebrown/lsgkm"
+    resources:
+        mem_mb=8000
     shell:
         """
         timeout -t 10800 /usr/src/lsgkm/bin/gkmtrain \
@@ -68,6 +72,8 @@ rule cv_gkmsvm:
         prefix = lambda wildcards, output: output.cv.replace('.cvpred.txt', '')
     container:
         "docker://algaebrown/lsgkm"
+    resources:
+        mem_mb=2000
     shell:
         """
         timeout -t 21600 /usr/src/lsgkm/bin/gkmtrain \
@@ -93,6 +99,8 @@ checkpoint gkmsvm_AUPRC:
         job_name = "gkmsvm_cv",
     conda:
         "envs/metadensity.yaml"
+    resources:
+        mem_mb=2000
     shell:
         """
         python {TOOL_DIR}/gather_gkmsvm_auprc.py {output}

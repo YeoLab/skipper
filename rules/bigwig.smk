@@ -17,6 +17,8 @@ rule make_unscaled_bigwig:
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
+    resources:
+        mem_mb=10000
     shell:
         "samtools index {input.bam};"
         "bedtools genomecov -split -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
@@ -42,6 +44,8 @@ rule make_scaled_bigwig:
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
+    resources:
+        mem_mb=10000
     shell:
         "samtools index {input.bam};"
         "FACTOR=$(samtools idxstats {input.bam} | cut -f 3 | paste -sd+ | bc | xargs -I {{}} echo 'scale=6; 10^6 / {{}}' | bc);"

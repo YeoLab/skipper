@@ -173,6 +173,7 @@ rule all:
         expand("output/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
         expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
         "output/QC/unique_fragments.csv",
+        expand("output/variants/gnomAD/{experiment_label}.{chr}.vcf", experiment_label = manifest.Experiment, chr=[f'chr{i}' for i in list(range(1,23))+['X','Y']]),
         # expand("output/ml/sequence/{experiment_label}.foreground.fa", experiment_label = manifest.Experiment),
         # expand("output/ml/gkmsvm/{experiment_label}.cvpred.txt", experiment_label = manifest.Experiment),
         # expand("output/ml/gkmsvm/{experiment_label}.model.txt", experiment_label = manifest.Experiment),

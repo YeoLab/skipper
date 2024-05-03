@@ -19,6 +19,8 @@ rule get_nt_coverage:
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
+    resources:
+        mem_mb=45000
     shell:
         "zcat {input.windows} | tail -n +2 | sort -k1,1 -k2,2n | awk -v OFS=\"\t\" '{{print $1, $2 -37, $3+37,$4,$5,$6}}' | "
             "bedtools merge -i - -s -c 6 -o distinct | awk -v OFS=\"\t\" '{{for(i=$2;i< $3;i++) {{print $1,i,i+1,\"MW:\" NR \":\" i - $2,0,$4, NR}} }}' > {output.nt_census}; "
@@ -46,10 +48,12 @@ rule finemap_windows:
         error_file = "stderr/{experiment_label}.finemap_windows.err",
         out_file = "stdout/{experiment_label}.finemap_windows.out",
         run_time = "6:00:00",
-        memory = "60000",
+        memory = "45000",
         job_name = "finemap_windows"
     benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    resources:
+        mem_mb=45000
     shell:
         "Rscript --vanilla {TOOL_DIR}/finemap_enriched_windows.R {input.nt_coverage} output/finemapping/mapped_sites/ {wildcards.experiment_label}"
