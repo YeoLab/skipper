@@ -5,7 +5,7 @@ Skip the peaks and expose RNA-binding in CLIP data
 
 See published article in Cell Genomics: https://www.cell.com/cell-genomics/fulltext/S2666-979X(23)00085-X
 
-<h2>Prerequisites</h2>
+<h2>Prerequisites (If using Docker containers, please follow steps below to install Miniconda and snakemake, then proceed to "Preparing to run Skipper" section)</h2>
 Skipper requires several executables and packages:
 
 | Tool      | Link |
@@ -137,11 +137,11 @@ Remember to load the Snakemake environment before running
 
 Use the dry run function to confirm that Snakemake can parse all the information:
 
-`snakemake -ns Skipper.py -j 1`
+`snakemake -ns Skipper.py -j 1 --use-singularity --singularity-args "--bind /oasis --bind /projects --bind /scratch"`
 
 Once Snakemake has confirmed DAG creation, submit the jobs using whatever high performance computing infrastructure options suit you:
 
-`snakemake -kps Skipper.py -w 15 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo"`
+`snakemake -kps Skipper.py -w 15 -j 30 --use-singularity --singularity-args "--bind /oasis --bind /projects --bind /scratch" --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo"`
 
 Did Skipper terminate? Sometimes jobs fail - inspect any error output and rerun the same command if there is no apparent explanation such as uninstalled dependencies or a misformatted input file. Snakemake will try to pick up where it left off.
 

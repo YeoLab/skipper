@@ -1,0 +1,8 @@
+verbose: true
+notemp: false
+latency: 60
+printshellcmds: true
+cores: 8
+skip-script-cleanup: true
+nolock: true
+keep-going: true

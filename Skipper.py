@@ -83,8 +83,8 @@ rule all:
         expand("output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
-        # expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
-        # expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
         expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
@@ -95,18 +95,18 @@ rule all:
         expand("output/homer/finemapped_results/{experiment_label}/homerResults.html", experiment_label = manifest.Experiment),
         expand("output/gene_sets/{experiment_label}.enriched_terms.tsv.gz", experiment_label = manifest.Experiment),
         "output/figures/tsne/skipper.tsne_query.pdf"
-    # output:
-    #     "land_ho.txt"
+    output:
+        "land_ho.txt"
     threads: 1
     params:
         error_file = "stderr/all.err",
         out_file = "stdout/all.out",
         run_time = "00:04:00",
-        memory = "20",
+        memory = "200",
         job_name = "all"
-    # shell:
-    #     "echo $(date)  > {output};"
-    #     "echo created by Evan Boyle and the Yeo lab >> {output}"
+    shell:
+        "echo $(date)  > {output};"
+        "echo created by Evan Boyle and the Yeo lab >> {output}"
 
 rule parse_gff:
     input:
@@ -123,7 +123,7 @@ rule parse_gff:
         job_name = "parse_gff"
     benchmark: "benchmarks/parse_gff.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:        
         "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
 
@@ -343,12 +343,12 @@ rule make_unscaled_bigwig:
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
+        "docker://howardxu520/skipper:bigwig_1.0"
     shell:
         "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
         "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
-        "{TOOL_DIR}/bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
-        "{TOOL_DIR}/bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
+        "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
+        "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
 rule make_scaled_bigwig:
     input:
@@ -367,13 +367,13 @@ rule make_scaled_bigwig:
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
+        "docker://howardxu520/skipper:bigwig_1.0"
     shell:
-        "factor=$(samtools idxstats {input.bam} | awk '{{sum += $3}} END {{print 10**6 / sum}}');"
+        "factor=$(samtools idxstats {input.bam} | cut -f 3 | paste -sd+ | bc | xargs -I {{}} echo 'scale=6; 10^6 / {{}}' | bc);"
         "bedtools genomecov -scale $factor -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
         "bedtools genomecov -scale $factor -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
-        "{TOOL_DIR}/bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
-        "{TOOL_DIR}/bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
+        "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
+        "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
 rule uniq_repeats:
     input:
@@ -453,7 +453,8 @@ rule make_repeat_count_tables:
         "echo \"repeat_class\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.class_table};"
         "echo \"repeat_family\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.family_table};"
         "paste <(zcat {input.unique_repeats} | awk -v OFS=\"\\t\" 'BEGIN {{print \"repeat_name\";}} {{print $7}}') {input.replicate_counts} | "
-            "awk -v OFS=\"\\t\" 'NR > 1 {{for(i = 2; i <= NF; i++) {{tabulation[$1][i] += $i}} }} END {{for(name in tabulation) {{ printf name; for(i = 2; i <= NF; i++) {{printf \"\\t\" tabulation[name][i]}} print \"\";}} }}' | sort -k 1,1 | gzip >> {output.name_table};"
+            "awk -v OFS=\"\\t\" 'NR > 1 {{for(i = 2; i <= NF; i++) {{tabulation[$1][i] += $i}} }} END {{for(name in tabulation) {{ printf name; for(i = 2; i <= NF; i++) {{printf \"\\t\" tabulation[name][i]}} print \"\";}} }}' | sort -k 1,1 | gzip 
+          {output.name_table};"
         "paste <(zcat {input.unique_repeats} | awk -v OFS=\"\\t\" 'BEGIN {{print \"repeat_class\";}} {{print $8}}') {input.replicate_counts} | "
             "awk -v OFS=\"\\t\" 'NR > 1 {{for(i = 2; i <= NF; i++) {{tabulation[$1][i] += $i}} }} END {{for(name in tabulation) {{ printf name; for(i = 2; i <= NF; i++) {{printf \"\\t\" tabulation[name][i]}} print \"\";}} }}' | sort -k 1,1 | gzip >> {output.class_table};"
         "paste <(zcat {input.unique_repeats} | awk -v OFS=\"\\t\" 'BEGIN {{print \"repeat_family\";}} {{print $9}}') {input.replicate_counts} | "
@@ -473,9 +474,9 @@ rule fit_clip_betabinomial_re_model:
         job_name = "fit_clip_betabinomial_re_model"
     benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_clip_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
 rule fit_input_betabinomial_re_model:
     input:
@@ -491,9 +492,9 @@ rule fit_input_betabinomial_re_model:
         job_name = "fit_input_betabinomial_re_model"
     benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_input_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
 rule call_enriched_re:
     input:
@@ -513,9 +514,9 @@ rule call_enriched_re:
         job_name = "call_enriched_re"
     benchmark: "benchmarks/call_enriched_re/{experiment_label}.{clip_replicate_label}.call_enriched_re.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/call_enriched_re.R {input.table} {input.repeats} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/call_enriched_re.R {input.table} {input.repeats} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
 rule find_reproducible_enriched_re:
     input:
@@ -530,9 +531,9 @@ rule find_reproducible_enriched_re:
         job_name = "find_reproducible_enriched_re"
     benchmark: "benchmarks/find_reproducible_enriched_re/{experiment_label}.all_replicates.reproducible.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/identify_reproducible_re.R output/enriched_re/ {wildcards.experiment_label}"
+        "Rscript --vanilla {TOOL_DIR}/identify_reproducible_re.R output/enriched_re/ {wildcards.experiment_label}"
         
 rule partition_bam_reads:
     input:
@@ -610,9 +611,9 @@ rule fit_input_betabinomial_model:
         job_name = "fit_input_betabinomial_model"
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_input_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
 rule fit_clip_betabinomial_model:
     input:
@@ -628,9 +629,9 @@ rule fit_clip_betabinomial_model:
         job_name = "fit_clip_betabinomial_model"
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/fit_clip_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
 rule call_enriched_windows:
     input:
@@ -673,9 +674,9 @@ rule call_enriched_windows:
         job_name = "call_enriched_windows"
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/call_enriched_windows.R {input.table} {input.accession_rankings} {input.feature_annotations} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
+        "Rscript --vanilla {TOOL_DIR}/call_enriched_windows.R {input.table} {input.accession_rankings} {input.feature_annotations} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
 rule check_window_concordance:
     input:
@@ -691,9 +692,9 @@ rule check_window_concordance:
         job_name = "check_window_concordance"
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/check_window_concordance.R output/tested_windows {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
+        "Rscript --vanilla {TOOL_DIR}/check_window_concordance.R output/tested_windows {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
 rule find_reproducible_enriched_windows:
     input:
@@ -710,9 +711,9 @@ rule find_reproducible_enriched_windows:
         job_name = "find_reproducible_enriched_windows"
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/identify_reproducible_windows.R output/enriched_windows/ {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
+        "Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R output/enriched_windows/ {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
 rule sample_background_windows_by_region:
     input:
@@ -729,9 +730,9 @@ rule sample_background_windows_by_region:
         job_name = "sample_background_windows"
     benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/sample_matched_background_by_region.R {input.enriched_windows} {input.all_windows} 75 output/homer/region_matched_background {wildcards.experiment_label};"
+        "Rscript --vanilla {TOOL_DIR}/sample_matched_background_by_region.R {input.enriched_windows} {input.all_windows} 75 output/homer/region_matched_background {wildcards.experiment_label};"
 
 rule get_nt_coverage:
     input:
@@ -782,9 +783,9 @@ rule finemap_windows:
         job_name = "finemap_windows"
     benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/finemap_enriched_windows.R {input.nt_coverage} output/finemapping/mapped_sites/ {wildcards.experiment_label}"
+        "Rscript --vanilla {TOOL_DIR}/finemap_enriched_windows.R {input.nt_coverage} output/finemapping/mapped_sites/ {wildcards.experiment_label}"
 
 rule run_homer:
     input:
@@ -803,7 +804,7 @@ rule run_homer:
     container:
         "docker://howardxu520/skipper:Homer_4.11"
     shell:
-        "findMotifsGenome.pl <(less {input.finemapped_windows} | awk -v OFS=\"\t\" '{{print $4 \":\"$9,$1,$2+1,$3,$6}}') "
+        "findMotifsGenome.pl <(zcat {input.finemapped_windows} | awk -v OFS=\"\t\" '{{print $4 \":\"$9,$1,$2+1,$3,$6}}') "
             "{input.genome} output/homer/finemapped_results/{wildcards.experiment_label} -preparsedDir output/homer/preparsed -size given -rna -nofacts -S 20 -len 5,6,7,8,9 -nlen 1 "
             "-bg <(zcat {input.background} | awk -v OFS=\"\t\" '{{print $4,$1,$2+1,$3,$6}}') "
 
@@ -823,9 +824,9 @@ rule consult_encode_reference:
         job_name = "consult_encode_reference"
     benchmark: "benchmarks/consult_encode_reference/skipper.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/consult_encode_reference.R output/reproducible_enriched_windows output/reproducible_enriched_re {TOOL_DIR} skipper "
+        "Rscript --vanilla {TOOL_DIR}/consult_encode_reference.R output/reproducible_enriched_windows output/reproducible_enriched_re {TOOL_DIR} skipper "
 
 rule consult_term_reference:
     input:
@@ -844,6 +845,6 @@ rule consult_term_reference:
         job_name = "consult_term_reference"
     benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
     container:
-        "docker://howardxu520/skipper:R_4.1.3"
+        "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
-        "{R_EXE} --vanilla {TOOL_DIR}/consult_term_reference.R {input.enriched_windows} {input.gene_sets} {input.gene_set_reference} {input.gene_set_distance} {wildcards.experiment_label} "
+        "Rscript --vanilla {TOOL_DIR}/consult_term_reference.R {input.enriched_windows} {input.gene_sets} {input.gene_set_reference} {input.gene_set_distance} {wildcards.experiment_label} "
