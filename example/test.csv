@@ -1,0 +1,5 @@
+﻿# Filter gene annotation files to genes expressed in the cell type to improve sensitivity,,,,,,,,,
+# Replicates of the same sample must have identical experiment and sample fields. Replicates are numbered per experiment.,,,,,,,,,
+Experiment,Sample,Cells,Input_replicate,Input_adapter,Input_fastq,CLIP_replicate,CLIP_adapter,CLIP_fastq,Notes
+RPS14,RPS14,K562,1,/projects/ps-yeolab3/eboyle/encode/pipeline/adapters/InvRiL19.fasta,/projects/ps-yeolab3/eboyle/encode/pipeline/github/fastqs/IN1_RPS14_S22_L001_R1_001.fastq.gz,1,/projects/ps-yeolab3/eboyle/encode/pipeline/adapters/InvRNA1.fasta,/projects/ps-yeolab3/eboyle/encode/pipeline/github/fastqs/IP1_RPS14_S24_L001_R1_001.fastq.gz,
+RPS14,RPS14,K562,2,/projects/ps-yeolab3/eboyle/encode/pipeline/adapters/InvRiL19.fasta,/projects/ps-yeolab3/eboyle/encode/pipeline/github/fastqs/IN2_RPS14_S23_L001_R1_001.fastq.gz,2,/projects/ps-yeolab3/eboyle/encode/pipeline/adapters/InvRNA1.fasta,/projects/ps-yeolab3/eboyle/encode/pipeline/github/fastqs/IP2_RPS14_S25_L001_R1_001.fastq.gz,

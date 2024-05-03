@@ -94,7 +94,7 @@ rule all:
         expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz", experiment_label = manifest.Experiment),
         expand("output/homer/finemapped_results/{experiment_label}/homerResults.html", experiment_label = manifest.Experiment),
         expand("output/gene_sets/{experiment_label}.enriched_terms.tsv.gz", experiment_label = manifest.Experiment),
-        "output/figures/tsne/skipper.tsne_query.pdf",
+        "output/figures/tsne/skipper.tsne_query.pdf"
     output:
         "land_ho.txt"
     threads: 1
@@ -126,7 +126,6 @@ rule parse_gff:
         "docker://howardxu520/skipper:R_4.1.3_1"
     shell:        
         "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
-
 
 rule run_initial_fastqc:
     input:
@@ -447,6 +446,8 @@ rule make_repeat_count_tables:
         memory = "200",
         job_name = "make_repeat_count_tables"
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_repeat_count_table.txt"
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         "echo \"repeat_name\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.name_table};"
         "echo \"repeat_class\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.class_table};"
