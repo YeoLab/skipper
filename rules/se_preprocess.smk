@@ -1,4 +1,11 @@
 locals().update(config) 
+if config.get('AGGRESSIVE_TRIM', False):
+    skewer_k = 1
+    skewer_m = 'any'
+else:
+    skewer_k = 2
+    skewer_m = 'tail'
+
 rule run_initial_fastqc:
     input:
         fq = lambda wildcards: config['replicate_label_to_fastqs'][wildcards.replicate_label].split(" "),
@@ -34,7 +41,9 @@ rule trim_fastq:
         memory = "16000",
         error_file = "stderr/{replicate_label}.trim.err",
         out_file = "stdout/{replicate_label}.trim.out",
-        job_name = "trim_fastq"
+        job_name = "trim_fastq",
+        k = skewer_k,
+        m = skewer_m
     benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
     container:
         "docker://howardxu520/skipper:skewer_0.2.2"
@@ -44,8 +53,11 @@ rule trim_fastq:
         "zcat {input.fq} | skewer "
           "-t {threads} "
           "-x {input.adapter} "
+          "-1 -r 0.2 -d 0.2 -q 13 -l 20 -k {params.k} -m {params.m} - "
+          "| skewer -t {threads} "
+          "-x {input.adapter} "
           "-o output/fastqs/trimmed/{wildcards.replicate_label} "
-          "-z -r 0.2 -d 0.2 -q 13 -l 20 -"
+          "-z -r 0.2 -d 0.2 -q 13 -l 20 -k {params.k} -m {params.m} -"
 
 rule extract_umi:
     input:
