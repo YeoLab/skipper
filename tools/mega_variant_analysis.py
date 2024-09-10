@@ -220,7 +220,8 @@ if __name__ == '__main__':
         data = pd.DataFrame(data, columns = by+['MAPS','n', 'total'])
         return data
     import math
-    def oe_test_for_negative_selection(bydelta_ind, x, y, reference = reference_category):
+    def oe_test_for_negative_selection(bydelta_ind, x, y, reference = reference_category,
+                                    n_variants = 30):
         n_category = bydelta_ind[x].unique().shape[0]
         if reference is None:
             #use the middle class as reference
@@ -233,15 +234,16 @@ if __name__ == '__main__':
         stat_results = []
         for i, (name, group) in enumerate(bydelta_ind.groupby(by = x)):
             
-            if name != reference:
+            if name != reference and group['total'].max()>n_variants: # require at least 30 variants to test
                 try:
                     _, p = mannwhitneyu(group[y], bydelta_ind.loc[bydelta_ind[x]==reference, y],
                                     alternative = alternative) # test for negative selection only
                     median_diff = group[y].median()-bydelta_ind.loc[bydelta_ind[x]==reference, y].median()
-                    stat_results.append([bin2name[name], p, median_diff])
+                    stat_results.append([bin2name[name], p, median_diff, group['total'].max()])
                 except Exception as e:
                     print(e)
-        return pd.DataFrame(stat_results, columns = [x, 'p-value', 'median difference'])
+        return pd.DataFrame(stat_results, columns = [x, 'p-value', 'median difference', 'n'])
+
 
     ### global MAPS ###
     global_maps = groupby_bootstrap_maps(sub_df)
