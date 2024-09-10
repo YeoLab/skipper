@@ -88,5 +88,71 @@ rule summarize_genome_megatable:
 # tested windows # with nan ready for analysis?
 # table containing QC statistics
 
-# prepare deep learning training
-# fetch variants
+rule join_reproducible_enriched_re:
+    input:
+        expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", 
+        experiment_label=experiment_labels)
+    output:
+        binary="output/joined_reproducible_re/binary.csv",
+        l2or="output/joined_reproducible_re/l2or.csv",
+    params:
+        error_file = "stderr/join_reproducible_enriched_re.err",
+        out_file = "stdout/join_reproducible_enriched_re.out",
+        run_time = "25:00",
+        cores = "1",
+        memory = "2000",
+        job_name = "join_reproducible_enriched_re"
+    conda:
+        "envs/metadensity.yaml"
+    shell:
+        """
+        python {TOOL_DIR}/join_reproducible_enriched_re.py . {output.binary} {output.l2or}
+        """
+
+rule join_reproducible_enriched_windows:
+    input:
+        expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
+            experiment_label=experiment_labels)
+    output:
+        binary="output/joined_reproducible_windows/binary.{feature_type}.csv",
+        l2or="output/joined_reproducible_windows/l2or.{feature_type}.csv",
+    params:
+        error_file = "stderr/join_reproducible_enriched_window.err",
+        out_file = "stdout/join_reproducible_enriched_window.out",
+        run_time = "25:00",
+        cores = "1",
+        memory = "2000",
+        job_name = "join_reproducible_enriched_window"
+    conda:
+        "envs/metadensity.yaml"
+    shell:
+        """
+        python {TOOL_DIR}/join_reproducible_enriched_windows.py . {wildcards.feature_type} {output.binary} {output.l2or}
+        """
+
+def find_all_tested_windows(experiment_labels, experiment_to_clip_replicate_labels):
+    tested_windows = []
+    for e in experiment_labels:
+        for rep in experiment_to_clip_replicate_labels[e]:
+            tested_windows.append(f"output/tested_windows/{e}.{rep}.tested_windows.tsv.gz")
+    return tested_windows
+rule join_reproducible_enriched_windows:
+    input:
+        expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
+            experiment_label=experiment_labels),
+        tested_windows = lambda wildcards: find_all_tested_windows(experiment_labels, experiment_to_clip_replicate_labels)
+    output:
+        binary="output/joined_reproducible_windows/all.csv",
+    params:
+        error_file = "stderr/join_all_reproducible_enriched_window.err",
+        out_file = "stdout/join_all_reproducible_enriched_window.out",
+        run_time = "25:00",
+        cores = "1",
+        memory = "2000",
+        job_name = "join_reproducible_enriched_window"
+    conda:
+        "envs/metadensity.yaml"
+    shell:
+        """
+        python {TOOL_DIR}/join_all_reproducible_enriched_windows.py . {output.binary} 
+        """
