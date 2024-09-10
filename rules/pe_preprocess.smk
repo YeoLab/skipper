@@ -290,7 +290,7 @@ rule obtain_unique_reads:
     input:
         rules.select_informative_read.output.bam_informative
     output:
-        "output/QC/{replicate_label}.uniq_fragments"
+        temp("output/QC/{replicate_label}.uniq_fragments")
     params:
         error_file = "stderr/{replicate_label}.count_uniq_fragments.txt",
         out_file = "stdout/{replicate_label}.count_uniq_fragments.txt",
@@ -304,4 +304,24 @@ rule obtain_unique_reads:
     shell:
         """
         samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
+        """
+
+rule uniquely_mapped_reads:
+    input:
+        bam = rules.select_informative_read.output.bam_informative
+    output:
+        bam_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam",
+        bai_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam.bai",
+    threads: 1
+    params:
+        error_out_file = "stderr/uniquemap.{replicate_label}.err",
+        out_file = "stdout/uniquemap.{replicate_label}.out",
+        run_time = "0:30:00",
+        memory = 40000,
+    conda:
+        "envs/bamtools.yaml"
+    shell:
+        """
+        bamtools filter -in {input.bam} -out {output.bam_umap} -mapQuality ">3"
+        samtools index {output.bam_umap}
         """
