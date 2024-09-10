@@ -1,22 +1,22 @@
 locals().update(config)
-rule parse_gff:
-    input:
-        gff = ancient(GFF),
-        rankings = ancient(ACCESSION_RANKINGS),
-    output:
-        partition = PARTITION,
-        feature_annotations = FEATURE_ANNOTATIONS,
-    threads: 4
-    params:
-        error_file = "stderr/parse_gff.err",
-        out_file = "stdout/parse_gff.out",
-        run_time = "3:00:00",
-        job_name = "parse_gff"
-    benchmark: "benchmarks/parse_gff.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:        
-        "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
+# rule parse_gff:
+#     input:
+#         gff = ancient(GFF),
+#         rankings = ancient(ACCESSION_RANKINGS),
+#     output:
+#         partition = PARTITION,
+#         feature_annotations = FEATURE_ANNOTATIONS,
+#     threads: 4
+#     params:
+#         error_file = "stderr/parse_gff.err",
+#         out_file = "stdout/parse_gff.out",
+#         run_time = "3:00:00",
+#         job_name = "parse_gff"
+#     benchmark: "benchmarks/parse_gff.txt"
+#     container:
+#         "docker://howardxu520/skipper:R_4.1.3_1"
+#     shell:        
+#         "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
 
 rule partition_bam_reads:
     input:
@@ -42,27 +42,27 @@ rule partition_bam_reads:
         "bedtools coverage -counts -s -a {input.region_partition} -b - | cut -f 7 | "
         "awk 'BEGIN {{print \"{wildcards.replicate_label}\"}} {{print}}' > {output.counts};"
         
-rule calc_partition_nuc:
-    input:
-        partition = PARTITION,
-        genome = GENOME
-    output:
-        nuc = PARTITION.replace(".bed", ".nuc")
-    params:
-        error_file = "stderr/calc_partition_nuc.err",
-        out_file = "stdout/calc_partition_nuc.out",
-        run_time = "2:00:00",
-        memory = "16000",
-        job_name = "calc_partition_nuc"
-    benchmark: "benchmarks/partition_nuc.txt"
-    container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
-    shell:
-        "bedtools nuc -s -fi {input.genome} -bed {input.partition} | gzip -c > {output.nuc}"
+# rule calc_partition_nuc:
+#     input:
+#         partition = PARTITION,
+#         genome = GENOME
+#     output:
+#         nuc = PARTITION.replace(".bed", ".nuc")
+#     params:
+#         error_file = "stderr/calc_partition_nuc.err",
+#         out_file = "stdout/calc_partition_nuc.out",
+#         run_time = "2:00:00",
+#         memory = "16000",
+#         job_name = "calc_partition_nuc"
+#     benchmark: "benchmarks/partition_nuc.txt"
+#     container:
+#         "docker://howardxu520/skipper:bedtools_2.31.0"
+#     shell:
+#         "bedtools nuc -s -fi {input.genome} -bed {input.partition} | gzip -c > {output.nuc}"
 
 rule make_genome_count_table:
     input:
-        partition = rules.calc_partition_nuc.output.nuc,
+        partition = PARTITION.replace(".bed", ".nuc"),
         replicate_counts = lambda wildcards: expand("output/counts/genome/vectors/{replicate_label}.counts", replicate_label = experiment_to_replicate_labels[wildcards.experiment_label]),
     output:
         count_table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
