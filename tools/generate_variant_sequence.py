@@ -18,6 +18,8 @@ def generate_variant_sequence(row):
     if to_replace != ref:
         print(to_replace, 'ref=', ref, start, end, len(seq))
         return None
+    else:
+        print('reference correct')
     new_seq = seq[:start]+row['ALT']+seq[end:]
     return new_seq
 
@@ -46,6 +48,8 @@ def generate_variant_sequence_neg(row):
     if to_replace != ref:
         print(to_replace, 'ref=',ref, start, end, len(seq))
         return None
+    else:
+        print('reference correct')
     new_seq = seq[:end+1]+reverse_complement(row['ALT'])+seq[start+1:]
     return new_seq
 
@@ -55,10 +59,17 @@ def make_SeqRecord(df, seq_col):
     ''' convert df to a list of SeqRecord '''
     records = []
     for index, row in df.iterrows():
+        if seq_col == 'seq':
+            # WT
+            id_ = str(row['CHROM'])+'-'+str(row['POS'])+'-'+row['REF']+'-'+str(row['name'])
+        elif seq_col == 'variant_seq':
+            id_ = str(row['CHROM'])+'-'+str(row['POS'])+'-'+row['ALT']+'-'+str(row['name'])
+        else:
+            id_ = row['ID']
         records.append(
             SeqRecord(
                 Seq(row[seq_col]),
-                id=str(row['ID'])
+                id=id_
                 )
         )
     return records
@@ -115,7 +126,7 @@ else:
     else:
         neg['variant_seq']=None
 
-    cols = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'seq', 'variant_seq','name']
+    cols = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'seq', 'variant_seq','name', 'strand']
     variant_seq_df = pd.concat([pos[cols],
         neg[cols]],
         axis = 0)
@@ -124,6 +135,14 @@ else:
                                           left_on = ['CHROM', 'POS', 'ID', 'REF', 'ALT'],
                                           right_on = [0,1,2,3,4]).drop([0,1,2,3,4], axis = 1)
     
+    # drop duplicates in variant_seq_df, find the centering window
+    rows = []
+    for name, group in variant_seq_df.groupby(by = ['CHROM', 'POS', 'REF', 'ALT']):
+        selected = group.sort_values(by = 'name').iloc[int(group.shape[0]/2)]
+        rows.append(selected)
+    variant_seq_df = pd.concat(rows, axis = 1).T
+    
+    print('writing csv')
     variant_seq_df.to_csv(f'{out_prefix}.csv')
 
     # make fasta
@@ -132,3 +151,5 @@ else:
 
     SeqIO.write(ref_seq, f'{out_prefix}.ref.fa', format = 'fasta')
     SeqIO.write(alt_seq, f'{out_prefix}.alt.fa', format = 'fasta')
+    all_seq = sorted(ref_seq+alt_seq, key=lambda x: x.id)
+    SeqIO.write(all_seq,f'{out_prefix}.all.fa', format = 'fasta')
