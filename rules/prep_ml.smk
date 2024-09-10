@@ -38,12 +38,13 @@ rule train_gkmsvm:
         job_name = "run_homer",
         prefix = lambda wildcards, output: output.model.replace('.model.txt', '')
     container:
-        "docker://algaebrown/lsgkm"
+        "docker://shl198/lsgkm:0.1.1"
     benchmark: "benchmarks/gkmsvm/train.{experiment_label}.txt"
     shell:
         """
-        /usr/src/lsgkm/bin/gkmtrain \
+        /bin/gkmtrain \
             -R \
+            -T 16 \
             -m 280000 \
             {input.foreground} \
             {input.background} \
@@ -68,13 +69,13 @@ rule cv_gkmsvm:
     params:
         error_file = "stderr/{experiment_label}.cv.err",
         out_file = "stdout/{experiment_label}.cv.out",
-        run_time = "24:00:00",
+        run_time = "120:00:00",
         memory = "640000",
         job_name = "gkmsvm_cv",
         prefix = lambda wildcards, output: output.cv.replace('.cvpred.txt', '')
     threads: 1
     container:
-        "docker://algaebrown/lsgkm"
+        "docker://shl198/lsgkm:0.1.1"
     benchmark: "benchmarks/gkmsvm/cv.{experiment_label}.txt"
     shell:
         """
@@ -82,11 +83,11 @@ rule cv_gkmsvm:
             then
             echo "No reproducible finemapped sequences" > {output.cv}
         else
-            timeout -t 86000 /usr/src/lsgkm/bin/gkmtrain \
+            timeout 119h /bin/gkmtrain \
                 -x 5 \
                 -R \
-                -T 1 \
-                -m 620000 \
+                -T 16 \
+                -m 630000 \
                 {input.foreground} \
                 {input.background} \
                 {params.prefix} 
