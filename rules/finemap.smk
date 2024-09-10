@@ -53,3 +53,57 @@ rule finemap_windows:
         "docker://howardxu520/skipper:R_4.1.3_1"
     shell:
         "Rscript --vanilla {TOOL_DIR}/finemap_enriched_windows.R {input.nt_coverage} output/finemapping/mapped_sites/ {wildcards.experiment_label}"
+
+rule annotate_finemap:
+    input:
+        finemapped = rules.finemap_windows.output.finemapped_windows,
+        feature_annotations = FEATURE_ANNOTATIONS,
+        ranking = ACCESSION_RANKINGS,
+    output:
+        "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv"
+    threads:
+        1
+    params:
+        error_file = "stderr/{experiment_label}.annotate_finemap_windows.err",
+        out_file = "stdout/{experiment_label}.annotate_finemap_windows.out",
+        run_time = "00:30:00",
+        memory = "60000",
+        job_name = "annotate_finemap_windows"
+    conda:
+        "envs/metadensity.yaml"
+    shell:
+        """
+        if [ -s {input.finemapped} ]; then
+            python {TOOL_DIR}/annotate_finemapped_regions.py \
+                {input.finemapped} \
+                {input.ranking} \
+                {input.feature_annotations} \
+                {output}
+        else
+            touch {output}
+        fi
+        """
+
+rule find_both_tested_windows:
+    input:
+        lambda wildcards: expand("output/tested_windows/{{experiment_label}}.{clip_replicate_label}.tested_windows.tsv.gz",
+         clip_replicate_label = experiment_to_clip_replicate_labels[wildcards.experiment_label])
+    output:
+        tested_windows_in_2_rep = "output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",
+        tested_windows_merged = "output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.merged.bed"
+    threads: 1
+    params:
+        error_file = "stderr/{experiment_label}.find_both_tested_windows.err",
+        out_file = "stdout/{experiment_label}.find_both_tested_windows.out",
+        run_time = "00:30:00",
+        memory = "60000",
+        job_name = "find_both_tested_windows"
+    conda:
+        "envs/metadensity.yaml"
+    shell:
+        """
+        python {TOOL_DIR}/find_both_tested_windows.py \
+            "{input}" \
+            {output.tested_windows_in_2_rep} \
+            {output.tested_windows_merged}
+        """
