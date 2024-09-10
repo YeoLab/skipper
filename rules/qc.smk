@@ -34,6 +34,8 @@ rule multiqc:
     benchmark: "benchmarks/multiqc/{experiment_label}.multiqc.txt"
     container:
         "docker://jeltje/multiqc:1.6"
+    resources:
+        mem_mb=4000
     shell:
         """
         ls {input.trimmed_fastqc} {input.initial_fastqc} {input.star_log} {input.fastp} {input.trimmed} > output/multiqc/{wildcards.experiment_label}/files.txt

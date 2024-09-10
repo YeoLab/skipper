@@ -41,7 +41,9 @@ rule combine_gnomAD_vcf:
         out_file = "stdout/combine_snp.{experiment_label}",
         run_time = "20:00",
         cores = 1,
-        memory = 30000,
+        memory = "16000",
+    resources:
+        mem_mb=16000
     shell:
         """
         cat {input} > {output}
@@ -85,9 +87,11 @@ rule reannotate_vcf:
         out_file = "stdout/rename_chr",
         run_time = "3:20:00",
         cores = 1,
-        memory = 60000,
+        memory = "16000",
     container:
-        "docker://brianyee/bcftools:1.17"
+        "docker://miguelpmachado/bcftools:1.9-01"
+    resources:
+        mem_mb=16000
     shell:
         """
         bcftools annotate --rename-chrs {input.rename} \
@@ -136,9 +140,11 @@ rule fetch_Clinvar_SNP:
         out_file = "stdout/fetch_clinvar_snp.{experiment_label}",
         run_time = "3:20:00",
         cores = 1,
-        memory = 60000,
+        memory = "16000",
     container:
-        "docker://brianyee/bcftools:1.17"
+        "docker://miguelpmachado/bcftools:1.9-01"
+    resources:
+        mem_mb=16000
     shell:
         """
         bcftools query -R {input.finemapped_windows} \
@@ -159,9 +165,11 @@ rule fetch_COSMIC_SNP:
         out_file = "stdout/fetch_cosmic_snp.{experiment_label}",
         run_time = "6:20:00",
         cores = 1,
-        memory = 60000,
+        memory = "16000",
     container:
-        "docker://brianyee/bcftools:1.17"
+        "docker://miguelpmachado/bcftools:1.9-01"
+    resources:
+        mem_mb=16000
     shell:
         """
         bcftools query -R {input.finemapped_windows} \
@@ -180,10 +188,11 @@ rule fetch_COSMIC_NONCODING_SNP:
         out_file = "stdout/fetch_cosmic_snp.{experiment_label}",
         run_time = "3:20:00",
         cores = 1,
-        memory = 60000,
-    threads: 2
+        memory = "16000",
     container:
-        "docker://brianyee/bcftools:1.17"
+        "docker://miguelpmachado/bcftools:1.9-01"
+    resources:
+        mem_mb=16000
     shell:
         """
         bcftools query -R {input.finemapped_windows} \
@@ -212,9 +221,11 @@ rule fetch_sequence:
         run_time = "06:20:00",
         cores = 1,
         out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
-        memory = 60000,
+        memory = "16000",
     conda:
-        "envs/metadensity.yaml"
+        "/home/hsher/projects/oligoCLIP/rules/envs/metadensity.yaml"
+    resources:
+        mem_mb=16000
     shell:
         """
         if [ -s {input.subset_vcf} ]; then
@@ -245,9 +256,11 @@ rule score_variants_ref:
         out_file = "stdout/score_ref_variants.{subset}.{experiment_label_thing}.{label}",
         run_time = "4:00:00",
         cores = 1,
-        memory = 40000, #320000 is ceiling of gold slow
+        memory = "16000",
     container:
-        "docker://shl198/lsgkm:0.1.1"
+        "docker://algaebrown/lsgkm"
+    resources:
+        mem_mb=16000
     shell:
         """
         /bin/gkmpredict -T 16 {input.fa} {input.model} {output.score}
@@ -410,32 +423,10 @@ rule variants_done:
         out_file = "stdout/variants_done",
         run_time = "00:20:00",
         cores = 1,
-        memory = 10000,
+        memory = "1000",
+    resources:
+        mem_mb=1000
     shell:
         """
         touch {output}
-        """
-
-### conservation ###
-rule compare_UKBB_DR_score:
-    input:
-        finemap_annotation = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv",
-        tested_windows = lambda wildcards: expand("output/tested_windows/{experiment_label}.{clip_replicate_label}.tested_windows.tsv.gz",
-        clip_replicate_label = experiment_to_clip_replicate_labels[wildcards.experiment_label],
-        experiment_label = [wildcards.experiment_label]),
-    output:
-        "output/conservation/UKBB_DR/{experiment_label}.csv"
-    params:
-        error_file = "stderr/ukbb_dr.{experiment_label}",
-        out_file = "stdout//ukbb_dr.{experiment_label}",
-        run_time = "00:20:00",
-        cores = 1,
-        memory = 40000,
-    conda:
-        "envs/metadensity.yaml"
-    shell:
-        """
-        python {TOOL_DIR}/compare_ukbb_dr.py . \
-            {wildcards.experiment_label} \
-            {FEATURE_ANNOTATIONS} {output}
         """

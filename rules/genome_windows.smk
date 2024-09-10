@@ -1,22 +1,25 @@
 locals().update(config)
-# rule parse_gff:
-#     input:
-#         gff = ancient(GFF),
-#         rankings = ancient(ACCESSION_RANKINGS),
-#     output:
-#         partition = PARTITION,
-#         feature_annotations = FEATURE_ANNOTATIONS,
-#     threads: 4
-#     params:
-#         error_file = "stderr/parse_gff.err",
-#         out_file = "stdout/parse_gff.out",
-#         run_time = "3:00:00",
-#         job_name = "parse_gff"
-#     benchmark: "benchmarks/parse_gff.txt"
-#     container:
-#         "docker://howardxu520/skipper:R_4.1.3_1"
-#     shell:        
-#         "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
+rule parse_gff:
+    input:
+        gff = ancient(GFF),
+        rankings = ancient(ACCESSION_RANKINGS),
+    output:
+        partition = PARTITION,
+        feature_annotations = FEATURE_ANNOTATIONS,
+    threads: 1
+    params:
+        error_file = "stderr/parse_gff.err",
+        out_file = "stdout/parse_gff.out",
+        run_time = "3:00:00",
+        job_name = "parse_gff",
+        memory = "48000"
+    benchmark: "benchmarks/parse_gff.txt"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_1"
+    resources:
+        mem_mb=48000
+    shell:
+        "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
 
 rule partition_bam_reads:
     input:
@@ -34,6 +37,8 @@ rule partition_bam_reads:
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
+    resources:
+        mem_mb=60000
     shell:
         "bedtools bamtobed -i {input.bam} | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
         "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
@@ -42,23 +47,25 @@ rule partition_bam_reads:
         "bedtools coverage -counts -s -a {input.region_partition} -b - | cut -f 7 | "
         "awk 'BEGIN {{print \"{wildcards.replicate_label}\"}} {{print}}' > {output.counts};"
         
-# rule calc_partition_nuc:
-#     input:
-#         partition = PARTITION,
-#         genome = GENOME
-#     output:
-#         nuc = PARTITION.replace(".bed", ".nuc")
-#     params:
-#         error_file = "stderr/calc_partition_nuc.err",
-#         out_file = "stdout/calc_partition_nuc.out",
-#         run_time = "2:00:00",
-#         memory = "16000",
-#         job_name = "calc_partition_nuc"
-#     benchmark: "benchmarks/partition_nuc.txt"
-#     container:
-#         "docker://howardxu520/skipper:bedtools_2.31.0"
-#     shell:
-#         "bedtools nuc -s -fi {input.genome} -bed {input.partition} | gzip -c > {output.nuc}"
+rule calc_partition_nuc:
+    input:
+        partition = PARTITION,
+        genome = GENOME
+    output:
+        nuc = PARTITION.replace(".bed", ".nuc")
+    params:
+        error_file = "stderr/calc_partition_nuc.err",
+        out_file = "stdout/calc_partition_nuc.out",
+        run_time = "2:00:00",
+        memory = "16000",
+        job_name = "calc_partition_nuc"
+    benchmark: "benchmarks/partition_nuc.txt"
+    container:
+        "docker://howardxu520/skipper:bedtools_2.31.0"
+    resources:
+        mem_mb=16000
+    shell:
+        "bedtools nuc -s -fi {input.genome} -bed {input.partition} | gzip -c > {output.nuc}"
 
 rule make_genome_count_table:
     input:
@@ -72,11 +79,13 @@ rule make_genome_count_table:
         out_file = "stdout/{experiment_label}.make_count_table.out",
         run_time = "00:05:00",
         cores = "1",
-        memory = "200",
+        memory = "1000",
         job_name = "make_genome_count_table"
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_genome_count_table.txt"
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
+    resources:
+        mem_mb=1000
     shell:
         "paste <(zcat {input.partition} | awk -v OFS=\"\\t\" 'BEGIN {{print \"chr\\tstart\\tend\\tname\\tscore\\tstrand\\tgc\"}} NR > 1 {{print $1,$2,$3,$4,$5,$6,$8}}' ) {input.replicate_counts} | gzip -c > {output.count_table};"
 
@@ -90,12 +99,14 @@ rule fit_input_betabinomial_model:
     params:
         error_file = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinom.err",
         out_file = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinom.out",
-        run_time = "3:00:00",
-        memory = "20000",
+        run_time = "6:00:00",
+        memory = "32000",
         job_name = "fit_input_betabinomial_model"
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    resources:
+        mem_mb=32000
     shell:
         "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
@@ -110,11 +121,13 @@ rule fit_clip_betabinomial_model:
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.out",
         run_time = "6:00:00",
-        memory = "16000",
+        memory = "32000",
         job_name = "fit_clip_betabinomial_model"
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    resources:
+        mem_mb=32000
     shell:
         "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
@@ -150,7 +163,7 @@ rule call_enriched_windows:
         "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature.pdf",
         "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.all_transcript_types.pdf",
         "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature_gc.pdf"
-    threads: 4
+    threads: 2
     params:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label],
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_windows.err",
@@ -161,6 +174,8 @@ rule call_enriched_windows:
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    resources:
+        mem_mb=24000
     shell:
         "Rscript --vanilla {TOOL_DIR}/call_enriched_windows.R {input.table} {input.accession_rankings} {input.feature_annotations} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
@@ -174,11 +189,13 @@ rule check_window_concordance:
         error_file = "stderr/{experiment_label}.check_window_concordance.err",
         out_file = "stdout/{experiment_label}.check_window_concordance.out",
         run_time = "0:15:00",
-        memory = "1000",
+        memory = "8000",
         job_name = "check_window_concordance"
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    resources:
+        mem_mb=8000
     shell:
         "Rscript --vanilla {TOOL_DIR}/check_window_concordance.R output/tested_windows {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
@@ -192,12 +209,14 @@ rule find_reproducible_enriched_windows:
     params:
         error_file = "stderr/{experiment_label}.find_reproducible_enriched_windows.err",
         out_file = "stdout/{experiment_label}.find_reproducible_enriched_windows.out",
-        run_time = "5:00",
+        run_time = "00:30:00",
         memory = "2000",
         job_name = "find_reproducible_enriched_windows"
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    resources:
+        mem_mb=2000
     shell:
         "Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R output/enriched_windows/ {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
@@ -211,11 +230,13 @@ rule sample_background_windows_by_region:
     params:
         error_file = "stderr/{experiment_label}.sample_background_windows_by_region.err",
         out_file = "stdout/{experiment_label}.sample_background_windows_by_region.out",
-        run_time = "10:00",
-        memory = "3000",
+        run_time = "00:30:00",
+        memory = "16000",
         job_name = "sample_background_windows"
     benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    resources:
+        mem_mb=16000
     shell:
         "Rscript --vanilla {TOOL_DIR}/sample_matched_background_by_region.R {input.enriched_windows} {input.all_windows} 75 output/homer/region_matched_background {wildcards.experiment_label};"

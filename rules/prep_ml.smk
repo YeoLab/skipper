@@ -16,6 +16,8 @@ rule fetch_sequence:
         fa = config['GENOME']
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
+    resources:
+        mem_mb=2000
     shell:
         '''
         bedtools getfasta -fo {output.finemapped_fa} -fi {params.fa} -bed {input.finemapped_windows} -s
@@ -112,6 +114,8 @@ checkpoint gkmsvm_AUPRC:
         job_name = "gkmsvm_cv",
     conda:
         "envs/metadensity.yaml"
+    resources:
+        mem_mb=2000
     shell:
         """
         python {TOOL_DIR}/gather_gkmsvm_auprc.py {output}

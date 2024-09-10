@@ -15,6 +15,8 @@ rule uniq_repeats:
     benchmark: "benchmarks/uniq_repeats.txt"
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
+    resources:
+        mem_mb=16000
     shell:
         "zcat {REPEAT_TABLE} | awk -v OFS=\"\\t\" '{{print $6,$7,$8,$11 \":\" name_count[$11]++, $2, $10,$11,$12,$13}} "
             "$13 == \"L1\" || $13 == \"Alu\" {{$11 = $11 \"_AS\"; $12 = $12 \"_AS\"; $13 = $13 \"_AS\"; "
@@ -46,6 +48,8 @@ rule quantify_repeats:
     benchmark: "benchmarks/repeats/unassigned_experiment.{replicate_label}.quantify_repeats.txt"
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
+    resources:
+        mem_mb=60000
     shell:
         "bedtools bamtobed -i {input.bam} | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
             "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
@@ -70,6 +74,8 @@ rule make_repeat_count_tables:
         memory = "2000",
         job_name = "make_repeat_count_tables"
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_repeat_count_table.txt"
+    resources:
+        mem_mb=2000
     shell:
         "echo \"repeat_name\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.name_table};"
         "echo \"repeat_class\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.class_table};"
@@ -90,12 +96,14 @@ rule fit_clip_betabinomial_re_model:
     params:
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.out",
-        run_time = "2:00:00",
-        memory = "8000",
+        run_time = "6:00:00",
+        memory = "32000",
         job_name = "fit_clip_betabinomial_re_model"
     benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    resources:
+        mem_mb=32000
     shell:
         "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
@@ -108,12 +116,14 @@ rule fit_input_betabinomial_re_model:
     params:
         error_file = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.err",
         out_file = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.out",
-        run_time = "2:00:00",
-        memory = "8000",
+        run_time = "6:00:00",
+        memory = "32000",
         job_name = "fit_input_betabinomial_re_model"
     benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    resources:
+        mem_mb=32000
     shell:
         "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
@@ -137,6 +147,8 @@ rule call_enriched_re:
     benchmark: "benchmarks/call_enriched_re/{experiment_label}.{clip_replicate_label}.call_enriched_re.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    resources:
+        mem_mb=16000
     shell:
         "Rscript --vanilla {TOOL_DIR}/call_enriched_re.R {input.table} {input.repeats} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
@@ -154,6 +166,8 @@ rule find_reproducible_enriched_re:
     benchmark: "benchmarks/find_reproducible_enriched_re/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    resources:
+        mem_mb=8000
     shell:
         "Rscript --vanilla {TOOL_DIR}/identify_reproducible_re.R output/enriched_re/ {wildcards.experiment_label}"
         
