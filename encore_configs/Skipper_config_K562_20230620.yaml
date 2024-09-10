@@ -1,6 +1,6 @@
-WORKDIR: /tscc/lustre/scratch/hsher/ENCORE_K562
+WORKDIR: /tscc/nfs/home/hsher/scratch/ENCORE_K562
 protocol: ENCODE4
-MANIFEST : /tscc/nfs/home/hsher/projects/skipper/encore_configs/Skipper_manifest_K562_20230620.csv
+MANIFEST : /tscc/nfs/home/hsher/projects/skipper/encore_configs/K562.csv
 GFF : /tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v40.annotation.k562_totalrna.gt1.gff3.gz
 PARTITION : /tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v40.annotation.k562_totalrna.gt1.tiled_partition.bed.gz
 FEATURE_ANNOTATIONS : /tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v40.annotation.k562_totalrna.gt1.tiled_partition.features.tsv.gz
@@ -19,4 +19,5 @@ GENE_SET_REFERENCE : /tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skip
 GENE_SET_DISTANCE : /tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/encode3_go_terms.jaccard_index.rds
 UNINFORMATIVE_READ : 2
 REPEAT_BED : /tscc/projects/ps-yeolab3/eboyle/encode/pipeline/05_20220720/repeatmasker.grch38.sort.unique.bed.gz
-
+TMPDIR: /tscc/nfs/home/hsher/scratch/
+RBPNET_PATH: /tscc/nfs/home/hsher/projects/RBPNet/
