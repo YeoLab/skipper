@@ -192,6 +192,8 @@ rule dedup_umi:
         job_name = "dedup_bam",
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
+    resources:
+        tmpdir = TMPDIR
     container:
         "docker://howardxu520/skipper:umicollapse_1.0.0"
     shell:
@@ -216,4 +218,24 @@ rule obtain_unique_reads:
     shell:
         """
         samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
+        """
+
+rule uniquely_mapped_reads:
+    input:
+        bam = rules.dedup_umi.output.bam_dedup
+    output:
+        bam_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam",
+        bai_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam.bai",
+    threads: 1
+    params:
+        error_out_file = "stderr/uniquemap.{replicate_label}.err",
+        out_file = "stdout/uniquemap.{replicate_label}.out",
+        run_time = "0:30:00",
+        memory = 40000,
+    conda:
+        "envs/bamtools.yaml"
+    shell:
+        """
+        bamtools filter -in {input.bam} -out {output.bam_umap} -mapQuality ">3"
+        samtools index {output.bam_umap}
         """
