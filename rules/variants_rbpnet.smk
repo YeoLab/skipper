@@ -177,10 +177,12 @@ rule score_fa:
         cores = 1,
         memory = 80000,
         exp =lambda wildcards: wildcards.experiment_label_thing.split('.')[0],
-    conda:
-        "envs/eugene.yaml"
+    container:
+        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     shell:
         """
+        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
+        export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         if [ -s {input.fa} ]; then
             python {RBPNET_PATH}/score_fa.py \
                 output/ml/rbpnet_model/{params.exp}/ \
@@ -290,10 +292,14 @@ rule vep:
         "docker://ensemblorg/ensembl-vep:latest"
     shell:
         """
-        vep \
-        -i {input} \
-        --force_overwrite \
-        -o {output} -offline --cache {params.cache}
+        if [ -s {input} ]; then
+            vep \
+            -i {input} \
+            --force_overwrite \
+            -o {output} -offline --cache {params.cache}
+        else
+            touch {output}
+        fi
         """
 
 rule variant_analysis:
@@ -339,8 +345,12 @@ rule variant_analysis:
         "envs/metadensity.yaml"
     shell:
         """
-        python {TOOL_DIR}/mega_variant_analysis.py \
-            . \
-            {wildcards.experiment_label} \
+        if [ -s {input.gnomAD} ]; then
+            python {TOOL_DIR}/mega_variant_analysis.py \
+                . \
+                {wildcards.experiment_label} 
+        else
+            touch {output}
+        fi
         """
 
