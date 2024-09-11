@@ -12,13 +12,15 @@ rule prepare_data:
         error_file = "stderr/prep_rbpnet.{experiment_label}.err",
         out_file = "stdout/prep_rbpnet.{experiment_label}.out",
         run_time = "40:00",
-        memory = "160000",
-    conda:
-        "envs/eugene.yaml"
+        memory = "80000",
     # container:
-    #     "docker://algaebrown/eugene0.1.2"
+    #     "docker://brianyee/eugene-tools:0.1.2" # THIS DOCKER IS NOT UPDATED WITH PYAROOW YET? NO SPACE LEFT ON DEVICE PROBLEM. PLUS CHARLENE CAN NEVER PULL CORRECTLY
+    container: 
+        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     shell:
         """
+        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
+        export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/prep_data.py {CONFIG_PATH} {wildcards.experiment_label} \
             output/ml/rbpnet_data/{wildcards.experiment_label}
         """
@@ -36,12 +38,12 @@ rule train_model:
         gpu = True
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
-    # conda:
-    #     "envs/rbpnet.yaml"
+    # container:
+    #     "docker://brianyee/eugene-tools:0.1.2" #NO SPACE LEFT ON DEVICE PROBLEM
     shell:
         """
         module load gpu
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
+        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/train.py output/ml/rbpnet_data/{wildcards.experiment_label} \
         output/ml/rbpnet_model/{wildcards.experiment_label}
@@ -61,8 +63,8 @@ rule validation:
         gpu = True
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
-    # conda:
-    #     "envs/rbpnet.yaml"
+    # container:
+    #     "docker://brianyee/eugene-tools:0.1.2"
     shell:
         """
         module load gpu
@@ -89,6 +91,8 @@ rule seqlet:
         gpu = True
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+    # container:
+    #     "docker://brianyee/eugene-tools:0.1.2"
     shell:
         """
         module load gpu
