@@ -17,9 +17,12 @@ rule make_unscaled_bigwig:
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
+    resources:
+        mem_mb=10000
     shell:
-        "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
-        "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
+        "samtools index {input.bam};"
+        "bedtools genomecov -split -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
+        "bedtools genomecov -split -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
         "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
         "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
@@ -35,18 +38,21 @@ rule make_scaled_bigwig:
     params:
         error_file = "stderr/{replicate_label}.make_bigwig.err",
         out_file = "stdout/{replicate_label}.make_bigwig.out",
-        run_time = "40:00",
-        memory = "1000",
+        run_time = "04:00:00",
+        memory = "10000",
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
+    resources:
+        mem_mb=10000
     shell:
-        "factor=$(samtools idxstats {input.bam} | cut -f 3 | paste -sd+ | bc | xargs -I {{}} echo 'scale=6; 10^6 / {{}}' | bc);"
-        "bedtools genomecov -scale $factor -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
-        "bedtools genomecov -scale $factor -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
-        "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
-        "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
+        "samtools index {input.bam};"
+        "FACTOR=$(samtools idxstats {input.bam} | cut -f 3 | paste -sd+ | bc | xargs -I {{}} echo 'scale=6; 10^6 / {{}}' | bc);"
+        "bedtools genomecov -scale $FACTOR -split -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
+        "bedtools genomecov -scale $FACTOR -split -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
+        "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};"
+        "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};"
 
 rule make_scaled_bigwig_coverage:
     input:

@@ -32,26 +32,6 @@ For example, below are some commands for installing Miniconda and Snakemake.
 
 `conda create -c conda-forge -c bioconda -n snakemake snakemake`
 
-Skipper requires several R packages. In order to install the precise versions used in the manuscript, we have scripts to install the used versions of R and corresponding packages from source.
-
-Use conda to create an environment for installing R:
-
-`conda env create -f documents/rskipper.yml`
-
-Use the get_R.sh script to complete installation of R. Expect the whole process to take around 4 hours. Provide your conda directory as the first argument and the directory you wish to install R as the second:
-
-`bash -l tools/get_R.sh /home/eboyle/miniconda3 /projects/ps-yeolab3/eboyle/encode/pipeline/gran`
-
-Alternatively, at least as of this writing, Skipper is compatible with the newest version of R and its packages. The required packages can be installed for an existing R installation as follows:
-
-`install.packages(c("tidyverse", "VGAM", "viridis", "ggrepel", "RColorBrewer", "Rtsne", "ggupset", "ggdendro", "cowplot"))`
-
-`if (!require("BiocManager", quietly = TRUE))`
-    `install.packages("BiocManager")`
-`BiocManager::install(c("GenomicRanges","fgsea","rtracklayer"))`
-
-Paths to locally installed versions can be supplied in the config file, described below.
-
 <h2>Preparing to run Skipper</h2>
 Skipper uses a Snakemake workflow. The `Skipper.py` file contains the rules necessary to process CLIP data from fastqs. Skipper also supports running on BAMs - note that Skipper's analysis of repetitive elements will assume that non-uniquely mapping reads are contained within the BAM files.
 
@@ -66,6 +46,8 @@ Numerous resources must be entered in the `Skipper_config.py` file:
 | MANIFEST            | Information on samples to run                                                        |
 | GENOME              | Samtools- and STAR-indexed fasta of genome for the sample of interest                |
 | STAR_DIR            | Path to STAR reference for aligning sequencing reads                |
+| WORKDIR             | Path to outputs |
+| protocol            | ENCODE3 to run paired-end. ENCODE4 to run single-end    |
 
 
 Other paths to help Skipper run must be entered: 
@@ -73,6 +55,7 @@ Other paths to help Skipper run must be entered:
 | Path    | Description |
 | ----------- | ----------- |
 | TOOL_DIR    | Directory for the tools located in the GitHub        |
+| RBPNET_PATH | Directory for Deep Learning code [RBPNet](https://github.com/algaebrown/RBPNet/)|
 
 
 Information about the CLIP library to be analyzed is also required:
@@ -136,11 +119,42 @@ Remember to load the Snakemake environment before running
 
 Use the dry run function to confirm that Snakemake can parse all the information:
 
-`snakemake -ns Skipper.py -j 1`
+```
+snakemake -kps Skipper.py \
+    --configfile $CONFIG \
+    --profile profiles/tscc2 -n
+```
 
 Once Snakemake has confirmed DAG creation, submit the jobs using whatever high performance computing infrastructure options suit you:
 
-`snakemake -kps Skipper.py -w 15 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo"`
+```
+snakemake -kps Skipper.py \
+    --configfile $CONFIG \
+    --profile profiles/tscc2 -n
+```
+
+Some deep learning rules will benefit from using GPU (temporary solution):
+
+```
+# Run on CPU util data preparation
+CONFIG=/tscc/nfs/home/hsher/projects/skipper/encode_configs/Skipper_pe_small_test.yaml
+
+snakemake -kps Skipper.py \
+    --configfile $CONFIG \
+    --profile profiles/tscc2 --until rbpnet_prepare_data
+
+# Perform training, validation and seqlet finding using GPU
+snakemake -kps Skipper.py \
+    --configfile $CONFIG \
+    --profile profiles/tscc2_gpu --until rbpnet_seqlet
+
+# Finish the remaining using CPU
+snakemake -kps Skipper.py \
+    --configfile $CONFIG \
+    --profile profiles/tscc2
+
+# Sorry this is not end-to-end yet. Snakemake 8 can do it end-to-end but with some refactoring.
+```
 
 Did Skipper terminate? Sometimes jobs fail - inspect any error output and rerun the same command if there is no apparent explanation such as uninstalled dependencies or a misformatted input file. Snakemake will try to pick up where it left off.
 
@@ -163,3 +177,11 @@ Skipper produces a lot of output. The `output/figures` directory contains figure
 Annotated reproducible enriched windows can be accessed at `output/reproducible_enriched_windows/` and Homer motif output is at `output/homer/`
 
 Example CLIP fastqs and processed data are available at GEO and SRA: `https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE213867`
+
+## Common problems:
+1. Pulling singularity and get "no space left on device"
+```
+export SINGULARITY_TMPDIR=/tscc/lustre/ddn/scratch/hsher/singularity_tmp
+export TMPDIR=/tscc/lustre/ddn/scratch/hsher/singularity_tmp
+export SINGULARITY_CACHEDIR=/tscc/lustre/ddn/scratch/hsher/singularity_cache
+```

@@ -1,4 +1,4 @@
-WORKDIR: /tscc/nfs/home/hsher/scratch/ENCODE_test_2
+WORKDIR: /tscc/nfs/home/hsher/scratch/testing_branch_ENCODE3
 protocol: ENCODE3
 MANIFEST : /tscc/nfs/home/hsher/projects/skipper/encode_configs/Skipper_pe_manifest_small.csv
 GFF : /tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v40.annotation.k562_totalrna.gt1.gff3.gz

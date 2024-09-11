@@ -8,7 +8,37 @@ from time import sleep
 from pathlib import Path
 import warnings 
 
+# example command
+"""
+# ENCODE 4
+snakemake -kps Skipper.py \
+    -j 30 \
+    --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" \
+    --configfile /home/hsher/projects/skipper/encore_configs/Skipper_config_small_test.yaml \
+    --conda-prefix /home/hsher/snakeconda \
+    --use-conda \
+    --use-singularity \
+    --singularity-prefix /home/hsher/scratch/singularity \
+    --singularity-args "--bind /oasis --bind /projects --bind /scratch" \
+    -n
+
+# ENCODE 3
+snakemake -kps Skipper.py \
+    -j 30 \
+    --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" \
+    --configfile /home/hsher/projects/skipper/encode_configs/Skipper_pe_small_test.yaml \
+    --conda-prefix /home/hsher/snakeconda \
+    --use-conda \
+    --use-singularity \
+    --singularity-prefix /home/hsher/scratch/singularity \
+    --singularity-args "--bind /oasis --bind /projects --bind /scratch" \
+    output/ml/gkmsvm/RBFOX2_HepG2_ENCSR987FTF.cvpred.txt
+
+
+"""
+
 locals().update(config)
+
 workdir: config['WORKDIR']
 
 if not os.path.exists("stderr"): os.makedirs("stderr")
@@ -30,12 +60,10 @@ for col in manifest.columns[manifest.columns.str.contains('_fastq') | manifest.c
 try:
     if min(manifest.groupby("Experiment")["CLIP_fastq"].agg(lambda x: len(set(x)))) < 2:
         sys.stderr.write("WARNING: NONZERO EXPERIMENTS HAVE ONLY ONE CLIP REPLICATE.\nPIPELINE MUST HALT AFTER GENERATING RAW COUNTS\nThis usually means your manifest is incorrectly formatted\n")
-        print(manifest.groupby("Experiment")["CLIP_fastq"].agg(lambda x: len(set(x))))
         sleep(5)
 except:
     if min(manifest.groupby("Experiment")["CLIP_fastq_1"].agg(lambda x: len(set(x)))) < 2:
         sys.stderr.write("WARNING: NONZERO EXPERIMENTS HAVE ONLY ONE CLIP REPLICATE.\nPIPELINE MUST HALT AFTER GENERATING RAW COUNTS\nThis usually means your manifest is incorrectly formatted\n")
-        print(manifest.groupby("Experiment")["CLIP_fastq_1"].agg(lambda x: len(set(x))))
         sleep(5)
 
 if max(manifest.groupby("Sample")["Input_replicate"].agg(lambda x: min(x))) > 1:
@@ -119,14 +147,6 @@ if Path(GFF).name.replace('.gff3.gz', '') != Path(FEATURE_ANNOTATIONS).name.repl
 
 config['manifest'] = manifest
 
-# access config file path
-if '--configfile' in sys.argv:
-    i = sys.argv.index('--configfile')
-elif '--configfiles' in sys.argv:
-    i = sys.argv.index('--configfiles')
-config['CONFIG_PATH']=sys.argv[i+1]
-print(config['CONFIG_PATH'])
-locals().update(config)
 
 rule all:
     input:
@@ -137,46 +157,42 @@ rule all:
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
         expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
         expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
-        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw", replicate_label = replicate_labels),
-        # expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
+        expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
-        # expand("output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf", experiment_label = manifest.Experiment),
-        # expand("output/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
+        expand("output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf", experiment_label = manifest.Experiment),
+        expand("output/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
         expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", experiment_label = manifest.Experiment),
         expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz", experiment_label = manifest.Experiment),
-        expand("output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",experiment_label = manifest.Experiment),
         expand("output/homer/finemapped_results/{experiment_label}/homerResults.html", experiment_label = manifest.Experiment),
         expand("output/gene_sets/{experiment_label}.enriched_terms.tsv.gz", experiment_label = manifest.Experiment),
         "output/figures/tsne/skipper.tsne_query.pdf",
-        # Quality control
-        # expand("output/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
-        # expand("output/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
-        # expand("output/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment),
+        expand("output/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
+        expand("output/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
+        expand("output/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment),
         expand("output/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
         expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
         "output/QC/unique_fragments.csv",
+        # expand("output/variants/gnomAD/{experiment_label}.{chr}.vcf", experiment_label = manifest.Experiment, chr=[f'chr{i}' for i in list(range(1,23))+['X','Y']]),
+        # expand("output/ml/sequence/{experiment_label}.foreground.fa", experiment_label = manifest.Experiment),
         # expand("output/ml/gkmsvm/{experiment_label}.cvpred.txt", experiment_label = manifest.Experiment),
+        # expand("output/ml/gkmsvm/{experiment_label}.model.txt", experiment_label = manifest.Experiment),
         # "output/ml/gkmsvm/AUPRC.txt",
-        # "variants_done.txt",
-        # expand("output/joined_reproducible_windows/l2or.{type}.csv",
-        #        type =['EXON_SMALL','INTRON', 'SS5_ADJ,SS5_PROX,SS3_ADJ,SS3_PROX,SSB_ADJ,SSB_PROX',
-        #               'UTR5,CDS_START,CDS,CDS_STOP,CDS_SOLITARY,UTR3','EXON_PSEUDO','EXON_LNCRNA',
-        #               'EXON_MRNA']
-        # ),
-        # "output/joined_reproducible_re/l2or.csv",
-        # "output/joined_reproducible_windows/all.csv",
-        # expand("output/conservation/UKBB_DR/{experiment_label}.csv", experiment_label = manifest.Experiment)
-        expand("output/ml/rbpnet_model/{experiment_label}/valid/test_data_metric.csv",
-               experiment_label = manifest.Experiment),
-        expand("output/ml/rbpnet_model/{experiment_label}/motif_done",
-               experiment_label = manifest.Experiment),
-        expand("output/variants/gnomAD_roulette/{experiment_label}.total.csv",
-               experiment_label = manifest.Experiment),
-        expand("output/variants/clinvar/{experiment_label}.vep.tsv",
-            experiment_label = manifest.Experiment),
-        expand("output/variant_analysis/{experiment_label}.clinvar_variants.csv",
-               experiment_label = manifest.Experiment)
+        # "variants_done.txt"
+    output:
+        "land_ho.txt"
+    threads: 1
+    params:
+        error_file = "stderr/all.err",
+        out_file = "stdout/all.out",
+        run_time = "00:04:00",
+        memory = "200",
+        job_name = "all"
+    shell:
+        "echo $(date)  > {output};"
+        "echo Version: 1.99.0 >> {output};"
+        "echo RBP-ARK >> {output};"
+        "echo Created by Evan Boyle and the Yeo lab >> {output}"
 
 module se_preprocess:
     snakefile:
@@ -231,23 +247,12 @@ module prep_ml:
     config:
         config
 
-module rbpnet:
+module variants:
     snakefile:
-        "rules/train_rbpnet.smk"
+        "rules/variants.smk"
     config:
         config
 
-# module variants:
-#     snakefile:
-#         "rules/variants.smk"
-#     config:
-#         config
-
-module variants_rbpnet:
-    snakefile:
-        "rules/variants_rbpnet.smk"
-    config:
-        config
 
 
 if config['protocol']=='ENCODE4':
@@ -263,6 +268,5 @@ use rule * from finemap
 use rule * from analysis
 use rule * from meta_analysis
 use rule * from prep_ml as ml_*
-# use rule * from variants as variants_*
-use rule * from rbpnet as rbpnet_*
-use rule * from variants_rbpnet as rbpnet_variants_*
+use rule * from variants as variants_*
+

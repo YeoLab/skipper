@@ -10,3 +10,12 @@ echo $f $LINECOUNT;
 fi
 
 done
+
+
+for f in ~/scratch/ENCO*_*/output/variants/clinvar;
+do
+cd $f
+echo $f
+pwd
+find . -name '*.vep.tsv' -type f -empty -print 
+done
