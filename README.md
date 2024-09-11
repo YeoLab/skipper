@@ -152,6 +152,8 @@ snakemake -kps Skipper.py \
 snakemake -kps Skipper.py \
     --configfile $CONFIG \
     --profile profiles/tscc2
+
+# Sorry this is not end-to-end yet. Snakemake 8 can do it end-to-end but with some refactoring.
 ```
 
 Did Skipper terminate? Sometimes jobs fail - inspect any error output and rerun the same command if there is no apparent explanation such as uninstalled dependencies or a misformatted input file. Snakemake will try to pick up where it left off.
@@ -176,3 +178,10 @@ Annotated reproducible enriched windows can be accessed at `output/reproducible_
 
 Example CLIP fastqs and processed data are available at GEO and SRA: `https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE213867`
 
+## Common problems:
+1. Pulling singularity and get "no space left on device"
+```
+export SINGULARITY_TMPDIR=/tscc/lustre/ddn/scratch/hsher/singularity_tmp
+export TMPDIR=/tscc/lustre/ddn/scratch/hsher/singularity_tmp
+export SINGULARITY_CACHEDIR=/tscc/lustre/ddn/scratch/hsher/singularity_cache
+```
