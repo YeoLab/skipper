@@ -173,12 +173,27 @@ rule all:
         expand("output/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
         expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
         "output/QC/unique_fragments.csv",
-        expand("output/variants/gnomAD/{experiment_label}.{chr}.vcf", experiment_label = manifest.Experiment, chr=[f'chr{i}' for i in list(range(1,23))+['X','Y']]),
+        # expand("output/variants/gnomAD/{experiment_label}.{chr}.vcf", experiment_label = manifest.Experiment, chr=[f'chr{i}' for i in list(range(1,23))+['X','Y']]),
         # expand("output/ml/sequence/{experiment_label}.foreground.fa", experiment_label = manifest.Experiment),
         # expand("output/ml/gkmsvm/{experiment_label}.cvpred.txt", experiment_label = manifest.Experiment),
         # expand("output/ml/gkmsvm/{experiment_label}.model.txt", experiment_label = manifest.Experiment),
         # "output/ml/gkmsvm/AUPRC.txt",
         # "variants_done.txt"
+    output:
+        "land_ho.txt"
+    threads: 1
+    params:
+        error_file = "stderr/all.err",
+        out_file = "stdout/all.out",
+        run_time = "00:04:00",
+        memory = "200",
+        job_name = "all"
+    shell:
+        "echo $(date)  > {output};"
+        "echo Version: 1.99.0 >> {output};"
+        "echo RBP-ARK >> {output};"
+        "echo Created by Evan Boyle and the Yeo lab >> {output}"
+
 module se_preprocess:
     snakefile:
         "rules/se_preprocess.smk"
