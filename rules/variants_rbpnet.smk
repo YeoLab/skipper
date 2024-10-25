@@ -187,7 +187,8 @@ rule score_fa:
             python {RBPNET_PATH}/score_fa.py \
                 output/ml/rbpnet_model/{params.exp}/ \
                 {input.fa} \
-                {output.score}
+                {output.score} \
+                /tscc/lustre/ddn/scratch/${{USER}}
         else
             touch {output.score}
             touch {output.fai}
