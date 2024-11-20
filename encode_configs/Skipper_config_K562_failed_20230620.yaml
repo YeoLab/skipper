@@ -18,4 +18,4 @@ GENE_SET_REFERENCE: /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/an
 GENE_SET_DISTANCE: /projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/encode3_go_terms.jaccard_index.rds
 UNINFORMATIVE_READ: 1
 REPEAT_BED: /projects/ps-yeolab3/eboyle/encode/pipeline/05_20220720/repeatmasker.grch38.sort.unique.bed.gz
-
+RBPNET_PATH: /tscc/nfs/home/hsher/projects/RBPNet/

@@ -20,6 +20,30 @@ enriched_window_data = enriched_window_files %>%
     Filter(function(x) nrow(x) > 0, .) %>%
     bind_rows(.id = "clip_replicate_label") 
 
+# handle both replicate has 0 enriched windows, there is no name
+if (nrow(enriched_window_data) == 0){
+	pdf(paste0('output/figures/reproducible_enriched_windows/', prefix, '.reproducible_enriched_window_counts.linear.pdf'), height = 1, width = 2)
+		print(ggplot() + annotate("text", x = 1, y = 1, label = "No data") + theme_void())
+	dev.off()
+	pdf(paste0('output/figures/reproducible_enriched_windows/', prefix, '.reproducible_enriched_window_counts.log10.pdf'), height = 1, width = 2)
+		print(ggplot() + annotate("text", x = 1, y = 1, label = "No data") + theme_void())
+	dev.off()
+
+	columns= c("chr","start","end","name","score","strand","gc",
+	"gc_bin","chrom","feature_id","feature_bin","feature_type_top","feature_types",
+	"gene_name","gene_id","transcript_ids","gene_type_top","transcript_type_top",
+	"gene_types","transcript_types", "input_sum","clip_sum","enrichment_n",
+	"enrichment_l2or_min","enrichment_l2or_mean","enrichment_l2or_max","p_max","p_min",
+	"q_max","q_min") 
+ 
+	# pass this vector length to ncol parameter
+	# and nrow with 0
+	reproducible_enriched_window_data = data.frame(matrix(nrow = 0, ncol = length(columns))) 
+	colnames(reproducible_enriched_window_data) = columns
+	write_tsv(reproducible_enriched_window_data, paste0("output/reproducible_enriched_windows/", prefix, ".reproducible_enriched_windows.tsv.gz"))
+	quit()
+}
+
 if(nrow(enriched_window_data %>% group_by(name) %>% filter(n() > 1)) == 0) {
 	pdf(paste0('output/figures/reproducible_enriched_windows/', prefix, '.reproducible_enriched_window_counts.linear.pdf'), height = 1, width = 2)
 		print(ggplot() + annotate("text", x = 1, y = 1, label = "No data") + theme_void())

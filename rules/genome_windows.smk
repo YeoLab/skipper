@@ -69,7 +69,7 @@ rule calc_partition_nuc:
 
 rule make_genome_count_table:
     input:
-        partition = rules.calc_partition_nuc.output.nuc,
+        partition = PARTITION.replace(".bed", ".nuc"),
         replicate_counts = lambda wildcards: expand("output/counts/genome/vectors/{replicate_label}.counts", replicate_label = experiment_to_replicate_labels[wildcards.experiment_label]),
     output:
         count_table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
