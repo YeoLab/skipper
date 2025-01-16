@@ -130,7 +130,8 @@ rule score_fa:
             python {RBPNET_PATH}/score_fa.py \
                 {params.model_path} \
                 {input.fa} \
-                {output.score}
+                {output.score} \
+                /tscc/lustre/ddn/scratch/${{USER}}
         else
             touch {output.score}
         fi
