@@ -33,12 +33,9 @@ rule split_vcf:
        chunk = [f"{i:05d}" for i in range(1, N_SPLIT+1)],
        prefix="{prefix}"))
     threads: 1
-    params:
-        error_file = "stderr/split_vcf",
-        out_file = "stdout/split_vcf",
-        run_time = "6:20:00",
-        cores = 1,
-        memory = 80000,
+    resources:
+        mem_mb=80000,
+        runtime="6h"
     conda:
         "envs/java.yaml"
     shell:
@@ -56,12 +53,9 @@ rule vep:
         temp("output/{prefix}.{chunk}.tsv"),
         temp("output/{prefix}.{chunk}.tsv_summary.html")
     threads: 2
-    params:
-        error_file = "stderr/vep",
-        out_file = "stdout/vep",
-        run_time = "1:20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=40000,
+        runtime="1h"
     container:
         "docker://ensemblorg/ensembl-vep:latest"
     shell:
@@ -80,12 +74,9 @@ rule combine_vep:
     output:
         "{prefix}_all.vep.tsv"
     threads: 2
-    params:
-        error_file = "stderr/combine_vep",
-        out_file = "stdout/combine_vep",
-        run_time = "1:20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=40000,
+        runtime="1h"
     shell:
         """
         cat {input} | grep -v '#' > {output}
@@ -99,12 +90,9 @@ rule annotate_RBP_site:
         allrbp_rename="allrbpsite.bed.rename.gz",
         vcf=ROULETTE_DIR/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz'
     threads: 1
-    params:
-        error_file = "stderr/annotate_RBP_site",
-        out_file = "stdout/annotate_RBP_site",
-        run_time = "1:20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=40000,
+        runtime="1h"
     container:
         "docker://brianyee/bcftools:1.17"
     shell:
@@ -132,12 +120,9 @@ rule make_tsv:
     output:
         tsv='22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.tsv.gz'
     threads: 1
-    params:
-        error_file = "stderr/make_tsv",
-        out_file = "stdout/make_tsv",
-        run_time = "1:20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=40000,
+        runtime="1h"
     container:
         "docker://brianyee/bcftools:1.17"
     shell:
@@ -154,12 +139,9 @@ rule fit_expected_singleton_rate:
     output:
         expected=MODEL_DIR+'/singleton.pickle'
     threads: 1
-    params:
-        error_file = "stderr/fit_expected_singleton_rate",
-        out_file = "stdout/fit_expected_singleton_rate",
-        run_time = "1:20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=40000,
+        runtime="1h"
     conda:
         "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
     shell:

@@ -8,13 +8,11 @@ rule prepare_data:
         replicate_label = experiment_to_replicate_labels[wildcards.experiment_label]),
     output:
         "output/ml/rbpnet_data/{experiment_label}/prep_done"
-    params:
-        error_file = "stderr/prep_rbpnet.{experiment_label}.err",
-        out_file = "stdout/prep_rbpnet.{experiment_label}.out",
-        run_time = "40:00",
-        memory = "80000",
     # container:
     #     "docker://brianyee/eugene-tools:0.1.2" # THIS DOCKER IS NOT UPDATED WITH PYAROOW YET? NO SPACE LEFT ON DEVICE PROBLEM. PLUS CHARLENE CAN NEVER PULL CORRECTLY
+    resources:
+        mem_mb=80000,
+        runtime=40
     container: 
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     shell:
@@ -30,12 +28,9 @@ rule train_model:
         "output/ml/rbpnet_data/{experiment_label}/prep_done"
     output:
         model = "output/ml/rbpnet_model/{experiment_label}/training_done",
-    params:
-        error_file = "stderr/train_rbpnet.{experiment_label}.err",
-        out_file = "stdout/train_rbpnet.{experiment_label}.out",
-        run_time = "3:40:00",
-        memory = "160000",
-        gpu = True
+    resources:
+        mem_mb=160000,
+        runtime="3h"
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     # container:
@@ -55,12 +50,9 @@ rule validation:
         zarr = "output/ml/rbpnet_data/{experiment_label}/prep_done"
     output:
         validation = "output/ml/rbpnet_model/{experiment_label}/valid/test_data_metric.csv",
-    params:
-        error_file = "stderr/validate_rbpnet.{experiment_label}.err",
-        out_file = "stdout/validate_rbpnet.{experiment_label}.out",
-        run_time = "40:00",
-        memory = "160000",
-        gpu = True
+    resources:
+        mem_mb=160000,
+        runtime="40:00"
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     # container:
@@ -83,12 +75,9 @@ rule seqlet:
         zarr = "output/ml/rbpnet_data/{experiment_label}/prep_done"
     output:
         validation = "output/ml/rbpnet_model/{experiment_label}/motif_done",
-    params:
-        error_file = "stderr/seqlet_rbpnet.{experiment_label}.err",
-        out_file = "stdout/seqlet_rbpnet.{experiment_label}.out",
-        run_time = "40:00",
-        memory = "160000",
-        gpu = True
+    resources:
+        mem_mb=160000,
+        runtime=40
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     # container:

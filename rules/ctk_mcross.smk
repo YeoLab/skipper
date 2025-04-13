@@ -8,12 +8,9 @@ rule ctk:
         peak = "output/ctk/{replicate_label}.uniq.peak.sig.bed",
         peak_bd = "output/ctk/{replicate_label}.uniq.peak.sig.boundary.bed",
         peak_PH = "output/ctk/{replicate_label}.uniq.peak.sig.halfPH.bed",
-    params:
-        error_out_file = "error_files/ctk.{replicate_label}.err",
-        out_file = "stdout/ctk.{replicate_label}.out",
-        run_time = "2:10:00",
-        memory = 10000,
-        cores = 1,
+    resources:
+        mem_mb=10000,
+        runtime=120,
     conda:
         "envs/ctk.yaml"
     shell:
@@ -43,12 +40,9 @@ rule mcross_get_kmer_seed:
         config = "output/ctk/mcross/{experiment_label}.config.txt",
         topn_kmer_matrix = "output/ctk/mcross/{experiment_label}.w7.zcore.mat.txt",
         top_peak = "output/ctk/mcross/top7mer/top.{experiment_label}.txt",
-    params:
-        error_file = "error_files/mcross_kmer.{experiment_label}.err",
-        out_file = "stdout/mcross_kmer.{experiment_label}.out",
-        run_time = "2:00:00",
-        memory = 10000,
-        cores = 1,
+    resources:
+        mem_mb=10000,
+        runtime=120,
     conda:
         "envs/ctk.yaml"
     shell:

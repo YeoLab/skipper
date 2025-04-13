@@ -46,12 +46,9 @@ rule fix_model:
         model = "output/ml/gkmsvm/{experiment_label}.model.txt"
     output: 
         "output/ml/gkmsvm/{experiment_label}.model.fix.txt"
-    params:
-        error_file = "stderr/{experiment_label}.fix_model.err",
-        out_file = "stdout/{experiment_label}.fix_model.out",
-        run_time = "10:00",
-        memory = "1000",
-        job_name = "run_homer",
+    resources:
+        mem_mb=1000,
+        runtime=10
     shell: 
         """
         sed -e 's/norc/gamma/g' {input.model} > {output}
@@ -66,12 +63,9 @@ rule gkmsvm_explain:
         output="output/gkmsvm_explain/{something}.{experiment_label}.gkmexplain.txt"
     container: 
         "docker://kundajelab/lsgkm:latest"
-    params:
-        error_file = "stderr/{experiment_label}.{something}.gkmexplain.err",
-        out_file = "stdout/{experiment_label}.{something}.gkmexplin.out",
-        run_time = "10:00",
-        memory = "40000",
-        job_name = "gkmsvm_explain",
+    resources:
+        mem_mb=40000,
+        runtime=10
     shell: 
         """
         head -n 40 {input.fa} > {input.fa}.head
@@ -86,12 +80,9 @@ rule window_to_sequence_with_range:
         config['PARTITION']
     output:
         "output/gkmsvm_explain/windows/sequence/{max}.{min}.fa"
-    params:
-        error_file = "stderr/{max}.{min}.fa.err",
-        out_file = "stdout/{max}.{min}.fa.out",
-        run_time = "10:00",
-        memory = "1000",
-        job_name = "window_to_sequence",
+    resources:
+        mem_mb=1000,
+        runtime=10
     container:
         "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
     shell:
@@ -106,12 +97,9 @@ rule gkmsvm_explain_windows:
         model = "output/ml/gkmsvm/{experiment_label}.model.fix.txt"
     output:
         output="output/gkmsvm_explain/windows/{experiment_label}.{max}.{min}.gkmexplain.txt"
-    params:
-        error_file = "stderr/{experiment_label}.{max}.{min}.gkmexplain.err",
-        out_file = "stdout/{experiment_label}.{max}.{min}.gkmexplin.out",
-        run_time = "10:00",
-        memory = "40000",
-        job_name = "gkmsvm_explain",
+    resources:
+        mem_mb=40000,
+        runtime=10
     container: 
         "docker://kundajelab/lsgkm:latest"
     shell: 
@@ -127,12 +115,9 @@ rule sequence_from_reproducible_enriched_windows:
         "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz"
     output:
         temp("output/ml/sequence/reproducible_enriched_windows/{experiment_label}.fa")
-    params:
-        error_file = "stderr/{experiment_label}.fa.err",
-        out_file = "stdout/{experiment_label}.fa.out",
-        run_time = "10:00",
-        memory = "1000",
-        job_name = "sequence_from_reproducible_enriched_windows"
+    resources:
+        mem_mb=1000,
+        runtime=10
     container:
         "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
     shell:
@@ -147,12 +132,9 @@ rule predict_enriched_windows:
     output:
         score = "output/ml/sequence/reproducible_enriched_windows/{experiment_label}.txt",
     threads: 2
-    params:
-        error_file = "stderr/score_ref_variants.{experiment_label}",
-        out_file = "stdout/score_ref_variants.{experiment_label}",
-        run_time = "4:00:00",
-        cores = 1,
-        memory = 40000, #320000 is ceiling of gold slow
+    resources:
+        mem_mb=40000,
+        runtime=60
     container:
         "docker://shl198/lsgkm:0.1.1"
     shell:
@@ -167,12 +149,9 @@ rule cleaup_fa:
         replacet=temp("{anything}.U.fa"),
         removen=temp("{anything}.UN.fa")
     threads: 1
-    params:
-        error_file = "stderr/score_ref_variants.{anything}",
-        out_file = "stdout/score_ref_variants.{anything}",
-        run_time = "00:00:05",
-        cores = 1,
-        memory = 40000, #320000 is ceiling of gold slow
+    resources:
+        mem_mb=40000,
+        runtime=10
     conda: "envs/metadensity.yaml"
     shell:
         """
@@ -188,13 +167,10 @@ rule pum2_biophysical_model:
     output:
         "output/ml/PUM_biophysical_model/{experiment_label}/individual_scores.0.tsv",
     threads: 1
-    params:
-        error_file = "stderr/pum_biophysical.{experiment_label}",
-        out_file = "stdout/pum_biophysical.{experiment_label}",
-        run_time = "00:20:00",
-        cores = 1,
-        memory = 40000, #320000 is ceiling of gold slow
     conda: "envs/pum2model.yaml"
+    resources:
+        mem_mb=40000,
+        runtime=10
     shell:
         """
         python {BIOPHYSICAL_MODEL_PATH} \
@@ -210,12 +186,9 @@ rule pum2_biophysical_model_enriched_windows:
     output:
         "output/ml/PUM_biophysical_model_enriched/{experiment_label}/individual_scores.0.tsv",
     threads: 1
-    params:
-        error_file = "stderr/pum_biophysical.{experiment_label}",
-        out_file = "stdout/pum_biophysical.{experiment_label}",
-        run_time = "00:20:00",
-        cores = 1,
-        memory = 40000, #320000 is ceiling of gold slow
+    resources:
+        mem_mb=40000,
+        runtime=10
     conda: "envs/pum2model.yaml"
     shell:
         """

@@ -55,13 +55,10 @@ rule fetch_SNP:
         finemapped_windows = TABLE
     output:
         "output/variants/fetched.vcf"
-    threads: 2
-    params:
-        error_file = "stderr/fetch_snp",
-        out_file = "stdout/fetch_snp",
-        run_time = "13:20:00",
-        cores = 1,
-        memory = 40000,
+    threads:2
+    resources:
+        mem_mb=40000,
+        runtime="13h"
     container:
         "docker://brianyee/bcftools:1.17"
     shell:
@@ -81,12 +78,9 @@ rule slop_finemap:
     output:
         "output/table.slop.bed.gz"
     threads: 2
-    params:
-        error_file = "stderr/slop_finemap",
-        out_file = "stdout/slop_finemap",
-        run_time = "06:20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=40000,
+        runtime="06:20:00"
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
     shell:
@@ -99,18 +93,14 @@ rule fetch_peak_sequence:
         finemapped_windows = rules.slop_finemap.output,
     output:
         finemapped_fa = "output/sequence/table.slop.fa",
-    params:
-        error_file = "stderr/fetch_sequence.err",
-        out_file = "stdout/fetch_sequence.out",
-        run_time = "40:00",
-        memory = "2000",
-        job_name = "run_homer",
-        fa = config['GENOME']
+    resources:
+        mem_mb=2000,
+        runtime="40:00"
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         '''
-        bedtools getfasta -fo {output.finemapped_fa} -fi {params.fa} -bed {input.finemapped_windows} -s
+        bedtools getfasta -fo {output.finemapped_fa} -fi {GENOME} -bed {input.finemapped_windows} -s
         '''
 
 rule fetch_variant_sequence:
@@ -124,13 +114,11 @@ rule fetch_variant_sequence:
         all_fa = "output/variants/annotation.all.fa",
         csv = "output/variants/annotation.csv"
     threads: 2
+    resouces:
+        mem_mb=80000,
+        runtime=80
     params:
-        error_file = "stderr/fetch_variant",
-        out_file = "stdout/fetch_variant",
-        run_time = "01:20:00",
-        cores = 1,
         out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
-        memory = 80000,
     conda:
         "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
     shell:
@@ -154,12 +142,10 @@ rule score_fa:
     output:
         score="output/variants/{model_name}.score.csv",
     threads: 1
+    resources:
+        mem_mb=80000,
+        runtime="2h"
     params:
-        error_file = "stderr/score_fa.{model_name}",
-        out_file = "stdout/score_fa.{model_name}",
-        run_time = "02:00:00",
-        cores = 1,
-        memory = 80000,
         model_path = lambda wildcards: model_dict[wildcards.model_name]
     container: 
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
@@ -185,12 +171,9 @@ rule combine_score:
     output:
         "output/variants/{model_name}.score.csv.gz"
     threads: 1
-    params:
-        error_file = "stderr/combine_score.{model_name}",
-        out_file = "stdout/combine_score.{model_name}",
-        run_time = "00:20:00",
-        cores = 1,
-        memory = 80000,
+    resources:
+        mem_mb=80000,
+        runtime=20
     run:
         print(input.vcf)
         variants = pd.read_csv(input.vcf, 
@@ -228,12 +211,9 @@ rule vep:
     output:
         "output/variants/vep.tsv"
     threads: 2
-    params:
-        error_file = "stderr/vep",
-        out_file = "stdout/vep",
-        run_time = "6:20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=40000,
+        runtime="6h"
         cache= VEP_CACHEDIR
     container:
         "docker://ensemblorg/ensembl-vep:latest"
@@ -242,7 +222,7 @@ rule vep:
         vep \
         -i {input} \
         --force_overwrite \
-        -o {output} -offline --cache {params.cache}
+        -o {output} -offline --cache {VEP_CACHEDIR}
         """
 
 rule analysis:
@@ -259,12 +239,9 @@ rule analysis:
         "output/analysis/{model_name}.clinvar_impact_enrichment.csv",
         "output/analysis/{model_name}.clinvar_impact_counts.csv",
     threads: 1
-    params:
-        error_file = "stderr/analysis.{model_name}",
-        out_file = "stdout/analysis.{model_name}",
-        run_time = "01:20:00",
-        cores = 1,
-        memory = 80000,
+    resources:
+        mem_mb=80000,
+        runtime="1h"
     conda:
         "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
     shell:
@@ -285,12 +262,9 @@ rule fetch_SNP_from_gnomAD_and_roulette:
     output:
         temp("output/gnomAD_roulette/{chr_number}.vcf")
     threads: 2
-    params:
-        error_file = "stderr/fetch_snp.{chr_number}",
-        out_file = "stdout/fetch_snp.{chr_number}",
-        run_time = "13:20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=40000,
+        runtime="13h"
     # container:
     #     "docker://brianyee/bcftools:1.17"
     shell:
@@ -313,12 +287,9 @@ rule aggregate_mondo:
         "output/mondo/{model_name}.clinvar_mondo_cnts.csv",
         "output/mondo/{model_name}.clinvar_mondo_stats.csv",
     threads: 1
-    params:
-        error_file = "stderr/mondo.{model_name}",
-        out_file = "stdout/mondo.{model_name}",
-        run_time = "01:20:00",
-        cores = 1,
-        memory = 80000,
+    resources:
+        mem_mb=80000,
+        runtime="1h"
     conda:
         "/tscc/nfs/home/hsher/projects/skipper/rules/envs/mondo.yaml"
     shell:

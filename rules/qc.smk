@@ -25,17 +25,12 @@ rule multiqc:
         multiqc_results = directory("output/multiqc/{experiment_label}/multiqc_data/"),
         multiqc_plots = directory("output/multiqc/{experiment_label}/multiqc_plots/"),
         multiqc_report = "output/multiqc/{experiment_label}/multiqc_report.html"
-    params:
-        error_file = "stderr/{experiment_label}.multiqc.err",
-        out_file = "stdout/{experiment_label}.multiqc.out",
-        run_time = "15:00",
-        memory = "4000",
-        job_name = "multiqc"
     benchmark: "benchmarks/multiqc/{experiment_label}.multiqc.txt"
     container:
         "docker://jeltje/multiqc:1.6"
     resources:
-        mem_mb=4000
+        mem_mb=4000,
+        runtime=15
     shell:
         """
         ls {input.trimmed_fastqc} {input.initial_fastqc} {input.star_log} {input.fastp} {input.trimmed} > output/multiqc/{wildcards.experiment_label}/files.txt
@@ -47,16 +42,11 @@ rule quantify_gc_bias:
         "output/counts/genome/tables/{experiment_label}.tsv.gz"
     output:
         gc_bias = "output/qc/{experiment_label}.gc_bias.txt"
-    params:
-        error_file = "stderr/{experiment_label}.gc_bias.err",
-        out_file = "stdout/{experiment_label}.gc_bias.out",
-        run_time = "5:00",
-        memory = "40000",
-        job_name = "gc_bias"
     conda:
         "envs/metadensity.yaml"
     resources:
-        mem_mb=40000
+        mem_mb=40000,
+        runtime=5
     shell:
         """
         python {TOOL_DIR}/quantify_gcbias.py {input} {output}

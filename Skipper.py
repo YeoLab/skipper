@@ -157,12 +157,9 @@ rule all_ml_variants_output:
                experiment_label = manifest.Experiment)
     output:
         "ml_variants_done.txt"
-    params:
-        error_file = "stderr/all_ml",
-        out_file = "stdout/all_ml",
-        run_time = "20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=400,
+        run_time=20
     shell:
         """
         touch {output}
@@ -201,12 +198,9 @@ rule all_basic_output:
         expand("output/qc/{experiment_label}.gc_bias.txt", experiment_label = manifest.Experiment)
     output:
         "basic_done.txt"
-    params:
-        error_file = "stderr/all_ml",
-        out_file = "stdout/all_ml",
-        run_time = "20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=400,
+        run_time=20
     shell:
         """
         touch {output}
