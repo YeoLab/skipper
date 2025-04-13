@@ -20,3 +20,4 @@ GENE_SET_DISTANCE : /tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipp
 UNINFORMATIVE_READ : 1
 REPEAT_BED : /tscc/projects/ps-yeolab3/eboyle/encode/pipeline/05_20220720/repeatmasker.grch38.sort.unique.bed.gz
 RBPNET_PATH: /tscc/nfs/home/hsher/projects/RBPNet/
+TMPDIR: /tscc/nfs/home/hsher/scratch/
