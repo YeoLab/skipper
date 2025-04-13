@@ -1,8 +1,0 @@
-name: ls-gkm
-channels:
-  - conda-forge
-  - bioconda
-  - defaults
-dependencies:
-  - bcftools
-prefix: /home/hsher/miniconda3/envs/ls-gkm
