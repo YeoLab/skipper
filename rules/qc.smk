@@ -41,3 +41,23 @@ rule multiqc:
         ls {input.trimmed_fastqc} {input.initial_fastqc} {input.star_log} {input.fastp} {input.trimmed} > output/multiqc/{wildcards.experiment_label}/files.txt
         multiqc --outdir output/multiqc/{wildcards.experiment_label} -f --export --data-format json --file-list output/multiqc/{wildcards.experiment_label}/files.txt
         """
+
+rule quantify_gc_bias:
+    input:
+        "output/counts/genome/tables/{experiment_label}.tsv.gz"
+    output:
+        gc_bias = "output/qc/{experiment_label}.gc_bias.txt"
+    params:
+        error_file = "stderr/{experiment_label}.gc_bias.err",
+        out_file = "stdout/{experiment_label}.gc_bias.out",
+        run_time = "5:00",
+        memory = "40000",
+        job_name = "gc_bias"
+    conda:
+        "envs/metadensity.yaml"
+    resources:
+        mem_mb=40000
+    shell:
+        """
+        python {TOOL_DIR}/quantify_gcbias.py {input} {output}
+        """

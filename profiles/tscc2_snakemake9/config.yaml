@@ -16,9 +16,11 @@ executor: slurm
 default-resources:
   slurm_partition: "gold"
   slurm_account: "csd792"
-  slurm_extra: "-q hcg-csd792 "
+  slurm_extra: "'--qos=hcg-csd792'"
+  runtime: 30
 set-resources:
   train_model:
     slurm_partition: "rtx3090"
     slurm_account: "csd792"
-    slurm_extra: "-q condo-gpu --gpus 1"
+    slurm_extra: "'--qos=condo-gpu' '--gpus=1'"
+    runtime: 1

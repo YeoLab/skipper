@@ -126,6 +126,8 @@ rule trim_fastq_encode:
         fq_2_trimmed = temp("output/fastqs/trimmed/{replicate_label}-trimmed-pair2.fastq.gz"), 
         metrics = "output/fastqs/trimmed/{replicate_label}-trimmed.log"
     threads: 8
+    resources:
+        tmpdir = "/tscc/nfs/home/hsher/scratch/singularity_tmp"
     params:
         run_time = "3:30:00",
         memory = "16000",
