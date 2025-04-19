@@ -155,7 +155,8 @@ rule check_window_concordance:
         windows = lambda wildcards: expand("output/tested_windows/{{experiment_label}}.{clip_replicate_label}.tested_windows.tsv.gz", clip_replicate_label = experiment_to_clip_replicate_labels[wildcards.experiment_label])
     output:
         "output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf",
-        "output/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.tsv"
+        "output/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.tsv",
+        "output/enrichment_reproducibility/{experiment_label}.odds_data.tsv"
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"

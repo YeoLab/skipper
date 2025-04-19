@@ -206,21 +206,3 @@ rule obtain_unique_reads:
         """
         samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
         """
-
-rule uniquely_mapped_reads:
-    input:
-        bam = rules.dedup_umi.output.bam_dedup
-    output:
-        bam_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam",
-        bai_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam.bai",
-    threads: 1
-    conda:
-        "envs/bamtools.yaml"
-    resources:
-        mem_mb=40000,
-        runtime=30
-    shell:
-        """
-        bamtools filter -in {input.bam} -out {output.bam_umap} -mapQuality ">3"
-        samtools index {output.bam_umap}
-        """
