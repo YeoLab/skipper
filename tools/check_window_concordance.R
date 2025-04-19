@@ -44,6 +44,10 @@ for(clip_replicate_1 in clip_replicate_labels) {
 			odds_data = enriched_concordance_data %>% pivot_wider(names_from="replicate_2", values_from = "count") %>% 
 				ungroup %>% select(-replicate_1) %>% fisher.test %>% (broom::tidy)	
 
+			# Save odds_data to a TSV file
+			output_tsv_path <- paste0("output/data/enrichment_concordance/", prefix, ".odds_data.tsv")
+			write_tsv(odds_data, output_tsv_path)
+
 			or_label = with(odds_data, ifelse(p.value < 0.05 & estimate > 1, paste0(sprintf(fmt="%.3g", odds_data$estimate),"x"), "NS"))
 			enriched_mosaic_data = enriched_concordance_data %>% group_by(replicate_1) %>% mutate(width = sum(count), fraction = count/sum(count)) %>% ungroup %>% mutate(width = width / sum(width)*3.9)
 			bar_break_y = enriched_mosaic_data %>% filter(replicate_1 == "Enriched", replicate_2 == "Not enriched") %>% pull(fraction)
