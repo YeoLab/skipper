@@ -14,3 +14,4 @@ conda-frontend: conda
 jobs: 30
 cluster: "sbatch -t {resources.runtime}  -p gold -q hcg-csd792 -A csd792 --mem {resources.mem_mb} --tasks-per-node {threads} -J {rule}"
 cluster-cancel: "scancel"
+rerun-incomplete: true
