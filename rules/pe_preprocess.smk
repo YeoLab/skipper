@@ -42,6 +42,8 @@ rule run_initial_fastqc:
     resources:
         mem_mb=16000,
         runtime="3h"
+    params:
+        outdir="output/fastqc/initial/"
     shell:
         "fastqc {input.r1} --extract --outdir {params.outdir} -t {threads};"
         "fastqc {input.r2} --extract --outdir {params.outdir} -t {threads};"
@@ -237,22 +239,4 @@ rule obtain_aligned_reads:
     shell:
         """
         samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
-        """
-
-rule uniquely_mapped_reads:
-    input:
-        bam = rules.select_informative_read.output.bam_informative
-    output:
-        bam_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam",
-        bai_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam.bai",
-    threads: 1
-    conda:
-        "envs/bamtools.yaml"
-    resources:
-        mem_mb=40000,
-        runtime="30"
-    shell:
-        """
-        bamtools filter -in {input.bam} -out {output.bam_umap} -mapQuality ">3"
-        samtools index {output.bam_umap}
         """

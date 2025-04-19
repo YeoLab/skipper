@@ -1,8 +1,7 @@
-VEP_CACHEDIR='/tscc/nfs/home/hsher/scratch/vep_cache/'
+
 ROULETTE = '/tscc/nfs/home/hsher/ps-yeolab5/roulette/22_rate_v5.2_TFBS_correction_all.vcf.bgz'
 HEADER = '/tscc/nfs/home/hsher/bin/Roulette/header.hr'
 N_SPLIT=1000
-ROULETTE_DIR=Path('/tscc/nfs/home/hsher/ps-yeolab5/roulette/')
 JVARKIT_DIR='/tscc/nfs/home/hsher/bin/jvarkit/JVARKIT'
 GENCODE='/tscc/nfs/home/hsher/gencode_coords/gencode.v40.primary_assembly.annotation.gff3'
 MODEL_DIR='/tscc/nfs/home/hsher/ps-yeolab5/roulette/model'
@@ -24,7 +23,7 @@ rule all:
 
 rule split_vcf:
     input:
-        ROULETTE_DIR/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
+        Path(ROULETTE_DIR)/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
     output:
         temp(expand("output/{prefix}.{chunk}.vcf.gz", 
         chunk = [f"{i:05d}" for i in range(1, N_SPLIT+1)],
@@ -84,11 +83,11 @@ rule combine_vep:
 
 rule annotate_RBP_site:
     input:
-        vcf=ROULETTE_DIR/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
+        vcf=Path(ROULETTE_DIR)/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
     output:
         allrbp="allrbpsite.bed.gz",
         allrbp_rename="allrbpsite.bed.rename.gz",
-        vcf=ROULETTE_DIR/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz'
+        vcf=Path(ROULETTE_DIR)/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz'
     threads: 1
     resources:
         mem_mb=40000,
@@ -116,7 +115,7 @@ rule annotate_RBP_site:
 
 rule make_tsv:
     input:
-        vcf=ROULETTE_DIR/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz'
+        vcf=Path(ROULETTE_DIR)/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz'
     output:
         tsv='22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.tsv.gz'
     threads: 1
@@ -134,7 +133,7 @@ rule make_tsv:
 
 rule fit_expected_singleton_rate:
     input:
-        vcf=ROULETTE_DIR/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz',
+        vcf=Path(ROULETTE_DIR)/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz',
         vep='/tscc/nfs/home/hsher/scratch/annotate_roulette/22_rate_v5.2_TFBS_correction_all.vep.tsv'
     output:
         expected=MODEL_DIR+'/singleton.pickle'

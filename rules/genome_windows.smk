@@ -142,6 +142,8 @@ rule call_enriched_windows:
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    params:
+        input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label]
     resources:
         mem_mb=24000,
         runtime="6h"

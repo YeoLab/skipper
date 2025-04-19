@@ -1,19 +1,15 @@
-HEADER = '/tscc/nfs/home/hsher/bin/Roulette/header.hr'
-RENAME='/tscc/nfs/home/hsher/projects/oligoCLIP/utils/rename_chr.txt'
-ROULETTE_DIR=Path('/tscc/nfs/home/hsher/ps-yeolab5/roulette/')
-GNOMAD_DIR=Path('/tscc/nfs/home/hsher/ps-yeolab5/gnomAD/v4/')
-CLINVAR_VCF='/tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.vcf.gz'
-VEP_CACHEDIR='/tscc/nfs/home/hsher/scratch/vep_cache/'
+
 import pandas as pd
+from pathlib import Path
 locals().update(config)
 
 rule filter_roulette_for_high:
     input:
-        vcf=ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.vcf.bgz',
+        vcf=Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.vcf.bgz',
         header=HEADER
     output:
-        reheader = temp(ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.vcf'),
-        filtered = temp(ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.vcf'),
+        reheader = temp(Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.vcf'),
+        filtered = temp(Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.vcf'),
     container:
         "docker://brianyee/bcftools:1.17"
     threads: 1
@@ -30,11 +26,11 @@ rule filter_roulette_for_high:
 rule annotate_roulette_w_gnomAD:
     input:
         rename=RENAME,
-        gnomad=GNOMAD_DIR / 'gnomad.genomes.v4.1.sites.chr{chr_number}.vcf.bgz',
-        roulette=ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.vcf'
+        gnomad=Path(GNOMAD_DIR) / 'gnomad.genomes.v4.1.sites.chr{chr_number}.vcf.bgz',
+        roulette=Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.vcf'
     output:
-        rename=temp(ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.vcf.gz'),
-        annotated=ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
+        rename=temp(Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.vcf.gz'),
+        annotated=Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
     threads: 1
     resources:
         mem_mb=80000,
@@ -56,7 +52,7 @@ rule annotate_roulette_w_gnomAD:
 rule fetch_SNP_from_gnomAD_and_roulette:
     ''' fetch gnomAD variants from database '''
     input:
-        vcf=ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz',
+        vcf=Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz',
         finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     output:
         "output/variants/gnomAD_roulette/{experiment_label}.chr{chr_number}.vcf"
@@ -99,7 +95,7 @@ rule fetch_peak_sequence:
         finemapped_fa = "output/ml/sequence/{experiment_label}.foreground.slop.fa",
     resources:
         mem_mb=2000,
-        runtime="40:00"
+        runtime=40
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
@@ -259,8 +255,6 @@ rule vep:
     resources:
         mem_mb=40000,
         runtime="1h"
-    params:
-        cache= VEP_CACHEDIR
     container:
         "docker://ensemblorg/ensembl-vep:latest"
     shell:

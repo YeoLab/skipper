@@ -1,11 +1,9 @@
 from pathlib import Path
-ROULETTE_DIR=Path('/tscc/nfs/home/hsher/ps-yeolab5/roulette/')
 VCF='/tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.rename.vcf.gz'
 
 
 # Defines regions to query
 TABLE='/tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v41.annotation.tiled_partition.bed.gz'
-VEP_CACHEDIR='/tscc/nfs/home/hsher/scratch/vep_cache/'
 import pandas as pd
 locals().update(config)
 
@@ -95,7 +93,7 @@ rule fetch_peak_sequence:
         finemapped_fa = "output/sequence/table.slop.fa",
     resources:
         mem_mb=2000,
-        runtime="40:00"
+        runtime=40
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
@@ -257,7 +255,7 @@ rule analysis:
 rule fetch_SNP_from_gnomAD_and_roulette:
     ''' fetch gnomAD variants from database '''
     input:
-        vcf=ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz',
+        vcf=Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz',
         finemapped_windows = TABLE
     output:
         temp("output/gnomAD_roulette/{chr_number}.vcf")

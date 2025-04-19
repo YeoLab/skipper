@@ -11,6 +11,7 @@ singularity-prefix: /tscc/nfs/home/hsher/scratch/singularity
 use-conda: true
 conda-prefix: "/tscc/nfs/home/hsher/snakeconda"
 conda-frontend: conda
+rerun-incomplete: true
 jobs: 30
 executor: slurm
 default-resources:

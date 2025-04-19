@@ -52,7 +52,7 @@ rule validation:
         validation = "output/ml/rbpnet_model/{experiment_label}/valid/test_data_metric.csv",
     resources:
         mem_mb=160000,
-        runtime="40:00"
+        runtime=40
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     # container:

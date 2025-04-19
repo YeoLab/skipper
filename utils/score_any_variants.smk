@@ -3,7 +3,6 @@ VARIANT='/tscc/nfs/home/hsher/ps-yeolab5/ENCODE_paper_tables/CHD_variants.tsv'
 
 
 TABLE='/tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.Heart_Left_Ventricle.tiled_partition.bed.gz'
-VEP_CACHEDIR='/tscc/nfs/home/hsher/scratch/vep_cache/'
 import pandas as pd
 locals().update(config)
 
@@ -44,7 +43,7 @@ rule slop_finemap:
     threads: 2
     resources:
         mem_mb=40000,
-        runtime="40:00"
+        runtime=40
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
     shell:
@@ -59,7 +58,7 @@ rule fetch_peak_sequence:
         finemapped_fa = "output/sequence/table.slop.fa",
     resources:
         mem_mb=2000,
-        runtime="40:00"
+        runtime=40
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
