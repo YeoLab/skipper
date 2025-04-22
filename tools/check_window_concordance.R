@@ -45,7 +45,7 @@ for(clip_replicate_1 in clip_replicate_labels) {
 				ungroup %>% select(-replicate_1) %>% fisher.test %>% (broom::tidy)	
 
 			# Save odds_data to a TSV file
-			output_tsv_path <- paste0("output/data/enrichment_concordance/", prefix, ".odds_data.tsv")
+			output_tsv_path <- paste0("output/enrichment_reproducibility/", prefix, ".odds_data.tsv")
 			write_tsv(odds_data, output_tsv_path)
 
 			or_label = with(odds_data, ifelse(p.value < 0.05 & estimate > 1, paste0(sprintf(fmt="%.3g", odds_data$estimate),"x"), "NS"))
