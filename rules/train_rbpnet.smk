@@ -30,7 +30,10 @@ rule train_model:
         model = "output/ml/rbpnet_model/{experiment_label}/training_done",
     resources:
         mem_mb=160000,
-        runtime="3h"
+        runtime="3h",
+        slurm_partition="rtx3090",
+        slurm_account="csd792",
+        slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     # container:
@@ -52,7 +55,10 @@ rule validation:
         validation = "output/ml/rbpnet_model/{experiment_label}/valid/test_data_metric.csv",
     resources:
         mem_mb=160000,
-        runtime=40
+        runtime="1h",
+        slurm_partition="rtx3090",
+        slurm_account="csd792",
+        slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     # container:
@@ -77,7 +83,10 @@ rule seqlet:
         validation = "output/ml/rbpnet_model/{experiment_label}/motif_done",
     resources:
         mem_mb=160000,
-        runtime=40
+        runtime="1h",
+        slurm_partition="rtx3090",
+        slurm_account="csd792",
+        slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     # container:
