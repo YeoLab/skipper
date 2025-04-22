@@ -131,6 +131,9 @@ snakemake -kps Skipper.py \
 Once Snakemake has confirmed DAG creation, submit the jobs using whatever high performance computing infrastructure options suit you:
 
 ```
+# do this if you are NOT running on login node (in TSCC you are not supposed to). Running in a job confuses the snakemake slurm plugin.
+unset SLURM_JOB_ID
+# and run
 snakemake -kps Skipper.py \
     --configfile $CONFIG \
     --profile profiles/tscc2_snakemake9 
