@@ -157,12 +157,9 @@ rule all_ml_variants_output:
                experiment_label = manifest.Experiment)
     output:
         "ml_variants_done.txt"
-    params:
-        error_file = "stderr/all_ml",
-        out_file = "stdout/all_ml",
-        run_time = "20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=400,
+        run_time=20
     shell:
         """
         touch {output}
@@ -182,6 +179,7 @@ rule all_basic_output:
         expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
         expand("output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf", experiment_label = manifest.Experiment),
+        expand("output/enrichment_reproducibility/{experiment_label}.odds_data.tsv", experiment_label = manifest.Experiment),
         expand("output/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
         expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", experiment_label = manifest.Experiment),
         expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz", experiment_label = manifest.Experiment),
@@ -198,15 +196,13 @@ rule all_basic_output:
         expand("output/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
         expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
         "output/QC/unique_fragments.csv",
-        expand("output/qc/{experiment_label}.gc_bias.txt", experiment_label = manifest.Experiment)
+        expand("output/qc/{experiment_label}.gc_bias.txt", experiment_label = manifest.Experiment),
+        expand("output/qc/{experiment_label}.nread_in_finemapped_regions.txt", experiment_label=manifest.Experiment)
     output:
         "basic_done.txt"
-    params:
-        error_file = "stderr/all_ml",
-        out_file = "stdout/all_ml",
-        run_time = "20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=400,
+        run_time=20
     shell:
         """
         touch {output}

@@ -104,6 +104,12 @@ def sigmoid(x):
 if __name__ == '__main__':
     indir = Path(sys.argv[1])
     exp = sys.argv[2]
+
+    # reference file, scaling to all intronic regions
+    SINGLETON_REFERENCE = sys.argv[3] #
+    OE_RATIO_REFERENCE = sys.argv[4] #
+    GNOMAD_CONSTRAINT = sys.argv[5] # 
+
     outdir = indir / 'output/variant_analysis'
 
     # read gnomAD and roulette
@@ -126,7 +132,7 @@ if __name__ == '__main__':
     df['transcript_type_top'] = df['name'].map(annotation.set_index('name')['transcript_type_top'])
     df['gene_name'] = df['name'].map(annotation.set_index('name')['gene_name'])
 
-    gnomad_constrain = pd.read_csv('/tscc/projects/ps-yeolab5/hsher/gnomAD/gnomad.v4.0.constraint_metrics.tsv', sep = '\t')
+    gnomad_constrain = pd.read_csv(GNOMAD_CONSTRAINT, sep = '\t')
     gnomad_constrain = gnomad_constrain.loc[(gnomad_constrain['mane_select'])&(gnomad_constrain['transcript'].str.contains('ENST'))]
     gnomad_constrain['lof.pLI bins']=pd.cut(gnomad_constrain['lof.pLI'], bins = [0,0.1,0.9,1],
                             labels = ['LoF tolerant', 'Ambiguous', 'LoF intolerant']
@@ -147,14 +153,13 @@ if __name__ == '__main__':
         test_subset(df, col = col).to_csv(outdir / f'{exp}.{col}_spectrum_enrichment.csv')
     
     # load mutation rate expected singleton ratio for MAPs
-    # singleton_model = sm.load('/tscc/nfs/home/hsher/projects/ENCODE/3_CLIP_ML_RBPNet/singleton_adjust.pickle') ## TODO: this has to be outside
-    singleton_coef = pd.read_csv('/tscc/nfs/home/hsher/projects/ENCODE/3_CLIP_ML_RBPNet/singleton_adjust.coef.csv', index_col = 0)['0']
+    singleton_coef = pd.read_csv(SINGLETON_REFERENCE, index_col = 0)['0']
     df['expected_singleton']=sigmoid(df['INFO/MR']*singleton_coef['MR']+singleton_coef['Intercept'])
     df['is_singleton']=df['MAF_bin'].eq('singleton')
     
 
     # o/e ratio reference
-    reference_df= pd.read_csv('/tscc/nfs/home/hsher/ps-yeolab5/gnomAD_reference_set/v4/vep.csv', ## TODO: this has to be outside
+    reference_df= pd.read_csv(OE_RATIO_REFERENCE, ## TODO: this has to be outside
                         index_col = 0
                        )
     selected = ['3_prime_UTR_variant',

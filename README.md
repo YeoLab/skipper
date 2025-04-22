@@ -24,20 +24,21 @@ Skipper requires several executables and packages:
 | FastQC | https://www.bioinformatics.babraham.ac.uk/projects/fastqc/ |
 | HOMER | http://homer.ucsd.edu/homer/introduction/install.html |
 
-For example, below are some commands for installing Miniconda and Snakemake.
+For example, below are some commands for installing Miniconda and Snakemake 9.1.9.
 
 `curl -L -O "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"`
 
 `bash Miniconda3-latest-Linux-x86_64.sh`
 
-`conda create -c conda-forge -c bioconda -n snakemake snakemake`
+We exported our snakemake environment in `rules/envs/snakemake`
+`conda env create -n snakemake --file rules/envs/snakemake`
 
 <h2>Preparing to run Skipper</h2>
 Skipper uses a Snakemake workflow. The `Skipper.py` file contains the rules necessary to process CLIP data from fastqs. Skipper also supports running on BAMs - note that Skipper's analysis of repetitive elements will assume that non-uniquely mapping reads are contained within the BAM files.
 
 Providing an absolute path to the GitHub repository `REPO_PATH` will help Snakemake find resources regardless of the directory where Skipper is run.
 
-Internal to the Yeo lab, setting the `REPO_PATH` to `/projects/ps-yeolab3/eboyle/encode/pipeline/github/yeo` will save time on preprocessing annotation files (check the annotation folder for HepG2, K562, or HEK293T. More annotations are available at `/projects/ps-yeolab4/software/skipper/1.0.0/bin/skipper/annotations/`).
+Internal to the Yeo lab, setting the `REPO_PATH` to `/tscc/projects/ps-yeolab3/eboyle/encode/pipeline/github/yeo` will save time on preprocessing annotation files (check the annotation folder for HepG2, K562, or HEK293T. More annotations are available at `/tscc/projects/ps-yeolab4/software/skipper/1.0.0/bin/skipper/annotations/`).
 
 Numerous resources must be entered in the `Skipper_config.py` file:
 
@@ -120,41 +121,47 @@ Remember to load the Snakemake environment before running
 Use the dry run function to confirm that Snakemake can parse all the information:
 
 ```
+cd PATH_TO_SKIPPER
+CONFIG=encode_configs/Skipper_pe_small_test.yaml
 snakemake -kps Skipper.py \
     --configfile $CONFIG \
-    --profile profiles/tscc2 -n
+    --profile profiles/tscc2_snakemake9 -n
 ```
 
 Once Snakemake has confirmed DAG creation, submit the jobs using whatever high performance computing infrastructure options suit you:
 
 ```
+# do this if you are NOT running on login node (in TSCC you are not supposed to). Running in a job confuses the snakemake slurm plugin.
+unset SLURM_JOB_ID
+# and run
 snakemake -kps Skipper.py \
     --configfile $CONFIG \
-    --profile profiles/tscc2 -n
+    --profile profiles/tscc2_snakemake9 
 ```
 
-Some deep learning rules will benefit from using GPU (temporary solution):
-
+Some deep learning rules will benefit from using GPU (temporary solution), the profiles and rules is already updated such fastq to model training to variant interpretation can be run end-to-end. If you are on a different platform, you may consider editing the following parameters in profile or specific rules:
 ```
-# Run on CPU util data preparation
-CONFIG=/tscc/nfs/home/hsher/projects/skipper/encode_configs/Skipper_pe_small_test.yaml
-
-snakemake -kps Skipper.py \
-    --configfile $CONFIG \
-    --profile profiles/tscc2 --until rbpnet_prepare_data
-
-# Perform training, validation and seqlet finding using GPU
-snakemake -kps Skipper.py \
-    --configfile $CONFIG \
-    --profile profiles/tscc2_gpu --until rbpnet_seqlet
-
-# Finish the remaining using CPU
-snakemake -kps Skipper.py \
-    --configfile $CONFIG \
-    --profile profiles/tscc2
-
-# Sorry this is not end-to-end yet. Snakemake 8 can do it end-to-end but with some refactoring.
+# in profile
+set-resources:
+  rbpnet_variants_score_fa:
+    slurm_partition: "rtx3090"
+    slurm_account: "csd792"
+    slurm_extra: "'--qos=condo-gpu' '--gpus=1'"
+    runtime: 1
 ```
+and in rules:
+```
+rule train_model:
+    ...
+    resources:
+        mem_mb=160000,
+        runtime="3h",
+        slurm_partition="rtx3090",
+        slurm_account="csd792",
+        slurm_extra="'--qos=condo-gpu' '--gpus=1'",
+```
+
+Also, the `--nv` flag in singularity_args is essential for application to see CUDA. At the time of development, [snakemake does not offer a rule-specific singularity-args](https://github.com/snakemake/snakemake/issues/3478), so I enabled all rules to use `--nv`. CPU rules still run without problems, luckily.
 
 Did Skipper terminate? Sometimes jobs fail - inspect any error output and rerun the same command if there is no apparent explanation such as uninstalled dependencies or a misformatted input file. Snakemake will try to pick up where it left off.
 
@@ -185,3 +192,9 @@ export SINGULARITY_TMPDIR=/tscc/lustre/ddn/scratch/hsher/singularity_tmp
 export TMPDIR=/tscc/lustre/ddn/scratch/hsher/singularity_tmp
 export SINGULARITY_CACHEDIR=/tscc/lustre/ddn/scratch/hsher/singularity_cache
 ```
+
+2. Debugging.
+Using snakemake9 with slurm executor, the error outputs are now in `WORKDIR/.snakemake/slurm_logs` organized by rules. There is no need to add stdout and stderr to the slurm command.
+
+3. How to monitor pipeline status?
+`squeue -u $USER -o %i,%P,%.10j,%.10M,%.10T,%.40k` will show jobs.

@@ -21,3 +21,16 @@ UNINFORMATIVE_READ : 1
 REPEAT_BED : /tscc/projects/ps-yeolab3/eboyle/encode/pipeline/05_20220720/repeatmasker.grch38.sort.unique.bed.gz
 RBPNET_PATH: /tscc/nfs/home/hsher/projects/RBPNet/
 TMPDIR: /tscc/nfs/home/hsher/scratch/
+# related to vcfs
+HEADER: /tscc/nfs/home/hsher/bin/Roulette/header.hr
+RENAME: /tscc/nfs/home/hsher/projects/oligoCLIP/utils/rename_chr.txt
+ROULETTE_DIR: /tscc/nfs/home/hsher/ps-yeolab5/roulette/
+GNOMAD_DIR: /tscc/nfs/home/hsher/ps-yeolab5/gnomAD/v4/
+CLINVAR_VCF: /tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.vcf.gz
+VEP_CACHEDIR: /tscc/nfs/home/hsher/scratch/vep_cache/
+VEP_CACHE_VERSION: 113
+# these are to scale the popgen metrics to the average intergenic variant
+SINGLETON_REFERENCE: /tscc/nfs/home/hsher/projects/skipper/popgen_reference/singleton_adjust.coef.csv
+OE_RATIO_REFERENCE: /tscc/nfs/home/hsher/projects/skipper/popgen_reference/vep.csv
+GNOMAD_CONSTRAINT: /tscc/nfs/home/hsher/projects/skipper/popgen_reference/gnomad.v4.0.constraint_metrics.tsv
+

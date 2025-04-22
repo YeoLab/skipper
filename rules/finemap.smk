@@ -10,12 +10,9 @@ rule get_nt_coverage:
         nt_clip_counts = temp("output/finemapping/nt_coverage/{experiment_label}.nt_coverage.clip.counts"),
         nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
     threads: 6
-    params:
-        error_file = "stderr/{experiment_label}.get_nt_coverage.err",
-        out_file = "stdout/{experiment_label}.get_nt_coverage.out",
-        run_time = "6:00:00",
-        memory = "45000",
-        job_name = "get_nt_coverage"
+    resources:
+        mem_mb=45000,
+        runtime="2h"
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
@@ -44,12 +41,9 @@ rule finemap_windows:
     output:
         finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     threads: 6,
-    params:
-        error_file = "stderr/{experiment_label}.finemap_windows.err",
-        out_file = "stdout/{experiment_label}.finemap_windows.out",
-        run_time = "6:00:00",
-        memory = "45000",
-        job_name = "finemap_windows"
+    resources:
+        mem_mb=45000,
+        runtime="2h"
     benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
@@ -67,12 +61,9 @@ rule annotate_finemap:
         "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv"
     threads:
         1
-    params:
-        error_file = "stderr/{experiment_label}.annotate_finemap_windows.err",
-        out_file = "stdout/{experiment_label}.annotate_finemap_windows.out",
-        run_time = "00:30:00",
-        memory = "60000",
-        job_name = "annotate_finemap_windows"
+    resources:
+        mem_mb=45000,
+        runtime="30"
     conda:
         "envs/metadensity.yaml"
     shell:
@@ -96,12 +87,9 @@ rule find_both_tested_windows:
         tested_windows_in_2_rep = "output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",
         tested_windows_merged = "output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.merged.bed"
     threads: 1
-    params:
-        error_file = "stderr/{experiment_label}.find_both_tested_windows.err",
-        out_file = "stdout/{experiment_label}.find_both_tested_windows.out",
-        run_time = "00:30:00",
-        memory = "60000",
-        job_name = "find_both_tested_windows"
+    resources:
+        mem_mb=45000,
+        runtime="30"
     conda:
         "envs/metadensity.yaml"
     shell:
