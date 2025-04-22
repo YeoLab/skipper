@@ -246,6 +246,21 @@ rule fetch_Clinvar_SNP:
         fi
         """
 
+rule download_vep_cache:
+    output:
+        Path(VEP_CACHEDIR) / f'homo_sapiens/{VEP_CACHE_VERSION}_GRCh38/1/all_vars.gz'
+    threads: 1
+    resources:
+        mem_mb=2000,
+        runtime="1h"
+    container:
+        "docker://ensemblorg/ensembl-vep:release_113.4"
+    shell:
+        """
+        cd {VEP_CACHEDIR}
+        wget https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        tar xzf homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        """
 rule vep:
     input:
         "output/variants/clinvar/{experiment_label}.vcf"
@@ -256,7 +271,7 @@ rule vep:
         mem_mb=40000,
         runtime="1h"
     container:
-        "docker://ensemblorg/ensembl-vep:latest"
+        "docker://ensemblorg/ensembl-vep:release_113.4"
     shell:
         """
         if [ -s {input} ]; then
@@ -312,7 +327,11 @@ rule variant_analysis:
         if [ -s {input.gnomAD} ]; then
             python {TOOL_DIR}/mega_variant_analysis.py \
                 . \
-                {wildcards.experiment_label} 
+                {wildcards.experiment_label} \
+                {SINGLETON_REFERENCE} \
+                {OE_RATIO_REFERENCE} \
+                {GNOMAD_CONSTRAINT} \
+
         else
             touch {output}
         fi
