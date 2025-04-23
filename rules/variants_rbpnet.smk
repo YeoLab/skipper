@@ -2,6 +2,8 @@
 import pandas as pd
 from pathlib import Path
 locals().update(config)
+VEP_CACHEDIR = config['VEP_CACHEDIR']
+VEP_CACHE_VERSION = config['VEP_CACHE_VERSION']
 
 rule filter_roulette_for_high:
     input:
