@@ -27,7 +27,7 @@ rule select_informative_read:
     input:
         bam_combined=f"{OUTPUT}/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
     output:
-        bam_informative=f"{OUTPUT}/bams/genome_R1/{replicate_label}.genome.Aligned.sort.dedup.R2.bam"
+        bam_informative=f"{OUTPUT}/bams/genome_R1/{replicate_label}.genome.Aligned.sort.dedup.R1.bam"
     params:
         error_file = f"{OUTPUT}/stderr/{replicate_label}.select_informative_read.err",
         out_file = f"{OUTPUT}/stdout/{replicate_label}.select_informative_read.out",
