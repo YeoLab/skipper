@@ -10,11 +10,17 @@ UNINFORMATIVE_READ = 1
 
 rule all:
     input:
-        mutation_file = f"{OUTPUT}/ctk/{replicate_label}.mutation.txt",
-        tagbed = f"{OUTPUT}/ctk/{replicate_label}.tag.bed",
-        peak = f"{OUTPUT}/ctk/{replicate_label}.uniq.peak.sig.bed",
-        peak_bd = f"{OUTPUT}/ctk/{replicate_label}.uniq.peak.sig.boundary.bed",
-        peak_PH = f"{OUTPUT}/ctk/{replicate_label}.uniq.peak.sig.halfPH.bed",
+        finemapped_fa = f"{OUTPUT}/ml/sequence/{experiment_label}.foreground.fa",
+        background_fa = f"{OUTPUT}/ml/sequence/{experiment_label}.background.fa",
+        # mutation_file = f"{OUTPUT}/ctk/{replicate_label}.mutation.txt",
+        # tagbed = f"{OUTPUT}/ctk/{replicate_label}.tag.bed",
+        # peak = f"{OUTPUT}/ctk/{replicate_label}.uniq.peak.sig.bed",
+        # peak_bd = f"{OUTPUT}/ctk/{replicate_label}.uniq.peak.sig.boundary.bed",
+        # peak_PH = f"{OUTPUT}/ctk/{replicate_label}.uniq.peak.sig.halfPH.bed",
+        kmer_enrichment = f"{OUTPUT}/ctk/mcross/{experiment_label}.kmer.txt",
+        config = f"{OUTPUT}/ctk/mcross/{experiment_label}.config.txt",
+        topn_kmer_matrix = f"{OUTPUT}/ctk/mcross/{experiment_label}.w7.zcore.mat.txt",
+        top_peak = f"{OUTPUT}/ctk/mcross/top7mer/top.{experiment_label}.txt",
 
 
 rule select_informative_read:
@@ -34,7 +40,7 @@ rule select_informative_read:
     resources:
         mem_mb=10000
     shell:
-        "samtools view -bF 64 {input.bam_combined} > {output.bam_informative}"
+        "samtools view -bF 128 {input.bam_combined} > {output.bam_informative}"
         
 
 rule uniquely_mapped_reads:
@@ -57,6 +63,31 @@ rule uniquely_mapped_reads:
         bamtools filter -in {input.bam} -out {output.bam_umap} -mapQuality ">3"
         samtools index {output.bam_umap}
         """
+        
+        
+rule fetch_sequence:
+    input:
+        finemapped_windows = f"{OUTPUT}/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz",
+        background = f"{OUTPUT}/homer/region_matched_background/fixed/{experiment_label}.sampled_fixed_windows.bed.gz",
+    output:
+        finemapped_fa = f"{OUTPUT}/ml/sequence/{experiment_label}.foreground.fa",
+        background_fa = f"{OUTPUT}/ml/sequence/{experiment_label}.background.fa"
+    params:
+        error_file = f"{OUTPUT}/stderr/{experiment_label}.fetch_sequence.err",
+        out_file = f"{OUTPUT}/stdout/{experiment_label}.fetch_sequence.out",
+        run_time = "40:00",
+        memory = "2000",
+        job_name = "run_homer",
+        fa = "/tscc/projects/ps-yeolab4/genomes/GRCh38/chromosomes/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta",
+    container:
+        "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
+    resources:
+        mem_mb=2000
+    shell:
+        '''
+        bedtools getfasta -fo {output.finemapped_fa} -fi {params.fa} -bed {input.finemapped_windows} -s
+        bedtools getfasta -fo {output.background_fa} -fi {params.fa} -bed {input.background} -s
+        '''
         
         
 rule ctk:
@@ -97,30 +128,7 @@ rule ctk:
             --out-half-PH {output.peak_PH}
         """
 
-        
-rule fetch_sequence:
-    input:
-        finemapped_windows = f"{OUTPUT}/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz",
-        background = f"{OUTPUT}/homer/region_matched_background/fixed/{experiment_label}.sampled_fixed_windows.bed.gz",
-    output:
-        finemapped_fa = f"{OUTPUT}/ml/sequence/{experiment_label}.foreground.fa",
-        background_fa = f"{OUTPUT}/ml/sequence/{experiment_label}.background.fa"
-    params:
-        error_file = f"{OUTPUT}/stderr/{experiment_label}.fetch_sequence.err",
-        out_file = f"{OUTPUT}/stdout/{experiment_label}.fetch_sequence.out",
-        run_time = "40:00",
-        memory = "2000",
-        job_name = "run_homer",
-        fa = "/tscc/projects/ps-yeolab4/genomes/GRCh38/chromosomes/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta",
-    container:
-        "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
-    resources:
-        mem_mb=2000
-    shell:
-        '''
-        bedtools getfasta -fo {output.finemapped_fa} -fi {params.fa} -bed {input.finemapped_windows} -s
-        bedtools getfasta -fo {output.background_fa} -fi {params.fa} -bed {input.background} -s
-        '''
+
         
 rule mcross_get_kmer_seed:
     input:
@@ -149,10 +157,10 @@ rule mcross_get_kmer_seed:
             {output.kmer_enrichment}
         
         # generate config
-        echo '{output.kmer_enrichment}"\t\"{wildcards.experiment_label}' > {output.config}
+        echo '{output.kmer_enrichment}"\t\"{experiment_label}' > {output.config}
 
         /tscc/nfs/home/s5xu/projects/mCrossgen_word_enrich_matrix.pl  \
             {output.config}  {output.topn_kmer_matrix}
 
-        /tscc/nfs/home/s5xu/projects/mCross/topword.R {output.topn_kmer_matrix} {wildcards.experiment_label}_top7mer
+        /tscc/nfs/home/s5xu/projects/mCross/topword.R {output.topn_kmer_matrix} {experiment_label}_top7mer
         """
