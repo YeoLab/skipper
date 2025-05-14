@@ -1,7 +1,8 @@
 """
 mamba install -c bioconda perl-math-cdf perl-bio-featureio perl-env
+export PERL5LIB=/tscc/nfs/home/s5xu/projects/czplib-v.1.1.1
 
-snakemake -kps /tscc/nfs/home/s5xu/projects/skipper/rules/ctk_mcross.py -j 30 -w 30 --use-singularity --singularity-prefix /tscc/lustre/ddn/scratch/s5xu/singularity --singularity-args "--bind /tscc" --cluster "sbatch -t {params.run_time} -e {params.error_out_file} -o {params.out_file} -p condo -q condo -A csd792 --tasks-per-node {threads} --job-name {params.job_name} --mem {params.memory}M"
+snakemake -kps /tscc/nfs/home/s5xu/projects/skipper/rules/ctk_mcross.py -j 30 -w 30 --use-singularity --singularity-prefix /tscc/lustre/ddn/scratch/s5xu/singularity --singularity-args "--bind /tscc" --rerun-incomplete --cluster "sbatch -t {params.run_time} -e {params.error_out_file} -o {params.out_file} -p condo -q condo -A csd792 --tasks-per-node {threads} --job-name {params.job_name} --mem {params.memory}M"
 """
 
 OUTPUT = "/tscc/nfs/home/s5xu/scratch/skipper_output"
