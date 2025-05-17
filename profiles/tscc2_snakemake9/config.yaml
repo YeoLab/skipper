@@ -1,0 +1,28 @@
+verbose: true
+notemp: true
+latency: 60
+printshellcmds: true
+skip-script-cleanup: true
+nolock: true
+keep-going: true
+use-singularity: "true"
+singularity-args: "--bind /tscc --nv"
+singularity-prefix: /tscc/nfs/home/hsher/scratch/singularity
+use-conda: true
+conda-prefix: "/tscc/nfs/home/hsher/snakeconda"
+conda-frontend: conda
+rerun-incomplete: true
+jobs: 30
+executor: slurm
+default-resources:
+  slurm_partition: "gold"
+  slurm_account: "csd792"
+  slurm_extra: "'--qos=hcg-csd792'"
+  runtime: 30
+  mem_mb: 20000
+set-resources:
+  rbpnet_variants_score_fa:
+    slurm_partition: "rtx3090"
+    slurm_account: "csd792"
+    slurm_extra: "'--qos=condo-gpu' '--gpus=1'"
+    runtime: 1

@@ -1,9 +1,0 @@
-name: ls-gkm
-channels:
-  - conda-forge
-  - bioconda
-  - defaults
-dependencies:
-  - libstdcxx-ng=13.2.0=h7e041cc_3
-  - ls-gkm=0.0.1=h2d50403_1
-prefix: /home/hsher/miniconda3/envs/ls-gkm

@@ -14,17 +14,12 @@ rule run_initial_fastqc:
         zip_file = "output/fastqc/initial/{replicate_label}_fastqc.zip",
         directory = directory("output/fastqc/initial/{replicate_label}_fastqc")
     threads: 2
-    params:
-        error_file = "stderr/{replicate_label}.fastqc_initial.err",
-        out_file = "stdout/{replicate_label}.fastqc_initial.out",
-        run_time = "6:00:00",
-        job_name = "run_initial_fastqc",
-        memory = "16000",
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
     container:
         "docker://howardxu520/skipper:fastqc_0.12.1"
     resources:
-        mem_mb=16000
+        mem_mb=16000,
+        runtime="6h"
     shell:
         "zcat {input.fq} | fastqc stdin:{wildcards.replicate_label} --extract --outdir output/fastqc/initial -t {threads}"
         
@@ -37,18 +32,14 @@ rule trim_fastq:
         metrics = "output/fastqs/trimmed/{replicate_label}-trimmed.log"
     threads: 8
     params:
-        run_time = "5:30:00",
-        memory = "16000",
-        error_file = "stderr/{replicate_label}.trim.err",
-        out_file = "stdout/{replicate_label}.trim.out",
-        job_name = "trim_fastq",
         k = skewer_k,
         m = skewer_m
     benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
     container:
         "docker://howardxu520/skipper:skewer_0.2.2"
     resources:
-        mem_mb=16000
+        mem_mb=16000,
+        runtime="6h"
     shell:
         "zcat {input.fq} | skewer "
           "-t {threads} "
@@ -68,17 +59,13 @@ rule extract_umi:
         html = "output/fastp/{replicate_label}.fastp.html",
     threads: 8
     params:
-        error_file = "stderr/{replicate_label}.extract_umi.err",
-        out_file = "stdout/{replicate_label}.extract_umi.out",
-        run_time = "00:45:00",
-        memory = "8000",
-        job_name = "extract_umi",
         umi_length = config['UMI_SIZE'],
     benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.extract_umi.txt"
     container:
         "docker://howardxu520/skipper:fastp_0.23.4"
     resources:
-        mem_mb=8000
+        mem_mb=8000,
+        runtime=45
     shell:      
         "fastp "
             "-i {input.fq} "
@@ -99,18 +86,12 @@ rule run_trimmed_fastqc:
         report = "output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html",
         zip_file = "output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.zip",
     threads: 2
-    params:
-        outdir="output/fastqc/processed/",
-        run_time = "03:00:00",
-        memory = "16000",
-        error_file = "stderr/{replicate_label}.run_trimmed_fastqc.err",
-        out_file = "stdout/{replicate_label}.run_trimmed_fastqc.out",
-        job_name = "run_trimmed_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.trimmed_fastqc.txt"
     container:
         "docker://howardxu520/skipper:fastqc_0.12.1"
     resources:
-        mem_mb=16000
+        mem_mb=16000,
+        runtime="3h"
     shell:
         "fastqc {input} --extract --outdir output/fastqc/processed -t {threads}"
         
@@ -123,11 +104,6 @@ rule align_reads:
         log= "output/bams/raw/genome/{replicate_label}.genome.Log.final.out",
     threads: 8
     params:
-        error_file = "stderr/{replicate_label}.align_reads_genome.err",
-        out_file = "stdout/{replicate_label}.align_reads_genome.out",
-        run_time = "04:00:00",
-        memory = "40000",
-        job_name = "align_reads",
         star_sjdb = config['STAR_DIR'],
         outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
         rg = "{replicate_label}"
@@ -135,7 +111,8 @@ rule align_reads:
     container:
         "docker://howardxu520/skipper:star_2.7.10b"
     resources:
-        mem_mb=40000
+        mem_mb=40000,
+        runtime=240
     shell:
         "STAR "
             "--alignEndsType EndToEnd "
@@ -169,17 +146,12 @@ rule sort_bam:
     output:
         sort="output/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.sort.bam",
     threads: 4
-    params:
-        error_file = "stderr/{ref}_{replicate_label}.sort_bam.err",
-        out_file = "stdout/{ref}_{replicate_label}.sort_bam.out",
-        run_time = "02:00:00",
-        memory = "16000",
-        job_name = "sortbam",
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=16000
+        mem_mb=16000,
+        runtime="2h"
     shell:
         "samtools sort -T {wildcards.replicate_label} -@ {threads} -o {output.sort} {input.bam};"
         
@@ -190,17 +162,12 @@ rule index_bams:
     output:
         ibam = "output/bams/{round}/{ref}/{replicate_label}.Aligned.{mid}.bam.bai"
     threads: 2
-    params:
-        error_file = "stderr/{round}_{ref}_{mid}_{replicate_label}.index_bams.err",
-        out_file = "stdout/{round}_{ref}_{mid}_{replicate_label}.index_bams.out",
-        run_time = "00:10:00",
-        memory = "1000",
-        job_name = "index_bam"
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=1000
+        mem_mb=1000,
+        runtime=10
     shell:
         "samtools index -@ {threads} {input.bam};"
 
@@ -210,21 +177,15 @@ rule dedup_umi:
         bam="output/bams/raw/genome/{replicate_label}.genome.Aligned.sort.bam",
         ibam = "output/bams/raw/genome/{replicate_label}.genome.Aligned.sort.bam.bai"
     output:
-        bam_dedup="output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
-    params:
-        error_file = "stderr/{replicate_label}.dedup_umi.err",
-        out_file = "stdout/{replicate_label}.dedup_umi.out",
-        run_time = "12:00:00",
-        memory = "34000",
-        job_name = "dedup_bam",
+        bam_dedup="output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam",
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
-    resources:
-        tmpdir = TMPDIR
     container:
         "docker://howardxu520/skipper:umicollapse_1.0.0"
     resources:
-        mem_mb=34000
+        mem_mb=34000,
+        runtime="3h",
+        tmpdir = TMPDIR
     shell:
         "java -server -Xms32G -Xmx32G -Xss40M -jar /UMICollapse/umicollapse.jar bam "
             "-i {input.bam} -o {output.bam_dedup} --umi-sep : --two-pass"
@@ -234,39 +195,14 @@ rule obtain_unique_reads:
         rules.dedup_umi.output.bam_dedup
     output:
         "output/QC/{replicate_label}.uniq_fragments"
-    params:
-        error_file = "stderr/{replicate_label}.count_uniq_fragments.txt",
-        out_file = "stdout/{replicate_label}.count_uniq_fragments.txt",
-        run_time = "00:30:00",
-        memory = "8000",
-        job_name = "count_uniq_fragments",
     benchmark:
         "benchmarks/{replicate_label}.count_uniq_fragments.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=8000
+        mem_mb=8000,
+        runtime=30
     shell:
         """
         samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
-        """
-
-rule uniquely_mapped_reads:
-    input:
-        bam = rules.dedup_umi.output.bam_dedup
-    output:
-        bam_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam",
-        bai_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam.bai",
-    threads: 1
-    params:
-        error_out_file = "stderr/uniquemap.{replicate_label}.err",
-        out_file = "stdout/uniquemap.{replicate_label}.out",
-        run_time = "0:30:00",
-        memory = 40000,
-    conda:
-        "envs/bamtools.yaml"
-    shell:
-        """
-        bamtools filter -in {input.bam} -out {output.bam_umap} -mapQuality ">3"
-        samtools index {output.bam_umap}
         """

@@ -3,7 +3,6 @@ VARIANT='/tscc/nfs/home/hsher/ps-yeolab5/ENCODE_paper_tables/CHD_variants.tsv'
 
 
 TABLE='/tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.Heart_Left_Ventricle.tiled_partition.bed.gz'
-VEP_CACHEDIR='/tscc/nfs/home/hsher/scratch/vep_cache/'
 import pandas as pd
 locals().update(config)
 
@@ -42,12 +41,9 @@ rule slop_finemap:
     output:
         "output/table.slop.bed.gz"
     threads: 2
-    params:
-        error_file = "stderr/slop_finemap",
-        out_file = "stdout/slop_finemap",
-        run_time = "06:20:00",
-        cores = 1,
-        memory = 40000,
+    resources:
+        mem_mb=40000,
+        runtime=40
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
     shell:
@@ -60,18 +56,14 @@ rule fetch_peak_sequence:
         finemapped_windows = rules.slop_finemap.output,
     output:
         finemapped_fa = "output/sequence/table.slop.fa",
-    params:
-        error_file = "stderr/fetch_sequence.err",
-        out_file = "stdout/fetch_sequence.out",
-        run_time = "40:00",
-        memory = "2000",
-        job_name = "run_homer",
-        fa = config['GENOME']
+    resources:
+        mem_mb=2000,
+        runtime=40
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         '''
-        bedtools getfasta -fo {output.finemapped_fa} -fi {params.fa} -bed {input.finemapped_windows} -s
+        bedtools getfasta -fo {output.finemapped_fa} -fi {GENOME} -bed {input.finemapped_windows} -s
         '''
 
 rule fetch_variant_sequence:
@@ -85,13 +77,11 @@ rule fetch_variant_sequence:
         all_fa = "output/variants/annotation.all.fa",
         csv = "output/variants/annotation.csv"
     threads: 2
+    resources:
+        mem_mb=80000,
+        runtime="80:00"
     params:
-        error_file = "stderr/fetch_variant",
-        out_file = "stdout/fetch_variant",
-        run_time = "01:20:00",
-        cores = 1,
         out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
-        memory = 80000,
     conda:
         "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
     shell:
@@ -115,12 +105,10 @@ rule score_fa:
     output:
         score=temp("output/variants/{model_name}.score.csv"),
     threads: 1
+    resources:
+        mem_mb=80000,
+        runtime="20:00"
     params:
-        error_file = "stderr/score_fa.{model_name}",
-        out_file = "stdout/score_fa.{model_name}",
-        run_time = "00:20:00",
-        cores = 1,
-        memory = 80000,
         model_path = lambda wildcards: model_dict[wildcards.model_name]
     conda:
         "/tscc/nfs/home/hsher/projects/skipper/rules/envs/eugene.yaml"
@@ -130,7 +118,8 @@ rule score_fa:
             python {RBPNET_PATH}/score_fa.py \
                 {params.model_path} \
                 {input.fa} \
-                {output.score}
+                {output.score} \
+                /tscc/lustre/ddn/scratch/${{USER}}
         else
             touch {output.score}
         fi
@@ -143,12 +132,9 @@ rule to_vcf:
         "output/variants/variants.vcf"
     container:
         "docker://brianyee/bcftools:1.17"
-    params:
-        error_file = "stderr/tovcf",
-        out_file = "stdout/tovcf",
-        run_time = "00:20:00",
-        cores = 1,
-        memory = 80000,
+    resources:
+        mem_mb=80000,
+        runtime="20:00"
     shell:
         """
         bcftools convert -c CHROM,POS,REF,ALT,-,-,filter,- -f {GENOME} --tsv2vcf {input} -o {output}
@@ -159,13 +145,9 @@ rule vep:
     output:
         "output/variants/vep.tsv"
     threads: 2
-    params:
-        error_file = "stderr/vep",
-        out_file = "stdout/vep",
-        run_time = "1:20:00",
-        cores = 1,
-        memory = 40000,
-        cache= VEP_CACHEDIR
+    resources:
+        mem_mb=40000,
+        runtime="20:00"
     container:
         "docker://ensemblorg/ensembl-vep:latest"
     shell:
@@ -173,6 +155,6 @@ rule vep:
         vep \
         -i {input} \
         --force_overwrite \
-        -o {output} -offline --cache {params.cache}
+        -o {output} -offline --cache {VEP_CACHEDIR}
         """
 

@@ -1,8 +1,0 @@
-name: fast
-channels:
-  - conda-forge
-  - bioconda
-  - defaults
-dependencies:
-  - perl-fast
-prefix: /home/hsher/miniconda3/envs/fast
