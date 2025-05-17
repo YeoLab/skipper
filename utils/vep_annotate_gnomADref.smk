@@ -1,7 +1,8 @@
-
+VEP_CACHEDIR='/tscc/nfs/home/hsher/scratch/vep_cache/'
 ROULETTE = '/tscc/nfs/home/hsher/ps-yeolab5/roulette/22_rate_v5.2_TFBS_correction_all.vcf.bgz'
 HEADER = '/tscc/nfs/home/hsher/bin/Roulette/header.hr'
 N_SPLIT=1000
+ROULETTE_DIR=Path('/tscc/nfs/home/hsher/ps-yeolab5/roulette/')
 JVARKIT_DIR='/tscc/nfs/home/hsher/bin/jvarkit/JVARKIT'
 GENCODE='/tscc/nfs/home/hsher/gencode_coords/gencode.v40.primary_assembly.annotation.gff3'
 MODEL_DIR='/tscc/nfs/home/hsher/ps-yeolab5/roulette/model'
@@ -23,7 +24,7 @@ rule all:
 
 rule split_vcf:
     input:
-        Path(ROULETTE_DIR)/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
+        ROULETTE_DIR/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
     output:
         temp(expand("output/{prefix}.{chunk}.vcf.gz", 
         chunk = [f"{i:05d}" for i in range(1, N_SPLIT+1)],
@@ -32,9 +33,12 @@ rule split_vcf:
        chunk = [f"{i:05d}" for i in range(1, N_SPLIT+1)],
        prefix="{prefix}"))
     threads: 1
-    resources:
-        mem_mb=80000,
-        runtime="6h"
+    params:
+        error_file = "stderr/split_vcf",
+        out_file = "stdout/split_vcf",
+        run_time = "6:20:00",
+        cores = 1,
+        memory = 80000,
     conda:
         "envs/java.yaml"
     shell:
@@ -52,9 +56,12 @@ rule vep:
         temp("output/{prefix}.{chunk}.tsv"),
         temp("output/{prefix}.{chunk}.tsv_summary.html")
     threads: 2
-    resources:
-        mem_mb=40000,
-        runtime="1h"
+    params:
+        error_file = "stderr/vep",
+        out_file = "stdout/vep",
+        run_time = "1:20:00",
+        cores = 1,
+        memory = 40000,
     container:
         "docker://ensemblorg/ensembl-vep:latest"
     shell:
@@ -73,9 +80,12 @@ rule combine_vep:
     output:
         "{prefix}_all.vep.tsv"
     threads: 2
-    resources:
-        mem_mb=40000,
-        runtime="1h"
+    params:
+        error_file = "stderr/combine_vep",
+        out_file = "stdout/combine_vep",
+        run_time = "1:20:00",
+        cores = 1,
+        memory = 40000,
     shell:
         """
         cat {input} | grep -v '#' > {output}
@@ -83,15 +93,18 @@ rule combine_vep:
 
 rule annotate_RBP_site:
     input:
-        vcf=Path(ROULETTE_DIR)/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
+        vcf=ROULETTE_DIR/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
     output:
         allrbp="allrbpsite.bed.gz",
         allrbp_rename="allrbpsite.bed.rename.gz",
-        vcf=Path(ROULETTE_DIR)/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz'
+        vcf=ROULETTE_DIR/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz'
     threads: 1
-    resources:
-        mem_mb=40000,
-        runtime="1h"
+    params:
+        error_file = "stderr/annotate_RBP_site",
+        out_file = "stdout/annotate_RBP_site",
+        run_time = "1:20:00",
+        cores = 1,
+        memory = 40000,
     container:
         "docker://brianyee/bcftools:1.17"
     shell:
@@ -115,13 +128,16 @@ rule annotate_RBP_site:
 
 rule make_tsv:
     input:
-        vcf=Path(ROULETTE_DIR)/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz'
+        vcf=ROULETTE_DIR/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz'
     output:
         tsv='22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.tsv.gz'
     threads: 1
-    resources:
-        mem_mb=40000,
-        runtime="1h"
+    params:
+        error_file = "stderr/make_tsv",
+        out_file = "stdout/make_tsv",
+        run_time = "1:20:00",
+        cores = 1,
+        memory = 40000,
     container:
         "docker://brianyee/bcftools:1.17"
     shell:
@@ -133,14 +149,17 @@ rule make_tsv:
 
 rule fit_expected_singleton_rate:
     input:
-        vcf=Path(ROULETTE_DIR)/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz',
+        vcf=ROULETTE_DIR/'22_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.filtered.vcf.gz',
         vep='/tscc/nfs/home/hsher/scratch/annotate_roulette/22_rate_v5.2_TFBS_correction_all.vep.tsv'
     output:
         expected=MODEL_DIR+'/singleton.pickle'
     threads: 1
-    resources:
-        mem_mb=40000,
-        runtime="1h"
+    params:
+        error_file = "stderr/fit_expected_singleton_rate",
+        out_file = "stdout/fit_expected_singleton_rate",
+        run_time = "1:20:00",
+        cores = 1,
+        memory = 40000,
     conda:
         "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
     shell:

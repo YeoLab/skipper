@@ -13,7 +13,7 @@ import warnings
 # ENCODE 4
 snakemake -kps Skipper.py \
     -j 30 \
-    --cluster "qsub -l walltime={resources.runtime} -l nodes=1:ppn={threads} -q home-yeo" \
+    --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" \
     --configfile /home/hsher/projects/skipper/encore_configs/Skipper_config_small_test.yaml \
     --conda-prefix /home/hsher/snakeconda \
     --use-conda \
@@ -25,7 +25,7 @@ snakemake -kps Skipper.py \
 # ENCODE 3
 snakemake -kps Skipper.py \
     -j 30 \
-    --cluster "qsub -l walltime={resources.runtime} -l nodes=1:ppn={threads} -q home-yeo" \
+    --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" \
     --configfile /home/hsher/projects/skipper/encode_configs/Skipper_pe_small_test.yaml \
     --conda-prefix /home/hsher/snakeconda \
     --use-conda \
@@ -182,9 +182,12 @@ rule all:
     output:
         "land_ho.txt"
     threads: 1
-    resources:
-        runtime: 40
-        memory_mb=200
+    params:
+        error_file = "stderr/all.err",
+        out_file = "stdout/all.out",
+        run_time = "00:04:00",
+        memory = "200",
+        job_name = "all"
     shell:
         "echo $(date)  > {output};"
         "echo Version: 1.99.0 >> {output};"
