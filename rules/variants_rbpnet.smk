@@ -6,6 +6,8 @@ CLINVAR_VCF='/tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.vcf.gz'
 VEP_CACHEDIR='/tscc/nfs/home/hsher/scratch/vep_cache/'
 import pandas as pd
 locals().update(config)
+VEP_CACHEDIR = config['VEP_CACHEDIR']
+VEP_CACHE_VERSION = config['VEP_CACHE_VERSION']
 
 rule filter_roulette_for_high:
     input:
@@ -73,6 +75,9 @@ rule fetch_SNP_from_gnomAD_and_roulette:
         run_time = "13:20:00",
         cores = 1,
         memory = 40000,
+    resources:
+        runtime=lambda wildcards, attempt: 480 * (1.5 ** (attempt - 1)),
+        mem_mb=40000,
     container:
         "docker://brianyee/bcftools:1.17"
     shell:
@@ -144,10 +149,13 @@ rule fetch_variant_sequence:
         cores = 1,
         out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
         memory = 80000,
+        tmpdir = config["TMPDIR"],
     conda:
         "envs/metadensity.yaml"
     shell:
         """
+        module purge;
+        export TMPDIR={params.tmpdir};
         if [ -s {input.subset_vcf} ]; then
             python {TOOL_DIR}/generate_variant_sequence.py \
                 {input.subset_vcf} \
@@ -170,6 +178,9 @@ rule score_fa:
         score=temp("output/variants/{subset}/{experiment_label_thing}.{type}.score.csv"),
         fai=temp("output/variants/{subset}/{experiment_label_thing}.{type}.fa.fai")
     threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: 25000 * (2 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
     params:
         error_file = "stderr/score_fa.{subset}.{experiment_label_thing}",
         out_file = "stdout/score_fa.{subset}.{experiment_label_thing}",
@@ -183,7 +194,9 @@ rule score_fa:
         """
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
+        
         if [ -s {input.fa} ]; then
+            samtools faidx {input.fa};
             python {RBPNET_PATH}/score_fa.py \
                 output/ml/rbpnet_model/{params.exp}/ \
                 {input.fa} \
@@ -275,10 +288,25 @@ rule fetch_Clinvar_SNP:
             touch {output}
         fi
         """
-
+rule download_vep_cache:
+    output:
+        Path(VEP_CACHEDIR) / f'homo_sapiens/{VEP_CACHE_VERSION}_GRCh38/1/all_vars.gz'
+    threads: 1
+    resources:
+        mem_mb=2000,
+        runtime="1h"
+    container:
+        "docker://ensemblorg/ensembl-vep:release_113.4"
+    shell:
+        """
+        mkdir -p {VEP_CACHEDIR}/ && cd {VEP_CACHEDIR}/;        
+        curl -o {VEP_CACHEDIR}/homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz;
+        tar xzf homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        """
 rule vep:
     input:
-        "output/variants/clinvar/{experiment_label}.vcf"
+        vcf = "output/variants/clinvar/{experiment_label}.vcf",
+        vars = Path(VEP_CACHEDIR) / f'homo_sapiens/{VEP_CACHE_VERSION}_GRCh38/1/all_vars.gz'
     output:
         "output/variants/clinvar/{experiment_label}.vep.tsv"
     threads: 2
@@ -293,9 +321,9 @@ rule vep:
         "docker://ensemblorg/ensembl-vep:latest"
     shell:
         """
-        if [ -s {input} ]; then
+        if [ -s {input.vcf} ]; then
             vep \
-            -i {input} \
+            -i {input.vcf} \
             --force_overwrite \
             -o {output} -offline --cache {params.cache}
         else
@@ -346,6 +374,7 @@ rule variant_analysis:
         "envs/metadensity.yaml"
     shell:
         """
+        module purge;
         if [ -s {input.gnomAD} ]; then
             python {TOOL_DIR}/mega_variant_analysis.py \
                 . \

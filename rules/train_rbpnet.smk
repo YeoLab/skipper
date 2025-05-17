@@ -36,13 +36,18 @@ rule train_model:
         run_time = "3:40:00",
         memory = "160000",
         gpu = True
+    resources:
+        mem_mb=lambda wildcards, attempt: 64000 * (2 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 240 * (2 ** (attempt - 1)),
+        slurm_partition="rtx3090",
+        slurm_account="csd792",
+        slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     # container:
     #     "docker://brianyee/eugene-tools:0.1.2" #NO SPACE LEFT ON DEVICE PROBLEM
     shell:
         """
-        module load gpu
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/train.py output/ml/rbpnet_data/{wildcards.experiment_label} \
@@ -61,6 +66,12 @@ rule validation:
         run_time = "40:00",
         memory = "160000",
         gpu = True
+    resources:
+        mem_mb=160000,
+        runtime="3h",
+        slurm_partition="rtx3090",
+        slurm_account="csd792",
+        slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     # container:

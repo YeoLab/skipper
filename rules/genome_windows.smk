@@ -34,11 +34,12 @@ rule partition_bam_reads:
         run_time = "12:00:00",
         memory = "60000",
         job_name = "partition_bam_reads"
+    resources:
+        mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
+        runtime="12h"
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
-    resources:
-        mem_mb=60000
     shell:
         "bedtools bamtobed -i {input.bam} | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
         "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
@@ -106,7 +107,8 @@ rule fit_input_betabinomial_model:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=32000
+        mem_mb=48000,
+        runtime="6h"
     shell:
         "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
@@ -127,7 +129,8 @@ rule fit_clip_betabinomial_model:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=32000
+        mem_mb=48000,
+        runtime="6h"
     shell:
         "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
@@ -175,7 +178,8 @@ rule call_enriched_windows:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=24000
+        mem_mb=48000,
+        runtime="24h"
     shell:
         "Rscript --vanilla {TOOL_DIR}/call_enriched_windows.R {input.table} {input.accession_rankings} {input.feature_annotations} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
@@ -195,7 +199,8 @@ rule check_window_concordance:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=8000
+        mem_mb=16000,
+        runtime=15
     shell:
         "Rscript --vanilla {TOOL_DIR}/check_window_concordance.R output/tested_windows {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
@@ -216,7 +221,8 @@ rule find_reproducible_enriched_windows:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=2000
+        mem_mb=8000,
+        runtime=30
     shell:
         "Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R output/enriched_windows/ {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
@@ -237,6 +243,7 @@ rule sample_background_windows_by_region:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=16000
+        mem_mb=16000,
+        runtime=lambda wildcards, attempt: 30 * (2 ** (attempt - 1)),
     shell:
         "Rscript --vanilla {TOOL_DIR}/sample_matched_background_by_region.R {input.enriched_windows} {input.all_windows} 75 output/homer/region_matched_background {wildcards.experiment_label};"

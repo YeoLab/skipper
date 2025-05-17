@@ -218,15 +218,18 @@ rule dedup_umi:
         memory = "34000",
         job_name = "dedup_bam",
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
+        bam_dedup="output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam",
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
     resources:
         tmpdir = TMPDIR
     container:
         "docker://howardxu520/skipper:umicollapse_1.0.0"
     resources:
-        mem_mb=34000
+        mem_mb=34000,
+        runtime="3h",
+        tmpdir=TMPDIR
     shell:
-        "java -server -Xms32G -Xmx32G -Xss40M -jar /UMICollapse/umicollapse.jar bam "
+        "java -server -Xms32G -Xmx32G -Xss40M -Djava.io.tmpdir={resources.tmpdir} -jar /UMICollapse/umicollapse.jar bam "
             "-i {input.bam} -o {output.bam_dedup} --umi-sep : --two-pass"
 
 rule obtain_unique_reads:

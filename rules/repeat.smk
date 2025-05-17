@@ -16,7 +16,8 @@ rule uniq_repeats:
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     resources:
-        mem_mb=16000
+        mem_mb=32000,
+        runtime="4h"
     shell:
         "zcat {REPEAT_TABLE} | awk -v OFS=\"\\t\" '{{print $6,$7,$8,$11 \":\" name_count[$11]++, $2, $10,$11,$12,$13}} "
             "$13 == \"L1\" || $13 == \"Alu\" {{$11 = $11 \"_AS\"; $12 = $12 \"_AS\"; $13 = $13 \"_AS\"; "
@@ -49,7 +50,8 @@ rule quantify_repeats:
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     resources:
-        mem_mb=60000
+        mem_mb=lambda wildcards, attempt: 32000 * (2 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 40 * (2 ** (attempt - 1)),
     shell:
         "bedtools bamtobed -i {input.bam} | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
             "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
@@ -148,7 +150,8 @@ rule call_enriched_re:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=16000
+        mem_mb=48000,
+        runtime="3h"
     shell:
         "Rscript --vanilla {TOOL_DIR}/call_enriched_re.R {input.table} {input.repeats} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
@@ -167,7 +170,8 @@ rule find_reproducible_enriched_re:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=8000
+        mem_mb=16000,
+        runtime=120
     shell:
         "Rscript --vanilla {TOOL_DIR}/identify_reproducible_re.R output/enriched_re/ {wildcards.experiment_label}"
         

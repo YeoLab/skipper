@@ -16,11 +16,12 @@ rule get_nt_coverage:
         run_time = "6:00:00",
         memory = "45000",
         job_name = "get_nt_coverage"
+    resources:
+        mem_mb=64000,
+        runtime="6h"
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
-    resources:
-        mem_mb=45000
     shell:
         "zcat {input.windows} | tail -n +2 | sort -k1,1 -k2,2n | awk -v OFS=\"\t\" '{{start = $2-37; if(start < 0) {{start = 0}}; print $1, start, $3+37,$4,$5,$6}}' | "
             "bedtools merge -i - -s -c 6 -o distinct | awk -v OFS=\"\t\" '{{for(i=$2;i< $3;i++) {{print $1,i,i+1,\"MW:\" NR \":\" i - $2,0,$4, NR}} }}' > {output.nt_census}; "
@@ -73,10 +74,14 @@ rule annotate_finemap:
         run_time = "00:30:00",
         memory = "60000",
         job_name = "annotate_finemap_windows"
+    resources:
+        mem_mb=64000,
+        runtime="4h"
     conda:
         "envs/metadensity.yaml"
     shell:
         """
+        module purge;  # fixes weird $PATH issue where python being used is the module python, not the one in conda environment.
         if [ -s {input.finemapped} ]; then
             python {TOOL_DIR}/annotate_finemapped_regions.py \
                 {input.finemapped} \
@@ -106,6 +111,7 @@ rule find_both_tested_windows:
         "envs/metadensity.yaml"
     shell:
         """
+        module purge;  # fixes weird $PATH issue where python being used is the module python, not the one in conda environment.
         python {TOOL_DIR}/find_both_tested_windows.py \
             "{input}" \
             {output.tested_windows_in_2_rep} \

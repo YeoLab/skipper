@@ -36,6 +36,9 @@ rule consult_encode_reference:
         run_time = "00:10:00",
         memory = "1000",
         job_name = "consult_encode_reference"
+    resources:
+        mem_mb=lambda wildcards, attempt: 4000 * (2 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/consult_encode_reference/skipper.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"

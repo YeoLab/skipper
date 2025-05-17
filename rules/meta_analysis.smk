@@ -110,6 +110,7 @@ rule summarize_genome_megatable:
         mem_mb=2000
     shell:
         """
+        module purge;  # fixes weird $PATH issue where python being used is the module python, not the one in conda environment.
         python {TOOL_DIR}/group_genome_megatable.py {input} {output.f} {output.t}
         """
 # tested windows # with nan ready for analysis?
@@ -133,6 +134,7 @@ rule join_reproducible_enriched_re:
         "envs/metadensity.yaml"
     shell:
         """
+        module purge;  # fixes weird $PATH issue where python being used is the module python, not the one in conda environment.
         python {TOOL_DIR}/join_reproducible_enriched_re.py . {output.binary} {output.l2or}
         """
 
@@ -154,6 +156,7 @@ rule join_reproducible_enriched_windows:
         "envs/metadensity.yaml"
     shell:
         """
+        module purge;  # fixes weird $PATH issue where python being used is the module python, not the one in conda environment.
         python {TOOL_DIR}/join_reproducible_enriched_windows.py . {wildcards.feature_type} {output.binary} {output.l2or}
         """
 
@@ -181,5 +184,6 @@ rule join_reproducible_enriched_windows:
         "envs/metadensity.yaml"
     shell:
         """
+        module purge;  # fixes weird $PATH issue where python being used is the module python, not the one in conda environment.
         python {TOOL_DIR}/join_all_reproducible_enriched_windows.py . {output.binary} 
         """
