@@ -29,8 +29,8 @@ rule multiqc:
     container:
         "docker://jeltje/multiqc:1.6"
     resources:
-        mem_mb=4000,
-        runtime=15
+        mem_mb=8000,
+        runtime=60
     shell:
         """
         ls {input.trimmed_fastqc} {input.initial_fastqc} {input.star_log} {input.fastp} {input.trimmed} > output/multiqc/{wildcards.experiment_label}/files.txt
@@ -49,6 +49,7 @@ rule quantify_gc_bias:
         runtime=5
     shell:
         """
+        module purge;
         python {TOOL_DIR}/quantify_gcbias.py {input} {output}
         """
 
@@ -68,20 +69,26 @@ rule nread_in_finemapped_regions:
         bam=lambda wildcards: get_bams(wildcards),
         bed="output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     output:
+        sorted_bed="output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.sorted.bed.gz",
         nread_in_finemapped_regions = "output/qc/{experiment_label}.nread_in_finemapped_regions.txt"
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
+    params:
+        genome=os.path.join(config['STAR_DIR'], 'chrNameLength.txt')
     resources:
-        mem_mb=40000,
-        runtime=5
+        mem_mb=lambda wildcards, attempt: 32000 * (2 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 5 * (2 ** (attempt - 1)),
     shell:
         """
+        zcat {input.bed} | sort -k1,1 -k2,2 -V | gzip -c > {output.sorted_bed};
         for bam in {input.bam}
         do
             nread_in_peak=$(bedtools coverage \
-            -a {input.bed} \
+            -a {output.sorted_bed} \
             -b $bam \
+            -sorted \
             -counts \
+            -g {params.genome} \
             -s | cut -f 10 | awk '{{sum += $NF}} END {{print sum}}')
             replicate_label=$(basename $bam | cut -d'.' -f1)
             echo -e "$replicate_label\t$nread_in_peak" >> {output.nread_in_finemapped_regions}

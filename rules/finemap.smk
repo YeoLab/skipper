@@ -11,8 +11,8 @@ rule get_nt_coverage:
         nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
     threads: 6
     resources:
-        mem_mb=45000,
-        runtime="2h"
+        mem_mb=64000,
+        runtime="6h"
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
@@ -62,12 +62,13 @@ rule annotate_finemap:
     threads:
         1
     resources:
-        mem_mb=45000,
-        runtime="30"
+        mem_mb=64000,
+        runtime="4h"
     conda:
         "envs/metadensity.yaml"
     shell:
         """
+        module purge;  # fixes weird $PATH issue where python being used is the module python, not the one in conda environment.
         if [ -s {input.finemapped} ]; then
             python {TOOL_DIR}/annotate_finemapped_regions.py \
                 {input.finemapped} \
@@ -94,6 +95,7 @@ rule find_both_tested_windows:
         "envs/metadensity.yaml"
     shell:
         """
+        module purge;  # fixes weird $PATH issue where python being used is the module python, not the one in conda environment.
         python {TOOL_DIR}/find_both_tested_windows.py \
             "{input}" \
             {output.tested_windows_in_2_rep} \

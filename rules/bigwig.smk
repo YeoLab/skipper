@@ -18,7 +18,7 @@ rule make_unscaled_bigwig:
     resources:
         mem_mb=10000,
         tmpdir=TMPDIR,
-        runtime=60
+        runtime=120
     shell:
         "samtools index {input.bam};"
         "bedtools genomecov -split -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
@@ -38,7 +38,7 @@ rule make_scaled_bigwig:
     resources:
         mem_mb=10000,
         tmpdir=TMPDIR,
-        runtime=60
+        runtime=120
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
@@ -63,7 +63,7 @@ rule make_scaled_bigwig_coverage:
     resources:
         mem_mb=10000,
         tmpdir=TMPDIR,
-        runtime=60
+        runtime=120
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
     shell:

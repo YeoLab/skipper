@@ -26,8 +26,8 @@ rule consult_encode_reference:
         tsne_coordinates = "output/tsne/skipper.tsne_query.tsv",
         tsne_plot = "output/figures/tsne/skipper.tsne_query.pdf"
     resources:
-        mem_mb=1000,
-        runtime=10
+        mem_mb=lambda wildcards, attempt: 4000 * (2 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/consult_encode_reference/skipper.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
