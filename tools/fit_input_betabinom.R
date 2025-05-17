@@ -1,6 +1,6 @@
 #!/home/eboyle/bin/Rscript --vanilla  	
 # qsub -d $(pwd) -l walltime=35:00 -l nodes=1:ppn=1 -q home-yeo -F 203_HNRNPC_HepG2 fit_clip_betabinom.R
-# snakemake -j 20 -s SnakeCLIP_regions.py -k --cluster "qsub -q home-yeo -l walltime={resources.runtime} -N {params.job_name} -e {params.error_out_file} "
+# snakemake -j 20 -s SnakeCLIP_regions.py -k --cluster "qsub -q home-yeo -l walltime={params.run_time} -N {params.job_name} -e {params.error_out_file} "
 library(tidyverse)
 print(getwd())
 args = commandArgs(trailingOnly=TRUE)

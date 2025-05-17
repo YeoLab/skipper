@@ -12,5 +12,5 @@ use-conda: true
 conda-prefix: "/tscc/nfs/home/hsher/snakeconda"
 conda-frontend: conda
 jobs: 30
-cluster: "sbatch -t {resources.runtime} -p rtx3090 -q condo-gpu -A csd792 --gpus 1 -J {rule}"
+cluster: "sbatch -t {params.run_time} -e {params.error_file} -o {params.out_file} -p rtx3090 -q condo-gpu -A csd792 --gpus 1 -J {rule}"
 cluster-cancel: "scancel"

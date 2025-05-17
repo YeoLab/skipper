@@ -14,6 +14,7 @@ workdir: config['WORKDIR']
 if not os.path.exists("stderr"): os.makedirs("stderr")
 if not os.path.exists("stdout"): os.makedirs("stdout")
 
+
 if OVERDISPERSION_MODE not in ["clip","input"]:
     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")
 
@@ -127,24 +128,45 @@ config['CONFIG_PATH']=sys.argv[i+1]
 print(config['CONFIG_PATH'])
 locals().update(config)
 
-def call_enriched_window_output(wildcards):
-    outputs = []
-    for experiment_label in manifest.Experiment:
-        for clip_replicate_label in config['experiment_to_clip_replicate_labels'][experiment_label]:
-            outputs.append(f"output/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_feature_summary.tsv")
-        
-        
-    return outputs
 rule all:
     input:
-        "ml_variants_done.txt",
-        "basic_done.txt"
-
-        
-        
-
-rule all_ml_variants_output:
-    input:
+        # expand("output/fastqc/initial/{replicate_label}_fastqc.html", replicate_label = replicate_labels
+        # ) if config['protocol']=='ENCODE4' else ,
+        # expand("output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html", replicate_label = replicate_labels), 
+        expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
+        expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
+        expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw", replicate_label = replicate_labels),
+        # expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
+        expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
+        expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
+        # expand("output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf", experiment_label = manifest.Experiment),
+        # expand("output/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
+        expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", experiment_label = manifest.Experiment),
+        expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz", experiment_label = manifest.Experiment),
+        expand("output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",experiment_label = manifest.Experiment),
+        expand("output/homer/finemapped_results/{experiment_label}/homerResults.html", experiment_label = manifest.Experiment),
+        expand("output/gene_sets/{experiment_label}.enriched_terms.tsv.gz", experiment_label = manifest.Experiment),
+        "output/figures/tsne/skipper.tsne_query.pdf",
+        # Quality control
+        # expand("output/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
+        # expand("output/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
+        # expand("output/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment),
+        expand("output/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
+        expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
+        "output/QC/unique_fragments.csv",
+        # expand("output/ml/gkmsvm/{experiment_label}.cvpred.txt", experiment_label = manifest.Experiment),
+        # "output/ml/gkmsvm/AUPRC.txt",
+        # "variants_done.txt",
+        # expand("output/joined_reproducible_windows/l2or.{type}.csv",
+        #        type =['EXON_SMALL','INTRON', 'SS5_ADJ,SS5_PROX,SS3_ADJ,SS3_PROX,SSB_ADJ,SSB_PROX',
+        #               'UTR5,CDS_START,CDS,CDS_STOP,CDS_SOLITARY,UTR3','EXON_PSEUDO','EXON_LNCRNA',
+        #               'EXON_MRNA']
+        # ),
+        # "output/joined_reproducible_re/l2or.csv",
+        # "output/joined_reproducible_windows/all.csv",
+        # expand("output/conservation/UKBB_DR/{experiment_label}.csv", experiment_label = manifest.Experiment)
         expand("output/ml/rbpnet_model/{experiment_label}/valid/test_data_metric.csv",
                experiment_label = manifest.Experiment),
         expand("output/ml/rbpnet_model/{experiment_label}/motif_done",
@@ -155,60 +177,6 @@ rule all_ml_variants_output:
             experiment_label = manifest.Experiment),
         expand("output/variant_analysis/{experiment_label}.clinvar_variants.csv",
                experiment_label = manifest.Experiment)
-    output:
-        "ml_variants_done.txt"
-    resources:
-        mem_mb=400,
-        run_time=20
-    shell:
-        """
-        touch {output}
-        """
-
-rule all_basic_output:
-    input:
-        # expand("output/fastqc/initial/{replicate_label}_fastqc.html", replicate_label = replicate_labels
-        # ) if config['protocol']=='ENCODE4' else ,
-        # expand("output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html", replicate_label = replicate_labels), #missing for PE
-        expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
-        expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
-        expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
-        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
-        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw", replicate_label = replicate_labels),
-        expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
-        expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
-        expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
-        expand("output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf", experiment_label = manifest.Experiment),
-        expand("output/enrichment_reproducibility/{experiment_label}.odds_data.tsv", experiment_label = manifest.Experiment),
-        expand("output/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
-        expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", experiment_label = manifest.Experiment),
-        expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz", experiment_label = manifest.Experiment),
-        expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv", experiment_label = manifest.Experiment),
-        expand("output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",experiment_label = manifest.Experiment),
-        expand("output/homer/finemapped_results/{experiment_label}/homerResults.html", experiment_label = manifest.Experiment),
-        expand("output/gene_sets/{experiment_label}.enriched_terms.tsv.gz", experiment_label = manifest.Experiment),
-        lambda wildcards: call_enriched_window_output(wildcards),
-        "output/figures/tsne/skipper.tsne_query.pdf",
-        # Quality control
-        expand("output/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
-        expand("output/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
-        expand("output/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment),
-        expand("output/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
-        expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
-        "output/QC/unique_fragments.csv",
-        expand("output/qc/{experiment_label}.gc_bias.txt", experiment_label = manifest.Experiment),
-        expand("output/qc/{experiment_label}.nread_in_finemapped_regions.txt", experiment_label=manifest.Experiment)
-    output:
-        "basic_done.txt"
-    resources:
-        mem_mb=400,
-        run_time=20
-    shell:
-        """
-        touch {output}
-        """
-
-
 
 module se_preprocess:
     snakefile:

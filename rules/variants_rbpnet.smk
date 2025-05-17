@@ -1,21 +1,28 @@
-
+HEADER = '/tscc/nfs/home/hsher/bin/Roulette/header.hr'
+RENAME='/tscc/nfs/home/hsher/projects/oligoCLIP/utils/rename_chr.txt'
+ROULETTE_DIR=Path('/tscc/nfs/home/hsher/ps-yeolab5/roulette/')
+GNOMAD_DIR=Path('/tscc/nfs/home/hsher/ps-yeolab5/gnomAD/v4/')
+CLINVAR_VCF='/tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.vcf.gz'
+VEP_CACHEDIR='/tscc/nfs/home/hsher/scratch/vep_cache/'
 import pandas as pd
-from pathlib import Path
 locals().update(config)
 
 rule filter_roulette_for_high:
     input:
-        vcf=Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.vcf.bgz',
+        vcf=ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.vcf.bgz',
         header=HEADER
     output:
-        reheader = temp(Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.vcf'),
-        filtered = temp(Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.vcf'),
+        reheader = temp(ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.vcf'),
+        filtered = temp(ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.vcf'),
     container:
         "docker://brianyee/bcftools:1.17"
     threads: 1
-    resources:
-        mem_mb=40000,
-        runtime="1h"
+    params:
+        error_file = "stderr/filter_roulette.{chr_number}",
+        out_file = "stdout/filter_roulette.{chr_number}",
+        run_time = "1:20:00",
+        cores = 1,
+        memory = 40000,
     shell:
         """
         bcftools reheader -h {input.header} \
@@ -26,15 +33,18 @@ rule filter_roulette_for_high:
 rule annotate_roulette_w_gnomAD:
     input:
         rename=RENAME,
-        gnomad=Path(GNOMAD_DIR) / 'gnomad.genomes.v4.1.sites.chr{chr_number}.vcf.bgz',
-        roulette=Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.vcf'
+        gnomad=GNOMAD_DIR / 'gnomad.genomes.v4.1.sites.chr{chr_number}.vcf.bgz',
+        roulette=ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.vcf'
     output:
-        rename=temp(Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.vcf.gz'),
-        annotated=Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
+        rename=temp(ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.vcf.gz'),
+        annotated=ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
     threads: 1
-    resources:
-        mem_mb=80000,
-        runtime="6h"
+    params:
+        error_file = "stderr/vep",
+        out_file = "stdout/vep",
+        run_time = "6:20:00",
+        cores = 1,
+        memory = 80000,
     container:
         "docker://brianyee/bcftools:1.17"
     shell:
@@ -52,14 +62,17 @@ rule annotate_roulette_w_gnomAD:
 rule fetch_SNP_from_gnomAD_and_roulette:
     ''' fetch gnomAD variants from database '''
     input:
-        vcf=Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz',
+        vcf=ROULETTE_DIR/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz',
         finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     output:
         "output/variants/gnomAD_roulette/{experiment_label}.chr{chr_number}.vcf"
     threads: 2
-    resources:
-        mem_mb=40000,
-        runtime="13h"
+    params:
+        error_file = "stderr/fetch_snp.{experiment_label}.{chr_number}",
+        out_file = "stdout/fetch_snp.{experiment_label}.{chr_number}",
+        run_time = "13:20:00",
+        cores = 1,
+        memory = 40000,
     container:
         "docker://brianyee/bcftools:1.17"
     shell:
@@ -78,9 +91,12 @@ rule slop_finemap:
     output:
         "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.slop.bed.gz"
     threads: 2
-    resources:
-        mem_mb=40000,
-        runtime="6h"
+    params:
+        error_file = "stderr/slop_finemap.{experiment_label}",
+        out_file = "stdout/slop_finemap.{experiment_label}",
+        run_time = "06:20:00",
+        cores = 1,
+        memory = 40000,
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
     shell:
@@ -93,14 +109,18 @@ rule fetch_peak_sequence:
         finemapped_windows = rules.slop_finemap.output,
     output:
         finemapped_fa = "output/ml/sequence/{experiment_label}.foreground.slop.fa",
-    resources:
-        mem_mb=2000,
-        runtime=40
+    params:
+        error_file = "stderr/{experiment_label}.fetch_sequence.err",
+        out_file = "stdout/{experiment_label}.fetch_sequence.out",
+        run_time = "40:00",
+        memory = "2000",
+        job_name = "run_homer",
+        fa = config['GENOME']
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
         '''
-        bedtools getfasta -fo {output.finemapped_fa} -fi {GENOME} -bed {input.finemapped_windows} -s
+        bedtools getfasta -fo {output.finemapped_fa} -fi {params.fa} -bed {input.finemapped_windows} -s
         '''
 
 rule fetch_variant_sequence:
@@ -117,11 +137,13 @@ rule fetch_variant_sequence:
         alt_fa = temp("output/variants/{subset}/{experiment_label_thing}.alt.fa"),
         csv = "output/variants/{subset}/{experiment_label_thing}.csv"
     threads: 2
-    resources:
-        mem_mb=80000,
-        runtime="1h"
     params:
+        error_file = "stderr/fetch_sequence.{subset}.{experiment_label_thing}",
+        out_file = "stdout/fetch_sequence.{subset}.{experiment_label_thing}",
+        run_time = "01:20:00",
+        cores = 1,
         out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
+        memory = 80000,
     conda:
         "envs/metadensity.yaml"
     shell:
@@ -148,10 +170,12 @@ rule score_fa:
         score=temp("output/variants/{subset}/{experiment_label_thing}.{type}.score.csv"),
         fai=temp("output/variants/{subset}/{experiment_label_thing}.{type}.fa.fai")
     threads: 1
-    resources:
-        mem_mb=80000,
-        runtime=20
     params:
+        error_file = "stderr/score_fa.{subset}.{experiment_label_thing}",
+        out_file = "stdout/score_fa.{subset}.{experiment_label_thing}",
+        run_time = "00:20:00",
+        cores = 1,
+        memory = 80000,
         exp =lambda wildcards: wildcards.experiment_label_thing.split('.')[0],
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
@@ -183,9 +207,12 @@ rule join_gnomAD_info:
     output:
         "output/variants/gnomAD_roulette/{experiment_label}.total.csv"
     threads: 1
-    resources:
-        mem_mb=80000,
-        runtime=20
+    params:
+        error_file = "stderr/join_gnomAD_info.{experiment_label}",
+        out_file = "stdout/join_gnomAD_info.{experiment_label}",
+        run_time = "00:20:00",
+        cores = 1,
+        memory = 80000,
     run:
         indir = Path('output/variants/gnomAD_roulette/')
         scores = []
@@ -230,9 +257,12 @@ rule fetch_Clinvar_SNP:
     output:
         "output/variants/clinvar/{experiment_label}.vcf"
     threads: 2
-    resources:
-        mem_mb=50000,
-        runtime="3h"
+    params:
+        error_file = "stderr/fetch_clinvar_snp.{experiment_label}",
+        out_file = "stdout/fetch_clinvar_snp.{experiment_label}",
+        run_time = "3:20:00",
+        cores = 1,
+        memory = 60000,
     container:
         "docker://brianyee/bcftools:1.17"
     shell:
@@ -246,39 +276,28 @@ rule fetch_Clinvar_SNP:
         fi
         """
 
-rule download_vep_cache:
-    output:
-        Path(VEP_CACHEDIR) / f'homo_sapiens/{VEP_CACHE_VERSION}_GRCh38/1/all_vars.gz'
-    threads: 1
-    resources:
-        mem_mb=2000,
-        runtime="1h"
-    container:
-        "docker://ensemblorg/ensembl-vep:release_113.4"
-    shell:
-        """
-        cd {VEP_CACHEDIR}
-        wget https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
-        tar xzf homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
-        """
 rule vep:
     input:
         "output/variants/clinvar/{experiment_label}.vcf"
     output:
         "output/variants/clinvar/{experiment_label}.vep.tsv"
     threads: 2
-    resources:
-        mem_mb=40000,
-        runtime="1h"
+    params:
+        error_file = "stderr/vep",
+        out_file = "stdout/vep",
+        run_time = "1:20:00",
+        cores = 1,
+        memory = 40000,
+        cache= VEP_CACHEDIR
     container:
-        "docker://ensemblorg/ensembl-vep:release_113.4"
+        "docker://ensemblorg/ensembl-vep:latest"
     shell:
         """
         if [ -s {input} ]; then
             vep \
             -i {input} \
             --force_overwrite \
-            -o {output} -offline --cache {VEP_CACHEDIR}
+            -o {output} -offline --cache {params.cache}
         else
             touch {output}
         fi
@@ -317,9 +336,12 @@ rule variant_analysis:
         "output/variant_analysis/{experiment_label}.feature_type_top.MAPS.csv",
         "output/variant_analysis/{experiment_label}.feature_type_top.oe.lofbins.csv",
     threads: 1
-    resources:
-        mem_mb=40000,
-        runtime=20
+    params:
+        error_file = "stderr/variant_analysis.{experiment_label}",
+        out_file = "stdout/variant_analysis.{experiment_label}",
+        run_time = "00:20:00",
+        cores = 1,
+        memory = 40000,
     conda:
         "envs/metadensity.yaml"
     shell:
@@ -327,11 +349,7 @@ rule variant_analysis:
         if [ -s {input.gnomAD} ]; then
             python {TOOL_DIR}/mega_variant_analysis.py \
                 . \
-                {wildcards.experiment_label} \
-                {SINGLETON_REFERENCE} \
-                {OE_RATIO_REFERENCE} \
-                {GNOMAD_CONSTRAINT} \
-
+                {wildcards.experiment_label} 
         else
             touch {output}
         fi
