@@ -111,7 +111,7 @@ rule align_reads:
     container:
         "docker://howardxu520/skipper:star_2.7.10b"
     resources:
-        mem_mb=40000,
+        mem_mb=160000,
         runtime=240
     shell:
         "STAR "

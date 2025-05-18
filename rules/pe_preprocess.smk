@@ -114,7 +114,7 @@ rule align_reads_encode:
     container:
         "docker://howardxu520/skipper:star_2.7.10b"
     resources:
-        mem_mb=40000,
+        mem_mb=160000,
         runtime="2h"
     shell:   
         "STAR "
@@ -183,7 +183,8 @@ rule dedup_umi_encode:
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     resources:
         mem_mb=34000,
-        runtime="8h"
+        runtime="8h",
+        tmpdir = TMPDIR
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
     container:
         "docker://howardxu520/skipper:umicollapse_1.0.0"
