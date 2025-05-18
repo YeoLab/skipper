@@ -33,3 +33,6 @@ VEP_CACHE_VERSION: 113
 SINGLETON_REFERENCE: /tscc/nfs/home/hsher/projects/skipper/popgen_reference/singleton_adjust.coef.csv
 OE_RATIO_REFERENCE: /tscc/nfs/home/hsher/projects/skipper/popgen_reference/vep.csv
 GNOMAD_CONSTRAINT: /tscc/nfs/home/hsher/projects/skipper/popgen_reference/gnomad.v4.0.constraint_metrics.tsv
+# To benchmark ML model
+RBNS_MAPPING: /tscc/projects/ps-yeolab3/hsher/ENCODE/tables/RBNS_mapping.csv
+SELEX_MAPPING: /tscc/projects/ps-yeolab3/hsher/ENCODE/tables/SELEX_mapping.csv
