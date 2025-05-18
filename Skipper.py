@@ -118,6 +118,25 @@ if Path(GFF).name.replace('.gff3.gz', '') != Path(FEATURE_ANNOTATIONS).name.repl
 
 config['manifest'] = manifest
 
+benchmark_outputs = []
+# benchmark-related files
+if 'RBNS_MAPPING' in config:
+    config['RBNS_mapping_df'] = pd.read_csv(config['RBNS_MAPPING'])
+    print(config['RBNS_mapping_df'])
+    experiments_to_banchmark = set(config['manifest']['Experiment']).intersection(set(config['RBNS_mapping_df']['Experiment']))
+    benchmark_outputs+=[f"output/ml/benchmark/homer/RBNS/{experiment_label}.csv"
+                        for experiment_label in list(experiments_to_banchmark)]
+else:
+    pass
+
+if 'SELEX_MAPPING' in config:
+    config['SELEX_mapping_df'] = pd.read_csv(config['SELEX_MAPPING'])
+    experiments_to_banchmark = set(config['manifest']['Experiment']).intersection(set(config['SELEX_mapping_df']['Experiment']))
+    benchmark_outputs+=[f"output/ml/benchmark/homer/SELEX/{experiment_label}.csv"
+                        for experiment_label in list(experiments_to_banchmark)]
+else:
+    pass
+
 # access config file path
 if '--configfile' in sys.argv:
     i = sys.argv.index('--configfile')
@@ -140,8 +159,19 @@ rule all:
         "ml_variants_done.txt",
         "basic_done.txt"
 
-        
-        
+
+rule all_benchmark_outputs:
+    input:
+        benchmark_outputs
+    output:
+        "ml_benchmark_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
+    shell:
+        """
+        touch {output}
+        """
 
 rule all_ml_variants_output:
     input:
@@ -154,7 +184,7 @@ rule all_ml_variants_output:
         expand("output/variants/clinvar/{experiment_label}.vep.tsv",
             experiment_label = manifest.Experiment),
         expand("output/variant_analysis/{experiment_label}.clinvar_variants.csv",
-               experiment_label = manifest.Experiment)
+               experiment_label = manifest.Experiment),
     output:
         "ml_variants_done.txt"
     resources:
@@ -197,7 +227,7 @@ rule all_basic_output:
         expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
         "output/QC/unique_fragments.csv",
         expand("output/qc/{experiment_label}.gc_bias.txt", experiment_label = manifest.Experiment),
-        expand("output/qc/{experiment_label}.nread_in_finemapped_regions.txt", experiment_label=manifest.Experiment)
+        expand("output/qc/{experiment_label}.nread_in_finemapped_regions.txt", experiment_label=manifest.Experiment),
     output:
         "basic_done.txt"
     resources:
@@ -208,7 +238,19 @@ rule all_basic_output:
         touch {output}
         """
 
+rule benchmarking_output:
+    input:
+        expand("output/ctk/mcross/{experiment_label}.txt", experiment_label=manifest.Experiment),
 
+    output:
+        "benchmark_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
+    shell:
+        """
+        touch {output}
+        """
 
 module se_preprocess:
     snakefile:
@@ -269,15 +311,22 @@ module rbpnet:
     config:
         config
 
-# module variants:
-#     snakefile:
-#         "rules/variants.smk"
-#     config:
-#         config
+module benchmark:
+    snakefile:
+        "rules/benchmark_ml.smk"
+    config:
+        config
 
 module variants_rbpnet:
     snakefile:
         "rules/variants_rbpnet.smk"
+    config:
+        config
+
+## Benchmarking other methods ##
+module ctk_mcross:
+    snakefile:
+        "utils/ctk_mcross.smk"
     config:
         config
 
@@ -295,6 +344,7 @@ use rule * from finemap
 use rule * from analysis
 use rule * from meta_analysis
 use rule * from prep_ml as ml_*
-# use rule * from variants as variants_*
 use rule * from rbpnet as rbpnet_*
 use rule * from variants_rbpnet as rbpnet_variants_*
+use rule * from ctk_mcross
+use rule * from benchmark
