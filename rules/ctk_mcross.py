@@ -46,11 +46,14 @@ rule all:
         ctk_topn_kmer_matrix = expand(os.path.join(OUTPUT, "ctk/ctk_mcross/{data_type}.{replicate_label}.{mutation_type}.w7.zcore.mat.txt"), data_type=data_types, replicate_label=replicate_labels, mutation_type=mutation_types),
         ctk_top_peak = expand(os.path.join(OUTPUT, "ctk/ctk_mcross/top7mer/{data_type}.{replicate_label}.{mutation_type}/top.X.{data_type}.{replicate_label}.{mutation_type}.txt"), data_type=data_types, replicate_label=replicate_labels, mutation_type=mutation_types),
         ctk_mat = expand(os.path.join(OUTPUT, "ctk/ctk_mcross/mcross/{data_type}.{replicate_label}.{mutation_type}/{data_type}.{replicate_label}.{mutation_type}.00.mat"), data_type=data_types, replicate_label=replicate_labels, mutation_type=mutation_types),
+        ctk_mat_plot = expand(os.path.join(OUTPUT, "ctk/ctk_mcross/mcross/{data_type}.{replicate_label}.{mutation_type}/{data_type}.{replicate_label}.{mutation_type}.00.pdf"), data_type=data_types, replicate_label=replicate_labels, mutation_type=mutation_types),
         skipper_kmer_enrichment = expand(os.path.join(OUTPUT, "ctk/skipper_mcross/{experiment_label}.kmer.txt"), experiment_label=experiment_labels),
         skipper_clip_config = expand(os.path.join(OUTPUT, "ctk/skipper_mcross/{experiment_label}.config.txt"), experiment_label=experiment_labels),
         skipper_clip_topn_kmer_matrix = expand(os.path.join(OUTPUT, "ctk/skipper_mcross/{experiment_label}.w7.zcore.mat.txt"), experiment_label=experiment_labels),
         skipper_top_peak = expand(os.path.join(OUTPUT, "ctk/skipper_mcross/top7mer/{experiment_label}/top.X.{experiment_label}.txt"), experiment_label=experiment_labels),
         skipper_mat = expand(os.path.join(OUTPUT, "ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.00.mat"), experiment_label=experiment_labels),
+        skipper_plot = expand(os.path.join(OUTPUT, "ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.00.pdf"), experiment_label=experiment_labels),
+        
 
         
 
@@ -93,6 +96,7 @@ rule uniquely_mapped_reads:
         bamtools filter -in {input.bam} -out {output.bam_umap} -mapQuality ">3"
         samtools index {output.bam_umap}
         """
+        
         
 rule md_tag:
     input:
@@ -175,6 +179,7 @@ rule ctk_get_mutation:
         perl /tscc/nfs/home/s5xu/projects/ctk-1.1.5/getMutationType.pl -t {params.mutation_type} {input.mutation} {output.mutation_bed}
         """
         
+        
 rule ctk_CIMS:
     input:
         tagbed = rules.ctk_parse.output.tagbed,
@@ -196,6 +201,7 @@ rule ctk_CIMS:
         """
         perl /tscc/nfs/home/s5xu/projects/ctk-1.1.5/CIMS.pl -big -n 10 -p -c {params.tmp_dir} -outp {output.mutation_CIMS_stat} -v {input.tagbed} {input.mutation} {output.mutation_CIMS}
         """
+        
         
 rule ctk_CIMS_process:
     wildcard_constraints:
@@ -222,6 +228,7 @@ rule ctk_CIMS_process:
         cut -f 1-6  {output.mutation_CIMS_s30_txt} > {output.mutation_CIMS_s30_bed}
         awk '{{print $1"\\t"$2-10"\\t"$3+10"\\t"$4"\\t"$5"\\t"$6}}' {output.mutation_CIMS_s30_bed} > {output.mutation_CIMS_s30_21nt_bed}
         """
+        
         
 rule fetch_CIMS_sequence:
     input:
@@ -254,7 +261,6 @@ rule fetch_CIMS_sequence:
         rm -rf {params.tmp_dir}
         """
 
-        
         
 rule ctk_CITS:
     input:
@@ -303,6 +309,7 @@ rule ctk_CITS_process:
         awk '{{print $1"\\t"$2-10"\\t"$3+10"\\t"$4"\\t"$5"\\t"$6}}' {output.mutation_CITS_s30_singleton_bed} > {output.mutation_CITS_s30_singleton_n21_bed}
         """
 
+        
 rule fetch_CITS_sequence:
     input:
         mutation_CITS_s30_singleton_n21_bed = os.path.join(OUTPUT, "ctk/CIMS/sig/{replicate_labels}.uniq.{mutation_types}.CIMS.s30.21nt.bed"),
@@ -333,6 +340,7 @@ rule fetch_CITS_sequence:
         rm -rf {params.tmp_dir}
         """
          
+            
 rule clip_fetch_sequence:
     input:
         finemapped_windows = os.path.join(OUTPUT, "finemapping/mapped_sites/{experiment_labels}.finemapped_windows.bed.gz"),
@@ -378,8 +386,8 @@ rule ctk_mcross_kmer_enrichment:
         """
         /tscc/nfs/home/s5xu/projects/mCross/word_enrich.pl -w 7 \
             -test binom -v \
-            {input.ctk_finemapped_fa} \
-            {input.ctk_background_fa} \
+            {input.ctk_foreground} \
+            {input.ctk_background} \
             {output.ctk_kmer_enrichment}
         
         # generate config
@@ -459,7 +467,6 @@ rule ctk_mcross:
         /tscc/nfs/home/s5xu/projects/mCross/mCross.pl -l 10 -p 2 -N 10 -m 1 --cluster-seeds --seed {input.clip_top_peak} --prefix {params.experiment_label} --score-method sqrt {input.clip_finemapped_fa} {params.output_dir}/{params.experiment_label}
         """  
     
-        
         
 rule skipper_mcross_kmer_enrichment:
     input:
@@ -564,5 +571,47 @@ rule skipper_mcross:
         /tscc/nfs/home/s5xu/projects/mCross/mCross.pl -l 10 -p 2 -N 10 -m 1 --cluster-seeds --seed {input.clip_top_peak} --prefix {params.experiment_label} --score-method sqrt {input.clip_finemapped_fa} {params.output_dir}/{params.experiment_label}
         """
         
+        
+        
+rule plot_skipper_mcross:
+    input:
+        skipper_mat = os.path.join(OUTPUT, "ctk/skipper_mcross/mcross/{experiment_labels}/{experiment_labels}.00.mat"),
+    output:
+        skipper_plot = os.path.join(OUTPUT, "ctk/skipper_mcross/mcross/{experiment_labels}/{experiment_labels}.00.pdf"),
+    params:
+        error_out_file = os.path.join(OUTPUT, "error_files/{experiment_labels}.plot_skipper_mcross.err"),
+        out_file = os.path.join(OUTPUT, "stdout/{experiment_labels}.plot_skipper_mcross.out"),
+        run_time = "2:00:00",
+        memory = "20000",
+        cores = 1,
+        job_name = "plot_skipper_mcross {experiment_labels}",
+    threads: 8
+    # container:
+    #     "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
+    shell:
+        """
+        Rscript /tscc/nfs/home/s5xu/projects/mCross/mCross2logo.R -i {input.skipper_mat} -o {output.skipper_plot} -s rna -v
+        """
+        
+        
+rule plot_ctk_mcross:
+    input:
+        ctk_mat = os.path.join(OUTPUT, "ctk/ctk_mcross/mcross/{data_types}.{replicate_labels}.{mutation_types}/{data_types}.{replicate_labels}.{mutation_types}.00.mat")
+    output:
+        ctk_mat_plot = os.path.join(OUTPUT, "ctk/ctk_mcross/mcross/{data_types}.{replicate_labels}.{mutation_types}/{data_types}.{replicate_labels}.{mutation_types}.00.pdf")
+    params:
+        error_out_file = os.path.join(OUTPUT, "error_files/{data_types}.{replicate_labels}.{mutation_types}.plot_ctk_mcross.err"),
+        out_file = os.path.join(OUTPUT, "stdout/{data_types}.{replicate_labels}.{mutation_types}.plot_ctk_mcross.out"),
+        run_time = "2:00:00",
+        memory = "20000",
+        cores = 1,
+        job_name = "plot_skipper_mcross {data_types}.{replicate_labels}.{mutation_types}",
+    threads: 8
+    # container:
+    #     "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
+    shell:
+        """
+        Rscript /tscc/nfs/home/s5xu/projects/mCross/mCross2logo.R -i {input.ctk_mat} -o {output.ctk_mat_plot} -s rna -v
+        """
         
         
