@@ -124,7 +124,7 @@ if 'RBNS_MAPPING' in config:
     config['RBNS_mapping_df'] = pd.read_csv(config['RBNS_MAPPING'])
     print(config['RBNS_mapping_df'])
     experiments_to_banchmark = set(config['manifest']['Experiment']).intersection(set(config['RBNS_mapping_df']['Experiment']))
-    benchmark_outputs+=[f"output/ml/benchmark/homer/RBNS/{experiment_label}.csv"
+    benchmark_outputs+=[f"output/ml/benchmark/homer/RBNS/{experiment_label}.pearson_auprc.csv"
                         for experiment_label in list(experiments_to_banchmark)]
 else:
     pass
@@ -132,7 +132,7 @@ else:
 if 'SELEX_MAPPING' in config:
     config['SELEX_mapping_df'] = pd.read_csv(config['SELEX_MAPPING'])
     experiments_to_banchmark = set(config['manifest']['Experiment']).intersection(set(config['SELEX_mapping_df']['Experiment']))
-    benchmark_outputs+=[f"output/ml/benchmark/homer/SELEX/{experiment_label}.csv"
+    benchmark_outputs+=[f"output/ml/benchmark/homer/SELEX/{experiment_label}.pearson_auprc.csv"
                         for experiment_label in list(experiments_to_banchmark)]
 else:
     pass
@@ -238,19 +238,19 @@ rule all_basic_output:
         touch {output}
         """
 
-rule benchmarking_output:
-    input:
-        expand("output/ctk/mcross/{experiment_label}.txt", experiment_label=manifest.Experiment),
+# rule benchmarking_output:
+#     input:
+#         expand("output/ctk/mcross/{experiment_label}.txt", experiment_label=manifest.Experiment),
 
-    output:
-        "benchmark_done.txt"
-    resources:
-        mem_mb=400,
-        run_time=20
-    shell:
-        """
-        touch {output}
-        """
+#     output:
+#         "benchmark_done.txt"
+#     resources:
+#         mem_mb=400,
+#         run_time=20
+#     shell:
+#         """
+#         touch {output}
+#         """
 
 module se_preprocess:
     snakefile:
