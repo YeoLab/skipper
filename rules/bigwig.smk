@@ -8,12 +8,6 @@ rule make_unscaled_bigwig:
         bg_minus = temp("output/bedgraphs/unscaled/minus/{replicate_label}.unscaled.minus.bg"),
         bw_plus = "output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw",
         bw_minus = "output/bigwigs/unscaled/minus/{replicate_label}.unscaled.minus.bw",
-    params:
-        error_file = "stderr/{replicate_label}.make_bigwig.err",
-        out_file = "stdout/{replicate_label}.make_bigwig.out",
-        run_time = "4:00:00",
-        memory = "10000",
-        job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
@@ -37,12 +31,6 @@ rule make_scaled_bigwig:
         bg_minus = temp("output/bedgraphs/scaled/minus/{replicate_label}.scaled.minus.bg"),
         bw_plus = "output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw",
         bw_minus = "output/bigwigs/scaled/minus/{replicate_label}.scaled.minus.bw",
-    params:
-        error_file = "stderr/{replicate_label}.make_bigwig.err",
-        out_file = "stdout/{replicate_label}.make_bigwig.out",
-        run_time = "04:00:00",
-        memory = "10000",
-        job_name = "make_bigwig"
     resources:
         mem_mb=10000,
         tmpdir=TMPDIR,
@@ -67,12 +55,6 @@ rule make_scaled_bigwig_coverage:
         bg_minus = temp("output/bedgraphs/scaled/minus/{replicate_label}.scaled.cov.minus.bg"),
         bw_plus = "output/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw",
         bw_minus = "output/bigwigs/scaled/minus/{replicate_label}.scaled.cov.minus.bw",
-    params:
-        error_file = "stderr/{replicate_label}.make_bigwig.err",
-        out_file = "stdout/{replicate_label}.make_bigwig.out",
-        run_time = "40:00",
-        memory = "1000",
-        job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     resources:
         mem_mb=10000,

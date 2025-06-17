@@ -6,64 +6,6 @@ import sys
 import glob
 from time import sleep
 locals().update(config)
-# example command
-# snakemake -kps encode_pe_rules_HepG2.py -w 25 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" >> encode_pe_rules_HepG2.log 2>&1
-
-# include: "encode_pe_rules_config_HepG2_20230620.py"
-
-# if not os.path.exists("stderr"): os.makedirs("stderr")
-# if not os.path.exists("stdout"): os.makedirs("stdout")
-
-
-# if OVERDISPERSION_MODE not in ["clip","input"]:
-#     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")
-
-# manifest = pd.read_csv(MANIFEST, index_col = False)
-# manifest["Input_replicate_label"] = [str(sample) + "_IN_" + str(replicate) for replicate, sample in zip(manifest.Input_replicate.tolist(),manifest.Sample.tolist())]
-# manifest["CLIP_replicate_label"] = [str(sample) + "_IP_" + str(replicate) for replicate, sample in zip(manifest.CLIP_replicate.tolist(),manifest.Sample.tolist())]
-
-# input_replicates = manifest.loc[:,manifest.columns.isin(["Input_replicate_label","Input_fastq_1","Input_fastq_2","Input_bam","Input_adapter_1", "Input_adapter_2"])].drop_duplicates()
-# clip_replicates = manifest.loc[:,manifest.columns.isin(["CLIP_replicate_label","CLIP_fastq_1","CLIP_fastq_2","CLIP_bam","CLIP_adapter_1", "CLIP_adapter_2"])].drop_duplicates()
-
-
-# if len(input_replicates) != len(input_replicates[["Input_replicate_label"]].drop_duplicates()) or \
-#     len(clip_replicates) != len(clip_replicates[["CLIP_replicate_label"]].drop_duplicates()):
-#     raise Exception("Manifest files are not consistent across replicates")
-
-
-# input_replicate_labels = input_replicates.Input_replicate_label.tolist()
-# clip_replicate_labels = clip_replicates.CLIP_replicate_label.tolist()
-# replicate_labels = pd.Series(input_replicate_labels + clip_replicate_labels)
-
-# if all(bam in manifest.columns.tolist() for bam in ["Input_bam", "CLIP_bam"]):
-#     replicate_label_to_bams = dict(zip(input_replicate_labels + clip_replicate_labels, input_replicate_labels.Input_bam.tolist() + clip_replicate_labels.CLIP_bam.tolist()))    
-# else:
-#     replicate_label_to_bams = dict(zip(input_replicate_labels + clip_replicate_labels, ["output/bams/dedup/genome/" + replicate_label + ".genome.Aligned.sort.dedup.bam" for replicate_label in input_replicate_labels + clip_replicate_labels] ))
-
-
-
-
-# rule all:
-#     input:
-#         expand("output/fastqc/initial/{replicate_label}-1_fastqc.html", replicate_label = replicate_labels), 
-#         expand("output/fastqc/initial/{replicate_label}-2_fastqc.html", replicate_label = replicate_labels), 
-#         expand("output/fastqc/processed/{replicate_label}-trimmed-pair1_fastqc.html", replicate_label = replicate_labels), 
-#         expand("output/fastqc/processed/{replicate_label}-trimmed-pair2_fastqc.html", replicate_label = replicate_labels),
-#         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
-#         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
-#         expand("output/bams/dedup/genome_R"+str(INFORMATIVE_READ)+"/{replicate_label}.genome.Aligned.sort.dedup.R"+str(INFORMATIVE_READ)+".bam", replicate_label = replicate_labels)
-#     output:
-#         "encode_prep.txt"
-#     threads: 1
-#     params:
-#         error_file = "stderr/all.err",
-#         out_file = "stdout/all.out",
-#         run_time = "00:04:00",
-#         memory = "20",
-#         job_name = "all"
-#     shell:
-#         "echo $(date)  > {output};"
-#         "echo created by Evan Boyle and the Yeo lab >> {output}"
 
 
 rule copy_with_umi:
@@ -74,15 +16,10 @@ rule copy_with_umi:
         fq_1 = temp("output/fastqs/copy/{replicate_label}-1.fastq.gz"), #SORT OUT!!
         fq_2 = temp("output/fastqs/copy/{replicate_label}-2.fastq.gz"), #SORT OUT!!        
     threads: 2
-    params:
-        run_time = "6:00:00",
-        error_file = "stderr/{replicate_label}.copy_with_umi.err",
-        out_file = "stdout/{replicate_label}.copy_with_umi.out",
-        job_name = "copy_with_umi",
-        memory = "2000",
-    benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.copy_with_umi.txt"
     resources:
-        mem_mb=2000
+        runtime="8h",
+        mem_mb=8000
+    benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.copy_with_umi.txt"
     shell:
         "zcat {input.fq_1} | awk 'NR % 4 != 1 {{print}} NR % 4 == 1 {{split($1,header,\":\"); print $1 \":\" substr(header[1],2,length(header[1]) - 1) }}' | gzip > {output.fq_1};"
         "zcat {input.fq_2} | awk 'NR % 4 != 1 {{print}} NR % 4 == 1 {{split($1,header,\":\"); print $1 \":\" substr(header[1],2,length(header[1]) - 1) }}' | gzip > {output.fq_2};"
@@ -97,18 +34,14 @@ rule run_initial_fastqc:
         report_r2 = "output/fastqc/initial/{replicate_label}-2_fastqc.html",
         zip_file_r2 = "output/fastqc/initial/{replicate_label}-2_fastqc.zip",
     threads: 2
-    params:
-        outdir="output/fastqc/initial/",
-        run_time = "03:00:00",
-        memory = "16000",
-        error_file = "stderr/{replicate_label}.run_initial_fastqc.err",
-        out_file = "stdout/{replicate_label}.run_initial_fastqc.out",
-        job_name = "run_initial_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
     container:
         "docker://howardxu520/skipper:fastqc_0.12.1"
     resources:
-        mem_mb=16000
+        mem_mb=16000,
+        runtime="3h"
+    params:
+        outdir="output/fastqc/initial/"
     shell:
         "fastqc {input.r1} --extract --outdir {params.outdir} -t {threads};"
         "fastqc {input.r2} --extract --outdir {params.outdir} -t {threads};"
@@ -126,17 +59,13 @@ rule trim_fastq_encode:
         fq_2_trimmed = temp("output/fastqs/trimmed/{replicate_label}-trimmed-pair2.fastq.gz"), 
         metrics = "output/fastqs/trimmed/{replicate_label}-trimmed.log"
     threads: 8
-    params:
-        run_time = "3:30:00",
-        memory = "16000",
-        error_file = "stderr/{replicate_label}.trim.err",
-        out_file = "stdout/{replicate_label}.trim.out",
-        job_name = "trim_fastq"
+    resources:
+        tmpdir=TMPDIR,
+        mem_mb=16000,
+        runtime="3h"
     benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
     container:
         "docker://howardxu520/skipper:skewer_0.2.2"
-    resources:
-        mem_mb=16000
     shell:
         "skewer "
           "-t {threads} "
@@ -156,18 +85,12 @@ rule run_trimmed_fastqc:
         report_r2 = "output/fastqc/processed/{replicate_label}-trimmed-pair2_fastqc.html",
         zip_file_r2 = "output/fastqc/processed/{replicate_label}-trimmed-pair2_fastqc.zip",
     threads: 2
-    params:
-        outdir="output/fastqc/processed/",
-        run_time = "04:00:00",
-        memory = "16000",
-        error_file = "stderr/{replicate_label}.run_trimmed_fastqc.err",
-        out_file = "stdout/{replicate_label}.run_trimmed_fastqc.out",
-        job_name = "run_trimmed_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.trimmed_fastqc.txt"
     container:
         "docker://howardxu520/skipper:fastqc_0.12.1"
     resources:
-        mem_mb=16000
+        mem_mb=16000,
+        runtime="4h"
     shell:
         "fastqc {input.r1} --extract --outdir output/fastqc/processed -t {threads};"
         "fastqc {input.r2} --extract --outdir output/fastqc/processed -t {threads};"
@@ -182,11 +105,6 @@ rule align_reads_encode:
         log= "output/bams/raw/genome/{replicate_label}.genome.Log.final.out",
     threads: 8
     params:
-        error_file = "stderr/{replicate_label}.align_reads_genome.err",
-        out_file = "stdout/{replicate_label}.align_reads_genome.out",
-        run_time = "02:00:00",
-        memory = "40000",
-        job_name = "align_reads",
         star_sjdb = STAR_DIR,
         outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
         rg = "{replicate_label}"
@@ -194,7 +112,8 @@ rule align_reads_encode:
     container:
         "docker://howardxu520/skipper:star_2.7.10b"
     resources:
-        mem_mb=40000
+        mem_mb=40000,
+        runtime="2h"
     shell:   
         "STAR "
             "--alignEndsType EndToEnd "
@@ -228,17 +147,12 @@ rule sort_bam:
     output:
         sort = "output/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.sort.bam",
     threads: 2
-    params:
-        error_file = "stderr/{ref}_{replicate_label}.sort_bam.err",
-        out_file = "stdout/{ref}_{replicate_label}.sort_bam.out",
-        run_time = "01:00:00",
-        memory = "16000",
-        job_name = "sortbam",
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=16000
+        mem_mb=16000,
+        runteim="1h"
     shell:
         "samtools sort -T {wildcards.replicate_label} -@ {threads} -o {output.sort} {input.bam};"
 
@@ -248,17 +162,12 @@ rule index_bams:
     output:
         ibam = "output/bams/{round}/{ref}/{replicate_label}.Aligned.{mid}.bam.bai"
     threads: 2
-    params:
-        error_file = "stderr/{round}_{ref}_{mid}_{replicate_label}.index_bams.err",
-        out_file = "stdout/{round}_{ref}_{mid}_{replicate_label}.index_bams.out",
-        run_time = "00:20:00",
-        memory = "1000",
-        job_name = "index_bam"
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=1000
+        mem_mb=1000,
+        runtime=20
     shell:
         "samtools index -@ {threads} {input.bam};"
 
@@ -269,12 +178,10 @@ rule dedup_umi_encode:
     output:
         bam_dedup="output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
     params:
-        error_file = "stderr/{replicate_label}.dedup_umi.err",
-        out_file = "stdout/{replicate_label}.dedup_umi.out",
-        run_time = "8:00:00",
-        memory = "34000",
-        job_name = "dedup_bam",
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
+    resources:
+        mem_mb=34000,
+        runtime="8h"
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
     container:
         "docker://howardxu520/skipper:umicollapse_1.0.0"
@@ -289,18 +196,12 @@ rule select_informative_read:
         bam_combined="output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
     output:
         bam_informative="output/bams/dedup/genome_R"+str(INFORMATIVE_READ)+"/{replicate_label}.genome.Aligned.sort.dedup.R"+str(INFORMATIVE_READ)+".bam"
-    params:
-        error_file = "stderr/{replicate_label}.select_informative_read.err",
-        out_file = "stdout/{replicate_label}.select_informative_read.out",
-        run_time = "00:30:00",
-        memory = "10000",
-        job_name = "select_informative_read",
-        # prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/select/unassigned_experiment.{replicate_label}.select_informative_read.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=10000
+        mem_mb=10000,
+        runtime=30
     shell:
         "samtools view -bF " + str(64 if UNINFORMATIVE_READ == 1 else 128) + " {input.bam_combined} > {output.bam_informative}"
 
@@ -309,18 +210,13 @@ rule obtain_unique_reads:
         rules.select_informative_read.output.bam_informative
     output:
         temp("output/QC/{replicate_label}.uniq_fragments")
-    params:
-        error_file = "stderr/{replicate_label}.count_uniq_fragments.txt",
-        out_file = "stdout/{replicate_label}.count_uniq_fragments.txt",
-        run_time = "0:30:00",
-        memory = "10000",
-        job_name = "count_uniq_fragments",
     benchmark:
         "benchmarks/{replicate_label}.count_uniq_fragments.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=10000
+        mem_mb=10000,
+        runtime=30
     shell:
         """
         samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
@@ -331,39 +227,14 @@ rule obtain_aligned_reads:
         rules.align_reads_encode.output.ubam
     output:
         "output/QC/{replicate_label}.aligned_reads"
-    params:
-        error_file = "stderr/{replicate_label}.count_aligned_reads.txt",
-        out_file = "stdout/{replicate_label}.count_aligned_reads.txt",
-        run_time = "00:30:00",
-        memory = "8000",
-        job_name = "count_aligned_reads",
     benchmark:
         "benchmarks/{replicate_label}.count_aligned_reads.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=8000
+        mem_mb=8000,
+        runtime=30
     shell:
         """
         samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
-        """
-
-rule uniquely_mapped_reads:
-    input:
-        bam = rules.select_informative_read.output.bam_informative
-    output:
-        bam_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam",
-        bai_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam.bai",
-    threads: 1
-    params:
-        error_out_file = "stderr/uniquemap.{replicate_label}.err",
-        out_file = "stdout/uniquemap.{replicate_label}.out",
-        run_time = "0:30:00",
-        memory = 40000,
-    conda:
-        "envs/bamtools.yaml"
-    shell:
-        """
-        bamtools filter -in {input.bam} -out {output.bam_umap} -mapQuality ">3"
-        samtools index {output.bam_umap}
         """

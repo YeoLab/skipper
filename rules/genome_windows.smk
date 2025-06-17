@@ -7,17 +7,12 @@ rule parse_gff:
         partition = PARTITION,
         feature_annotations = FEATURE_ANNOTATIONS,
     threads: 1
-    params:
-        error_file = "stderr/parse_gff.err",
-        out_file = "stdout/parse_gff.out",
-        run_time = "3:00:00",
-        job_name = "parse_gff",
-        memory = "48000"
+    resources:
+        mem_mb=48000,
+        runtime="3h"
     benchmark: "benchmarks/parse_gff.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
-    resources:
-        mem_mb=48000
     shell:
         "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
 
@@ -28,12 +23,6 @@ rule partition_bam_reads:
         region_partition = PARTITION,
     output:
         counts = "output/counts/genome/vectors/{replicate_label}.counts",
-    params:
-        error_file = "stderr/{replicate_label}.partition_bam_reads.err",
-        out_file = "stdout/{replicate_label}.partition_bam_reads.out",
-        run_time = "12:00:00",
-        memory = "60000",
-        job_name = "partition_bam_reads"
     resources:
         mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
         runtime="12h"
@@ -54,17 +43,12 @@ rule calc_partition_nuc:
         genome = GENOME
     output:
         nuc = PARTITION.replace(".bed", ".nuc")
-    params:
-        error_file = "stderr/calc_partition_nuc.err",
-        out_file = "stdout/calc_partition_nuc.out",
-        run_time = "2:00:00",
-        memory = "16000",
-        job_name = "calc_partition_nuc"
+    resources:
+        mem_mb=16000,
+        runtime="2h"
     benchmark: "benchmarks/partition_nuc.txt"
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
-    resources:
-        mem_mb=16000
     shell:
         "bedtools nuc -s -fi {input.genome} -bed {input.partition} | gzip -c > {output.nuc}"
 
@@ -75,13 +59,9 @@ rule make_genome_count_table:
     output:
         count_table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
     threads: 4
-    params:
-        error_file = "stderr/{experiment_label}.make_count_table.err",
-        out_file = "stdout/{experiment_label}.make_count_table.out",
-        run_time = "00:05:00",
-        cores = "1",
-        memory = "1000",
-        job_name = "make_genome_count_table"
+    resources:
+        mem_mb=1000,
+        runtime=10
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_genome_count_table.txt"
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
@@ -97,12 +77,6 @@ rule fit_input_betabinomial_model:
         coef = "output/input_model_coef/{experiment_label}.{input_replicate_label}.tsv",
         # plot = lambda wildcards: expand("output/figures/input_distributions/{{experiment_label}}.{{input_replicate_label}}.{other_label}.input_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
     threads: 4
-    params:
-        error_file = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinom.err",
-        out_file = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinom.out",
-        run_time = "6:00:00",
-        memory = "32000",
-        job_name = "fit_input_betabinomial_model"
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
@@ -119,12 +93,6 @@ rule fit_clip_betabinomial_model:
         coef = "output/clip_model_coef/{experiment_label}.{clip_replicate_label}.tsv",
         # plot = lambda wildcards: expand("output/figures/clip_distributions/{{experiment_label}}.{{clip_replicate_label}}.{other_label}.clip_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
     threads: 2
-    params:
-        error_file = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.err",
-        out_file = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.out",
-        run_time = "6:00:00",
-        memory = "32000",
-        job_name = "fit_clip_betabinomial_model"
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
@@ -167,16 +135,11 @@ rule call_enriched_windows:
         "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.all_transcript_types.pdf",
         "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature_gc.pdf"
     threads: 2
-    params:
-        input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label],
-        error_file = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_windows.err",
-        out_file = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_windows.out",
-        run_time = "06:00:00",
-        memory = "24000",
-        job_name = "call_enriched_windows"
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
+    params:
+        input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label]
     resources:
         mem_mb=48000,
         runtime="24h"
@@ -188,13 +151,8 @@ rule check_window_concordance:
         windows = lambda wildcards: expand("output/tested_windows/{{experiment_label}}.{clip_replicate_label}.tested_windows.tsv.gz", clip_replicate_label = experiment_to_clip_replicate_labels[wildcards.experiment_label])
     output:
         "output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf",
-        "output/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.tsv"
-    params:
-        error_file = "stderr/{experiment_label}.check_window_concordance.err",
-        out_file = "stdout/{experiment_label}.check_window_concordance.out",
-        run_time = "0:15:00",
-        memory = "8000",
-        job_name = "check_window_concordance"
+        "output/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.tsv",
+        "output/enrichment_reproducibility/{experiment_label}.odds_data.tsv"
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
@@ -211,12 +169,6 @@ rule find_reproducible_enriched_windows:
         reproducible_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
         linear_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.linear.pdf",
         log_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.log10.pdf"
-    params:
-        error_file = "stderr/{experiment_label}.find_reproducible_enriched_windows.err",
-        out_file = "stdout/{experiment_label}.find_reproducible_enriched_windows.out",
-        run_time = "00:30:00",
-        memory = "2000",
-        job_name = "find_reproducible_enriched_windows"
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
@@ -233,12 +185,6 @@ rule sample_background_windows_by_region:
     output:
         variable_windows = "output/homer/region_matched_background/variable/{experiment_label}.sampled_variable_windows.bed.gz",
         fixed_windows = "output/homer/region_matched_background/fixed/{experiment_label}.sampled_fixed_windows.bed.gz"
-    params:
-        error_file = "stderr/{experiment_label}.sample_background_windows_by_region.err",
-        out_file = "stdout/{experiment_label}.sample_background_windows_by_region.out",
-        run_time = "00:30:00",
-        memory = "16000",
-        job_name = "sample_background_windows"
     benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"

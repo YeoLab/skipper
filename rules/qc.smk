@@ -25,12 +25,6 @@ rule multiqc:
         multiqc_results = directory("output/multiqc/{experiment_label}/multiqc_data/"),
         multiqc_plots = directory("output/multiqc/{experiment_label}/multiqc_plots/"),
         multiqc_report = "output/multiqc/{experiment_label}/multiqc_report.html"
-    params:
-        error_file = "stderr/{experiment_label}.multiqc.err",
-        out_file = "stdout/{experiment_label}.multiqc.out",
-        run_time = "15:00",
-        memory = "4000",
-        job_name = "multiqc"
     benchmark: "benchmarks/multiqc/{experiment_label}.multiqc.txt"
     container:
         "docker://jeltje/multiqc:1.6"
@@ -86,7 +80,7 @@ rule nread_in_finemapped_regions:
         runtime=lambda wildcards, attempt: 5 * (2 ** (attempt - 1)),
     shell:
         """
-        zcat {input.bed} | sort -k1,1 -k2,2 -V | gzip -c > {output.sorted_bed};
+        zcat {input.bed} | bedtools sort -g {params.genome} -i - | gzip -c > {output.sorted_bed};
         for bam in {input.bam}
         do
             nread_in_peak=$(bedtools coverage \
@@ -100,3 +94,4 @@ rule nread_in_finemapped_regions:
             echo -e "$replicate_label\t$nread_in_peak" >> {output.nread_in_finemapped_regions}
         done
         """
+
