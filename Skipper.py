@@ -162,7 +162,12 @@ rule all:
 
 rule all_benchmark_outputs:
     input:
-        benchmark_outputs
+        benchmark_outputs,
+        expand("output/ml/benchmark/homer/{data_types}_mcross/{experiment_label}.pearson_auprc.csv",
+                data_types = ['CITS'],
+               experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i]),
+        expand("output/ml/rbpnet_model_original/{experiment_label}/valid/test_data_metric.csv",
+               experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i])
     output:
         "ml_benchmark_done.txt"
     resources:
@@ -238,20 +243,6 @@ rule all_basic_output:
         touch {output}
         """
 
-# rule benchmarking_output:
-#     input:
-#         expand("output/ctk/mcross/{experiment_label}.txt", experiment_label=manifest.Experiment),
-
-#     output:
-#         "benchmark_done.txt"
-#     resources:
-#         mem_mb=400,
-#         run_time=20
-#     shell:
-#         """
-#         touch {output}
-#         """
-
 module se_preprocess:
     snakefile:
         "rules/se_preprocess.smk"
@@ -326,7 +317,7 @@ module variants_rbpnet:
 ## Benchmarking other methods ##
 module ctk_mcross:
     snakefile:
-        "utils/ctk_mcross.smk"
+        "rules/ctk_mcross.smk"
     config:
         config
 

@@ -5,7 +5,8 @@ rule run_homer:
         background = "output/homer/region_matched_background/fixed/{experiment_label}.sampled_fixed_windows.bed.gz",
         genome = GENOME
     output:
-        report = "output/homer/finemapped_results/{experiment_label}/homerResults.html"
+        report = "output/homer/finemapped_results/{experiment_label}/homerResults.html",
+        pwm= "output/homer/finemapped_results/{experiment_label}/homerMotifs.all.motifs",
     resources:
         mem_mb=8000,
         runtime=50
