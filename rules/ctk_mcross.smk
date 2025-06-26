@@ -290,12 +290,19 @@ rule fetch_CITS_sequence:
         "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
     shell:
         """
-        cat {input} > {output.allbed}
-        awk -v OFS="\\t" '{{center=$2+10; print $1, center-50, center+50, $4, $5, $6}}' \
-            {output.allbed} > {output.finemapped_CITS_bed}
-        bedtools getfasta -fo {output.finemapped_CITS_fa} -fi {params.fa} -bed {output.finemapped_CITS_bed} -s
-        awk -v OFS="\\t" '{{center=$2+10; print $1, center-550, center-450, $4"_up", $5, $6; print $1, center+450, center+550, $4"_down", $5, $6}}' \
-            {output.allbed} > {output.background_CITS_bed}
+        cat {input} > {output.allbed};
+        awk '!seen[$1 FS $2 FS $3]++' {output.allbed} \
+            | egrep "^chr([1-9]|1[0-9]|2[0-2]|X|Y|M)[[:space:]]" \
+            | awk -v OFS="\t" '{{center=$2+10; print $1, center-50, center+50, $4, $5, $6}}' \
+            | awk '$2 >= 0' > {output.finemapped_CITS_bed};
+            
+        bedtools getfasta -fo {output.finemapped_CITS_fa} -fi {params.fa} -bed {output.finemapped_CITS_bed} -s;
+        
+        awk '!seen[$1 FS $2 FS $3]++' {output.allbed} \
+            | egrep "^chr([1-9]|1[0-9]|2[0-2]|X|Y|M)[[:space:]]" \
+            | awk -v OFS="\\t" '{{center=$2+10; print $1, center-550, center-450, $4"_up", $5, $6; print $1, center+450, center+550, $4"_down", $5, $6}}' \
+            | awk '$2 >= 0' > {output.background_CITS_bed}
+        
         bedtools getfasta -fo {output.background_CITS_fa} -fi {params.fa} -bed {output.background_CITS_bed} -s
         """
         
@@ -482,27 +489,35 @@ rule plot_skipper_mcross:
         runtime = "2h",
         mem_mb = "20000",
     threads: 8
-    conda: "envs/ctk.yaml"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_2"
     shell:
         """
-        mCross2logo.R \
+        export PERL5LIB=/tscc/nfs/home/s5xu/projects/czplib-v.1.1.1;
+        export PATH=$PATH:/tscc/nfs/home/s5xu/projects/patternmatch;
+        
+        Rscript /tscc/nfs/home/s5xu/projects/mCross/mCross2logo.R \
             -i {input.skipper_mat} -o {output.skipper_plot} -s rna -v
         """
         
         
 rule plot_ctk_mcross:
     input:
-        ctk_mat = "output/ctk/ctk_mcross/mcross/{data_types}.{replicate_label}.{mutation_type}/{data_types}.{replicate_label}.{mutation_type}.00.mat"
+        ctk_mat = "output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.00.mat"
     output:
-        ctk_mat_plot = "output/ctk/ctk_mcross/mcross/{data_types}.{replicate_label}.{mutation_type}/{data_types}.{replicate_label}.{mutation_type}.00.pdf"
+        ctk_mat_plot = "output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.00.pdf",
     resources:
         runtime = "2h",
         mem_mb = "20000",
     threads: 8
-    conda: "envs/ctk.yaml"
+    container:
+        "docker://howardxu520/skipper:R_4.1.3_2"
     shell:
         """
-        mCross2logo.R \
+        export PERL5LIB=/tscc/nfs/home/s5xu/projects/czplib-v.1.1.1;
+        export PATH=$PATH:/tscc/nfs/home/s5xu/projects/patternmatch;
+        
+        Rscript /tscc/nfs/home/s5xu/projects/mCross/mCross2logo.R \
             -i {input.ctk_mat} -o {output.ctk_mat_plot} -s rna -v
         """
 

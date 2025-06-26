@@ -52,7 +52,6 @@ input_replicates = manifest.loc[:,manifest.columns.isin(["Input_replicate_label"
 clip_replicates = manifest.loc[:,manifest.columns.isin(["CLIP_replicate_label","CLIP_fastq","CLIP_fastq_1","CLIP_fastq_2","CLIP_bam","CLIP_adapter","CLIP_adapter_1","CLIP_adapter_2"])].drop_duplicates()
 
 
-
 if len(input_replicates) != len(input_replicates[["Input_replicate_label"]].drop_duplicates()) or \
     len(clip_replicates) != len(clip_replicates[["CLIP_replicate_label"]].drop_duplicates()):
     raise Exception("Manifest files are not consistent across replicates")
@@ -154,10 +153,13 @@ def call_enriched_window_output(wildcards):
         
         
     return outputs
+
+
 rule all:
     input:
         "ml_variants_done.txt",
-        "basic_done.txt"
+        "basic_done.txt",
+        "mcross_done.txt"
 
 
 rule all_benchmark_outputs:
@@ -235,6 +237,22 @@ rule all_basic_output:
         expand("output/qc/{experiment_label}.nread_in_finemapped_regions.txt", experiment_label=manifest.Experiment),
     output:
         "basic_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
+    shell:
+        """
+        touch {output}
+        """
+        
+rule all_ctk:
+    input:
+        expand("output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.homer", experiment_label = manifest.Experiment),
+        expand("output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.homer",experiment_label = manifest.Experiment, data_types=['CITS']),
+        # expand("output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.00.pdf", experiment_label = manifest.Experiment),
+        # expand("output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.00.pdf", experiment_label = manifest.Experiment, data_types=['CITS']),
+    output:
+        "mcross_done.txt"
     resources:
         mem_mb=400,
         run_time=20
