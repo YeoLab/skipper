@@ -169,7 +169,10 @@ rule all_benchmark_outputs:
                 data_types = ['CITS'],
                experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i]),
         expand("output/ml/rbpnet_model_original/{experiment_label}/valid/test_data_metric.csv",
-               experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i])
+               experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i]),
+        expand("output/ml/nt_lora/{experiment_label}/{model_name}/d_log_odds_corr.csv",
+               experiment_label = [i for i in manifest.Experiment.tolist()],
+                model_name = ['nucleotide-transformer-500m-human-ref']),
     output:
         "ml_benchmark_done.txt"
     resources:

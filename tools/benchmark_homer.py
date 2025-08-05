@@ -34,7 +34,10 @@ if __name__ == '__main__':
     homer_predictions = pd.read_csv(skipper_dir / f"output/ml/benchmark/homer/{motif_source}/{exp}.csv",
                                 sep = '\t',
                                 names = ['name', 'position', 'sequence', 'motif', 'strand', 'score'])
-    homer_predictions['name']=homer_predictions['name'].str.split('-', expand = True)[0]
+    try:
+        homer_predictions['name']=homer_predictions['name'].str.split('-', expand = True)[0]
+    except Exception as e:
+        print(e)
     homer_predictions.drop_duplicates(inplace = True)
     homer_predictions.dropna(subset = ['name'], inplace = True)
     homer_predictions['name'] = homer_predictions['name'].astype(int)
