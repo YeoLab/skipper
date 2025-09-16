@@ -20,7 +20,7 @@ STAR_DIR = REPO_PATH + "/annotations/genome_ref"
 # Generated from STAR index
 CHROM_SIZES = REPO_PATH + "/annotations/genome_ref/chrNameLength.txt"
 # Use a GFF filtered for genes expressed in the cell type of interest
-GFF = REPO_PATH + "/annotations/gencode.v38.annotation.k562_totalrna.gt1.gff3.gz"
+GFF = REPO_PATH + "/annotations/gencode.v38.annotation.k562_totalrna.gt1.gff3"
 # Customizable, with defaults
 BLACKLIST = REPO_PATH + "/annotations/encode3_eclip_blacklist.bed" # set to None for no blacklisting
 GENE_SETS = REPO_PATH + "/annotations/c5.go.v7.5.1.symbols.gmt"

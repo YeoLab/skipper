@@ -124,6 +124,7 @@ rule parse_gff:
         error_file = "stderr/parse_gff.err",
         out_file = "stdout/parse_gff.out",
         run_time = "3:00:00",
+        memory = "24000",
         job_name = "parse_gff"
     benchmark: "benchmarks/parse_gff.txt"
     container:
@@ -131,6 +132,25 @@ rule parse_gff:
     shell:        
         "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
 
+rule run_star_genome_generate:
+    input:
+        gff = ancient(GFF),
+        fasta_file = ancient(GENOME),
+    output:
+        star_dir = directory(STAR_DIR),
+        chrom_sizes = CHROM_SIZES,
+    threads: 8
+    params:
+        error_file = "stderr/run_star_genome_generate.err",
+        out_file = "stdout/run_star_genome_generate.out",
+        run_time = "3:00:00",
+        memory = "48000", # may need further increase. 
+        job_name = "parse_gff"
+    benchmark: "benchmarks/run_star_genome_generate.txt"
+    container:
+        "docker://howardxu520/skipper:star_2.7.10b"
+    shell:        
+        "STAR --runMode genomeGenerate --runThreadN 8 --genomeDir {output.star_dir} --genomeFastaFiles {input.fasta_file} --sjdbGTFfile {input.gff} --sjdbOverhang 99"
 
 rule run_initial_fastqc:
     input:
@@ -230,6 +250,7 @@ rule run_trimmed_fastqc:
 rule align_reads:
     input:
         fq= "output/fastqs/umi/{replicate_label}.trimmed.umi.fq.gz",
+        star_sjdb = STAR_DIR
     output:
         ubam = temp("output/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
         # unmapped= "output/bams/raw/genome/{replicate_label}.genome.Unmapped.out.mate1",
@@ -241,7 +262,6 @@ rule align_reads:
         run_time = "02:00:00",
         memory = "40000",
         job_name = "align_reads",
-        star_sjdb = STAR_DIR,
         outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
         rg = "{replicate_label}"
     benchmark: "benchmarks/align/unassigned_experiment.{replicate_label}.align_reads_genome.txt"
@@ -250,7 +270,7 @@ rule align_reads:
     shell:        
         "STAR "
             "--alignEndsType EndToEnd "
-            "--genomeDir {params.star_sjdb} "
+            "--genomeDir {input.star_sjdb} "
             "--genomeLoad NoSharedMemory "
             "--outBAMcompression 10 "
             "--outFileNamePrefix {params.outprefix} "
