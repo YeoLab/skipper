@@ -13,6 +13,7 @@ include: "Skipper_config.py"
 
 if not os.path.exists("stderr"): os.makedirs("stderr")
 if not os.path.exists("stdout"): os.makedirs("stdout")
+if not os.path.exists("tmp"): os.makedirs("tmp")
 
 if OVERDISPERSION_MODE not in ["clip","input"]:
     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")
@@ -164,7 +165,7 @@ rule run_initial_fastqc:
         error_file = "stderr/{replicate_label}.fastqc_initial.err",
         out_file = "stdout/{replicate_label}.fastqc_initial.out",
         run_time = "4:30:00",
-        memory = "20000",
+        memory = "24000",
         job_name = "run_initial_fastqc"
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
     container:
@@ -208,7 +209,7 @@ rule extract_umi:
         error_file = "stderr/{replicate_label}.extract_umi.err",
         out_file = "stdout/{replicate_label}.extract_umi.out",
         run_time = "45:00",
-        memory = "5000",
+        memory = "8000",
         job_name = "extract_umi",
         umi_length = UMI_SIZE,
     benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.extract_umi.txt"
@@ -260,7 +261,7 @@ rule align_reads:
         error_file = "stderr/{replicate_label}.align_reads_genome.err",
         out_file = "stdout/{replicate_label}.align_reads_genome.out",
         run_time = "02:00:00",
-        memory = "40000",
+        memory = "48000",
         job_name = "align_reads",
         outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
         rg = "{replicate_label}"
@@ -323,7 +324,7 @@ rule index_bams:
         error_file = "stderr/{round}_{ref}_{mid}_{replicate_label}.index_bams.err",
         out_file = "stdout/{round}_{ref}_{mid}_{replicate_label}.index_bams.out",
         run_time = "10:00",
-        memory = "1000",
+        memory = "4000",
         job_name = "index_bam"
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
     container:
@@ -364,14 +365,14 @@ rule make_unscaled_bigwig:
         error_file = "stderr/{replicate_label}.make_bigwig.err",
         out_file = "stdout/{replicate_label}.make_bigwig.out",
         run_time = "40:00",
-        memory = "1000",
+        memory = "16000",
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
     shell:
-        "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
-        "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
+        "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -T ./tmp -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
+        "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -T ./tmp -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
         "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
         "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
@@ -388,15 +389,15 @@ rule make_scaled_bigwig:
         error_file = "stderr/{replicate_label}.make_bigwig.err",
         out_file = "stdout/{replicate_label}.make_bigwig.out",
         run_time = "40:00",
-        memory = "1000",
+        memory = "16000",
         job_name = "make_bigwig"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
     shell:
         "factor=$(samtools idxstats {input.bam} | cut -f 3 | paste -sd+ | bc | xargs -I {{}} echo 'scale=6; 10^6 / {{}}' | bc);"
-        "bedtools genomecov -scale $factor -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
-        "bedtools genomecov -scale $factor -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
+        "bedtools genomecov -scale $factor -5 -strand + -bg -ibam {input.bam} | sort -T ./tmp -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
+        "bedtools genomecov -scale $factor -5 -strand - -bg -ibam {input.bam} | sort -T ./tmp -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
         "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
         "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
@@ -441,7 +442,7 @@ rule quantify_repeats:
         error_file = "stderr/{replicate_label}.quantify_repeats.err",
         out_file = "stdout/{replicate_label}.quantify_repeats.out",
         run_time = "15:00",
-        memory = "20000",
+        memory = "32000",
         job_name = "dedup_bam",
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/repeats/unassigned_experiment.{replicate_label}.quantify_repeats.txt"
@@ -468,7 +469,7 @@ rule make_repeat_count_tables:
         out_file = "stdout/{experiment_label}.make_repeat_count_tables.out",
         run_time = "00:15:00",
         cores = "1",
-        memory = "200",
+        memory = "4000",
         job_name = "make_repeat_count_tables"
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_repeat_count_table.txt"
     shell:
@@ -476,11 +477,11 @@ rule make_repeat_count_tables:
         "echo \"repeat_class\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.class_table};"
         "echo \"repeat_family\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.family_table};"
         "paste <(zcat {input.unique_repeats} | awk -v OFS=\"\\t\" 'BEGIN {{print \"repeat_name\";}} {{print $7}}') {input.replicate_counts} | "
-            "awk -v OFS=\"\\t\" 'NR > 1 {{for(i = 2; i <= NF; i++) {{tabulation[$1][i] += $i}} }} END {{for(name in tabulation) {{ printf name; for(i = 2; i <= NF; i++) {{printf \"\\t\" tabulation[name][i]}} print \"\";}} }}' | sort -k 1,1 | gzip >> {output.name_table};"
+            "awk -v OFS=\"\\t\" 'NR > 1 {{for(i = 2; i <= NF; i++) {{tabulation[$1][i] += $i}} }} END {{for(name in tabulation) {{ printf name; for(i = 2; i <= NF; i++) {{printf \"\\t\" tabulation[name][i]}} print \"\";}} }}' | sort -T ./tmp -k 1,1 | gzip >> {output.name_table};"
         "paste <(zcat {input.unique_repeats} | awk -v OFS=\"\\t\" 'BEGIN {{print \"repeat_class\";}} {{print $8}}') {input.replicate_counts} | "
-            "awk -v OFS=\"\\t\" 'NR > 1 {{for(i = 2; i <= NF; i++) {{tabulation[$1][i] += $i}} }} END {{for(name in tabulation) {{ printf name; for(i = 2; i <= NF; i++) {{printf \"\\t\" tabulation[name][i]}} print \"\";}} }}' | sort -k 1,1 | gzip >> {output.class_table};"
+            "awk -v OFS=\"\\t\" 'NR > 1 {{for(i = 2; i <= NF; i++) {{tabulation[$1][i] += $i}} }} END {{for(name in tabulation) {{ printf name; for(i = 2; i <= NF; i++) {{printf \"\\t\" tabulation[name][i]}} print \"\";}} }}' | sort -T ./tmp -k 1,1 | gzip >> {output.class_table};"
         "paste <(zcat {input.unique_repeats} | awk -v OFS=\"\\t\" 'BEGIN {{print \"repeat_family\";}} {{print $9}}') {input.replicate_counts} | "
-            "awk -v OFS=\"\\t\" 'NR > 1 {{for(i = 2; i <= NF; i++) {{tabulation[$1][i] += $i}} }} END {{for(name in tabulation) {{ printf name; for(i = 2; i <= NF; i++) {{printf \"\\t\" tabulation[name][i]}} print \"\";}} }}' | sort -k 1,1 | gzip >> {output.family_table};"
+            "awk -v OFS=\"\\t\" 'NR > 1 {{for(i = 2; i <= NF; i++) {{tabulation[$1][i] += $i}} }} END {{for(name in tabulation) {{ printf name; for(i = 2; i <= NF; i++) {{printf \"\\t\" tabulation[name][i]}} print \"\";}} }}' | sort -T ./tmp -k 1,1 | gzip >> {output.family_table};"
 
 rule fit_clip_betabinomial_re_model:
     input:
@@ -492,7 +493,7 @@ rule fit_clip_betabinomial_re_model:
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.out",
         run_time = "20:00",
-        memory = "10000",
+        memory = "16000",
         job_name = "fit_clip_betabinomial_re_model"
     benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     container:
@@ -510,7 +511,7 @@ rule fit_input_betabinomial_re_model:
         error_file = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.err",
         out_file = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.out",
         run_time = "20:00",
-        memory = "10000",
+        memory = "16000",
         job_name = "fit_input_betabinomial_re_model"
     benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
     container:
@@ -532,7 +533,7 @@ rule call_enriched_re:
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_re.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_re.out",
         run_time = "00:15:00",
-        memory = "3000",
+        memory = "4000",
         job_name = "call_enriched_re"
     benchmark: "benchmarks/call_enriched_re/{experiment_label}.{clip_replicate_label}.call_enriched_re.txt"
     container:
@@ -549,7 +550,7 @@ rule find_reproducible_enriched_re:
         error_file = "stderr/{experiment_label}.find_reproducible_enriched_re.err",
         out_file = "stdout/{experiment_label}.find_reproducible_enriched_re.out",
         run_time = "5:00",
-        memory = "1000",
+        memory = "4000",
         job_name = "find_reproducible_enriched_re"
     benchmark: "benchmarks/find_reproducible_enriched_re/{experiment_label}.all_replicates.reproducible.txt"
     container:
@@ -569,7 +570,7 @@ rule partition_bam_reads:
         out_file = "stdout/{replicate_label}.partition_bam_reads.out",
         run_time = "20:00",
         cores = "1",
-        memory = "10000",
+        memory = "16000",
         job_name = "partition_bam_reads"
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
     container:
@@ -592,7 +593,7 @@ rule calc_partition_nuc:
         error_file = "stderr/calc_partition_nuc.err",
         out_file = "stdout/calc_partition_nuc.out",
         run_time = "00:10:00",
-        memory = "1000",
+        memory = "4000",
         job_name = "calc_partition_nuc"
     benchmark: "benchmarks/partition_nuc.txt"
     container:
@@ -611,7 +612,7 @@ rule make_genome_count_table:
         out_file = "stdout/{experiment_label}.make_count_table.out",
         run_time = "00:05:00",
         cores = "1",
-        memory = "200",
+        memory = "2000",
         job_name = "make_genome_count_table"
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_genome_count_table.txt"
     container:
@@ -629,7 +630,7 @@ rule fit_input_betabinomial_model:
         error_file = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinom.err",
         out_file = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinom.out",
         run_time = "1:00:00",
-        memory = "10000",
+        memory = "16000",
         job_name = "fit_input_betabinomial_model"
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
     container:
@@ -647,7 +648,7 @@ rule fit_clip_betabinomial_model:
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.out",
         run_time = "1:00:00",
-        memory = "1000",
+        memory = "4000",
         job_name = "fit_clip_betabinomial_model"
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     container:
@@ -692,7 +693,7 @@ rule call_enriched_windows:
         error_file = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_windows.err",
         out_file = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_windows.out",
         run_time = "02:30:00",
-        memory = "6000",
+        memory = "8000",
         job_name = "call_enriched_windows"
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
     container:
@@ -710,7 +711,7 @@ rule check_window_concordance:
         error_file = "stderr/{experiment_label}.check_window_concordance.err",
         out_file = "stdout/{experiment_label}.check_window_concordance.out",
         run_time = "0:15:00",
-        memory = "1000",
+        memory = "4000",
         job_name = "check_window_concordance"
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
     container:
@@ -729,7 +730,7 @@ rule find_reproducible_enriched_windows:
         error_file = "stderr/{experiment_label}.find_reproducible_enriched_windows.err",
         out_file = "stdout/{experiment_label}.find_reproducible_enriched_windows.out",
         run_time = "5:00",
-        memory = "2000",
+        memory = "4000",
         job_name = "find_reproducible_enriched_windows"
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
     container:
@@ -748,7 +749,7 @@ rule sample_background_windows_by_region:
         error_file = "stderr/{experiment_label}.sample_background_windows_by_region.err",
         out_file = "stdout/{experiment_label}.sample_background_windows_by_region.out",
         run_time = "10:00",
-        memory = "3000",
+        memory = "4000",
         job_name = "sample_background_windows"
     benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
     container:
@@ -770,13 +771,13 @@ rule get_nt_coverage:
         error_file = "stderr/{experiment_label}.get_nt_coverage.err",
         out_file = "stdout/{experiment_label}.get_nt_coverage.out",
         run_time = "2:00:00",
-        memory = "15000",
+        memory = "32000",
         job_name = "get_nt_coverage"
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
     shell:
-        "zcat {input.windows} | tail -n +2 | sort -k1,1 -k2,2n | awk -v OFS=\"\t\" '{{print $1, $2 -37, $3+37,$4,$5,$6}}' | "
+        "zcat {input.windows} | tail -n +2 | sort -T ./tmp -k1,1 -k2,2n | awk -v OFS=\"\t\" '{{print $1, $2 -37, $3+37,$4,$5,$6}}' | "
             "bedtools merge -i - -s -c 6 -o distinct | awk -v OFS=\"\t\" '{{for(i=$2;i< $3;i++) {{print $1,i,i+1,\"MW:\" NR \":\" i - $2,0,$4, NR}} }}' > {output.nt_census}; "
         "samtools cat {input.input_bams} | bedtools intersect -s -wa -a - -b {output.nt_census} | "
             "bedtools bamtobed -i - | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
@@ -801,7 +802,7 @@ rule finemap_windows:
         error_file = "stderr/{experiment_label}.finemap_windows.err",
         out_file = "stdout/{experiment_label}.finemap_windows.out",
         run_time = "1:00:00",
-        memory = "10000",
+        memory = "16000",
         job_name = "finemap_windows"
     benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
     container:
@@ -820,7 +821,7 @@ rule run_homer:
         error_file = "stderr/{experiment_label}.run_homer.err",
         out_file = "stdout/{experiment_label}.run_homer.out",
         run_time = "40:00",
-        memory = "2000",
+        memory = "4000",
         job_name = "run_homer"
     benchmark: "benchmarks/run_homer/{experiment_label}.all_replicates.reproducible.txt"
     container:
@@ -842,7 +843,7 @@ rule consult_encode_reference:
         error_file = "stderr/skipper.consult_encode_reference.err",
         out_file = "stdout/skipper.consult_encode_reference.out",
         run_time = "10:00",
-        memory = "1000",
+        memory = "4000",
         job_name = "consult_encode_reference"
     benchmark: "benchmarks/consult_encode_reference/skipper.txt"
     container:
@@ -863,7 +864,7 @@ rule consult_term_reference:
         error_file = "stderr/{experiment_label}.consult_term_reference.err",
         out_file = "stdout/{experiment_label}.consult_term_reference.out",
         run_time = "15:00",
-        memory = "1000",
+        memory = "4000",
         job_name = "consult_term_reference"
     benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
     container:
