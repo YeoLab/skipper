@@ -116,7 +116,7 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(
         f"InstaDeepAI/{model_name}"
     )
-    # # Creating tokenized promoter dataset
+    # Creating tokenized promoter dataset
     tokenized_datasets_train_promoter = ds_train_promoter.map(
         tokenize_function,
         batched=True,
@@ -159,7 +159,6 @@ if __name__ == "__main__":
     )
 
     trainer = Trainer(
-        # model.to(device),
         lora_classifier,
         args_promoter,
         train_dataset=tokenized_datasets_train_promoter,  # to fix

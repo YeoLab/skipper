@@ -13,6 +13,7 @@ workdir: config['WORKDIR']
 
 if not os.path.exists("stderr"): os.makedirs("stderr")
 if not os.path.exists("stdout"): os.makedirs("stdout")
+if not os.path.exists(config['TMPDIR']): os.makedirs(config['TMPDIR'])
 
 if OVERDISPERSION_MODE not in ["clip","input"]:
     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")
@@ -61,10 +62,6 @@ clip_replicate_labels = clip_replicates.CLIP_replicate_label.tolist()
 replicate_labels = pd.Series(input_replicate_labels + clip_replicate_labels)
 config['replicate_labels']= replicate_labels
 
-# if all(bam in manifest.columns.tolist() for bam in ["Input_bam", "CLIP_bam"]):
-#     replicate_label_to_bams = dict(zip(input_replicate_labels + clip_replicate_labels, input_replicates.Input_bam.tolist() + clip_replicates.CLIP_bam.tolist()))    
-# else:
-
 # FASTQ and ADAPTOR
 if "Input_fastq" in manifest.columns and config['protocol']=='ENCODE4':
     config['replicate_label_to_fastqs'] = dict(zip(input_replicate_labels + clip_replicate_labels, input_replicates.Input_fastq.tolist() + clip_replicates.CLIP_fastq.tolist()))
@@ -89,7 +86,6 @@ else:
 config['experiment_labels'] = pd.Series(manifest.Experiment.drop_duplicates().tolist())
 experiment_data = manifest.groupby("Experiment").agg({"CLIP_replicate_label": list, "Input_replicate_label" : list})
 
-
 # OVERDISPERSION and BACKGROUND PAIRING
 config['overdispersion_replicate_lookup'] = dict(zip(manifest.CLIP_replicate_label.tolist(), manifest.Input_replicate_label.tolist() if OVERDISPERSION_MODE == "input" else manifest.CLIP_replicate_label.tolist()))
 config['clip_to_input_replicate_label'] = dict(zip(manifest.CLIP_replicate_label.tolist(), manifest.Input_replicate_label.tolist()))
@@ -107,7 +103,7 @@ for experiment_label, label_list in zip(experiment_data.index, experiment_data.I
         experiment_to_input_replicate_labels[experiment_label].update({entry : list(replicates)})
 config['experiment_to_input_replicate_labels']=experiment_to_input_replicate_labels
 
-# Fool-proof Detect misalignment for GFF and PARTITION
+# Fool-proof Detect disagreement for GFF and PARTITION
 if Path(GFF).name.replace('.gff3.gz', '') != Path(FEATURE_ANNOTATIONS).name.replace('.tiled_partition.features.tsv.gz', ''):
     warnings.warn(f'''Detected Name Mismatch in GFF and FEATURE ANNOTATIONS:
     FEATURE_ANNOTATIONS={FEATURE_ANNOTATIONS}
@@ -117,8 +113,8 @@ if Path(GFF).name.replace('.gff3.gz', '') != Path(FEATURE_ANNOTATIONS).name.repl
 
 config['manifest'] = manifest
 
-benchmark_outputs = []
 # benchmark-related files
+benchmark_outputs = []
 if 'RBNS_MAPPING' in config:
     config['RBNS_mapping_df'] = pd.read_csv(config['RBNS_MAPPING'])
     print(config['RBNS_mapping_df'])
@@ -157,10 +153,9 @@ def call_enriched_window_output(wildcards):
 
 rule all:
     input:
-        "ml_variants_done.txt",
+        #"ml_variants_done.txt",
         "basic_done.txt",
-        "mcross_done.txt"
-
+        #"mcross_done.txt",
 
 rule all_benchmark_outputs:
     input:
@@ -207,9 +202,6 @@ rule all_ml_variants_output:
 
 rule all_basic_output:
     input:
-        # expand("output/fastqc/initial/{replicate_label}_fastqc.html", replicate_label = replicate_labels
-        # ) if config['protocol']=='ENCODE4' else ,
-        # expand("output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html", replicate_label = replicate_labels), #missing for PE
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
         expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
@@ -252,8 +244,6 @@ rule all_ctk:
     input:
         expand("output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.homer", experiment_label = manifest.Experiment),
         expand("output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.homer",experiment_label = manifest.Experiment, data_types=['CITS']),
-        # expand("output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.00.pdf", experiment_label = manifest.Experiment),
-        # expand("output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.00.pdf", experiment_label = manifest.Experiment, data_types=['CITS']),
     output:
         "mcross_done.txt"
     resources:
@@ -335,7 +325,6 @@ module variants_rbpnet:
     config:
         config
 
-## Benchmarking other methods ##
 module ctk_mcross:
     snakefile:
         "rules/ctk_mcross.smk"

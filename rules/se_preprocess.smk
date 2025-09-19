@@ -100,7 +100,6 @@ rule align_reads:
         fq= rules.extract_umi.output.fq_umi,
     output:
         ubam = temp("output/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
-        # unmapped= "output/bams/raw/genome/{replicate_label}.genome.Unmapped.out.mate1",
         log= "output/bams/raw/genome/{replicate_label}.genome.Log.final.out",
     threads: 8
     params:
@@ -178,7 +177,7 @@ rule dedup_umi:
         ibam = "output/bams/raw/genome/{replicate_label}.genome.Aligned.sort.bam.bai"
     output:
         bam_dedup="output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam",
-        prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
+        #prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
     container:
         "docker://howardxu520/skipper:umicollapse_1.0.0"

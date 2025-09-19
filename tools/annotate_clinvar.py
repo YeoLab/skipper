@@ -18,7 +18,6 @@ def sigmoid(z):
 def testing(df):
     ''' perform fisher exact or chisq given contingency table'''
     if df.shape != (2,2):
-        # some outcomes are unobserved
         print(df.shape)
         print('no binding is observed in')
         return 1, np.nan

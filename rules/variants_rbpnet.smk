@@ -157,7 +157,7 @@ rule score_fa:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     shell:
         """
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
+        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         if [ -s {input.fa} ]; then
             python {RBPNET_PATH}/score_fa.py \

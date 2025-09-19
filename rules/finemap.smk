@@ -63,7 +63,7 @@ rule annotate_finemap:
         1
     resources:
         mem_mb=45000,
-        runtime="30"
+        runtime="1h"
     conda:
         "envs/metadensity.yaml"
     shell:
@@ -89,7 +89,7 @@ rule find_both_tested_windows:
     threads: 1
     resources:
         mem_mb=45000,
-        runtime="30"
+        runtime="1h"
     conda:
         "envs/metadensity.yaml"
     shell:

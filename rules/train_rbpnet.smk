@@ -8,8 +8,6 @@ rule prepare_data:
         replicate_label = experiment_to_replicate_labels[wildcards.experiment_label]),
     output:
         "output/ml/rbpnet_data/{experiment_label}/prep_done"
-    # container:
-    #     "docker://brianyee/eugene-tools:0.1.2" # THIS DOCKER IS NOT UPDATED WITH PYAROOW YET? NO SPACE LEFT ON DEVICE PROBLEM. PLUS CHARLENE CAN NEVER PULL CORRECTLY
     resources:
         mem_mb=80000,
         runtime=40
@@ -36,8 +34,6 @@ rule train_model:
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
-    # container:
-    #     "docker://brianyee/eugene-tools:0.1.2" #NO SPACE LEFT ON DEVICE PROBLEM
     shell:
         """
         module load gpu
@@ -47,7 +43,6 @@ rule train_model:
         output/ml/rbpnet_model/{wildcards.experiment_label}
         """
 
-# reviewer asked us to benchmark model without additional layer
 rule train_original_model:
     input:
         "output/ml/rbpnet_data/{experiment_label}/prep_done"
@@ -61,8 +56,6 @@ rule train_original_model:
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
-    # container:
-    #     "docker://brianyee/eugene-tools:0.1.2" #NO SPACE LEFT ON DEVICE PROBLEM
     shell:
         """
         module load gpu
@@ -86,8 +79,6 @@ rule validation:
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
-    # container:
-    #     "docker://brianyee/eugene-tools:0.1.2"
     shell:
         """
         module load gpu
@@ -113,8 +104,6 @@ rule validate_original_model:
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
-    # container:
-    #     "docker://brianyee/eugene-tools:0.1.2"
     shell:
         """
         module load gpu
@@ -141,8 +130,6 @@ rule seqlet:
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
-    # container:
-    #     "docker://brianyee/eugene-tools:0.1.2"
     shell:
         """
         module load gpu

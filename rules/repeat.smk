@@ -75,7 +75,6 @@ rule fit_clip_betabinomial_re_model:
         table = rules.make_repeat_count_tables.output.name_table,
     output:
         coef = "output/clip_model_coef_re/{experiment_label}.{clip_replicate_label}.tsv",
-        # plot = lambda wildcards: expand("output/figures/clip_distributions/{{experiment_label}}.{{clip_replicate_label}}.{other_label}.clip_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
     benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
@@ -90,7 +89,6 @@ rule fit_input_betabinomial_re_model:
         table = rules.make_repeat_count_tables.output.name_table,
     output:
         coef = "output/input_model_coef_re/{experiment_label}.{input_replicate_label}.tsv",
-        # plot = lambda wildcards: expand("output/figures/input_distributions/{{experiment_label}}.{{input_replicate_label}}.{other_label}.input_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
     benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"

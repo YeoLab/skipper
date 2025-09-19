@@ -79,7 +79,6 @@ rule fit_input_betabinomial_model:
         table = rules.make_genome_count_table.output.count_table
     output:
         coef = "output/input_model_coef/{experiment_label}.{input_replicate_label}.tsv",
-        # plot = lambda wildcards: expand("output/figures/input_distributions/{{experiment_label}}.{{input_replicate_label}}.{other_label}.input_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
     threads: 4
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
     container:
@@ -95,7 +94,6 @@ rule fit_clip_betabinomial_model:
         table = rules.make_genome_count_table.output.count_table
     output:
         coef = "output/clip_model_coef/{experiment_label}.{clip_replicate_label}.tsv",
-        # plot = lambda wildcards: expand("output/figures/clip_distributions/{{experiment_label}}.{{clip_replicate_label}}.{other_label}.clip_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
     threads: 2
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     container:
@@ -113,7 +111,6 @@ rule call_enriched_windows:
         replicate = lambda wildcards: "output/counts/genome/vectors/" + re.sub("IP_\d$","IP_2",wildcards.clip_replicate_label) + ".counts",
         table = rules.make_genome_count_table.output.count_table,
         parameters = lambda wildcards: "output/" + OVERDISPERSION_MODE + "_model_coef/{experiment_label}." + overdispersion_replicate_lookup[wildcards.clip_replicate_label] + ".tsv",
-        # parameters = lambda wildcards: "output/clip_model_coef/{experiment_label}.{wildcards.clip_replicate_label}.tsv",
     output:
         "output/threshold_scan/{experiment_label}.{clip_replicate_label}.threshold_data.tsv",
         "output/tested_windows/{experiment_label}.{clip_replicate_label}.tested_windows.tsv.gz",

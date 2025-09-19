@@ -13,8 +13,8 @@ rule copy_with_umi:
         fq_1 = lambda wildcards: config['replicate_label_to_fastq_1'][wildcards.replicate_label],
         fq_2 = lambda wildcards: config['replicate_label_to_fastq_2'][wildcards.replicate_label],
     output:
-        fq_1 = temp("output/fastqs/copy/{replicate_label}-1.fastq.gz"), #SORT OUT!!
-        fq_2 = temp("output/fastqs/copy/{replicate_label}-2.fastq.gz"), #SORT OUT!!        
+        fq_1 = temp("output/fastqs/copy/{replicate_label}-1.fastq.gz"), 
+        fq_2 = temp("output/fastqs/copy/{replicate_label}-2.fastq.gz"),      
     threads: 2
     resources:
         runtime="6h",
@@ -50,8 +50,6 @@ rule run_initial_fastqc:
         
 rule trim_fastq_encode:
     input:
-        # fq_1 = lambda wildcards: replicate_label_to_fastq_1[wildcards.replicate_label],
-        # fq_2 = lambda wildcards: replicate_label_to_fastq_2[wildcards.replicate_label],
         fq_1 = rules.copy_with_umi.output.fq_1,
         fq_2 = rules.copy_with_umi.output.fq_2,
         adapter_1 = lambda wildcards: config['replicate_label_to_adapter_1'][wildcards.replicate_label],
@@ -103,7 +101,6 @@ rule align_reads_encode:
         fq_2 = rules.trim_fastq_encode.output.fq_2_trimmed
     output:
         ubam = temp("output/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
-        # unmapped= "output/bams/raw/genome/{replicate_label}.genome.Unmapped.out.mate1",
         log= "output/bams/raw/genome/{replicate_label}.genome.Log.final.out",
     threads: 8
     params:

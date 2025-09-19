@@ -29,7 +29,7 @@ if __name__ == '__main__':
                             sep = '\t')
     outf = sys.argv[4]
 
-    ## additional files required
+    # additional files required
     top1 = BedTool('/tscc/nfs/home/hsher/ps-yeolab5/ukbb_dr_score/top1.bed')
     top5 = BedTool('/tscc/nfs/home/hsher/ps-yeolab5/ukbb_dr_score/top5.bed')
 

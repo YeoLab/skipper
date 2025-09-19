@@ -69,8 +69,6 @@ for(clip_replicate_1 in clip_replicate_labels) {
 	}
 }
 
-# p_enriched = tested_window_data %>% group_by(S=qvalue < 0.2) %>% count %>% ungroup %>% with(n[S] / sum(n))
-
 thresholded_window_data = tested_window_data %>% 
 	group_by(chr, start, end, name, score, strand, status=ifelse(qvalue < 0.2, "Enriched", "Not enriched")) %>% 
 	count(name="# Replicates")

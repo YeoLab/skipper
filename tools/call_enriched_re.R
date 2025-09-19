@@ -22,8 +22,6 @@ selected_re_data = re_data %>% rename(input = all_of(input_replicate_label), cli
 	mutate(gc_bin = cut_number(gc,20)) %>% group_by(gc_bin) %>%
 	mutate(baseline_l2or = median( logitb2((clip + 1) / (clip + input + 2)) )) %>% ungroup
 
-# baseline_l2or = with(selected_re_data, sum(clip) / sum(clip + input) ) %>% logitb2
-
 p_data = selected_re_data %>% group_by(gc_bin, baseline_l2or, clip, input) %>%
 	summarize %>% 
 	mutate(enrichment_l2or = log2((clip + logisticb2(baseline_l2or)) / (input + 1 - logisticb2(baseline_l2or))) - baseline_l2or) %>%

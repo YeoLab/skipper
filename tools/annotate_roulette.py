@@ -84,7 +84,7 @@ if __name__ =='__main__':
     df['mis_pphen.oe']=df['gene_name'].map(gnomad_constrain.dropna().set_index('gene')['mis_pphen.oe'])
     df['syn.oe']=df['gene_name'].map(gnomad_constrain.dropna().set_index('gene')['syn.oe'])
 
-    # filter for good quality stuffs
+    # filter for high quality results
     filtered_df = df.loc[df['FILTER']!='low']
     
     df.to_csv(indir / 'output/variants/roulette' / f'{exp}.full.csv.gz',compression='gzip')

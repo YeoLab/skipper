@@ -120,27 +120,6 @@ if __name__ == '__main__':
     sns.despine()
     plt.savefig(indir / 'output/variants' / 'gnomAD_analysis' / f'{exp}.MAF_vs_impact.pdf')
 
-    # some summary statistics about MAF-bin and feature type
-    # feature_by_bin = pd.pivot_table(df,                
-    #             index = 'MAF_bin_rank', 
-    #            columns = 'feature_type_top', 
-    #            aggfunc = 'size').fillna(0).T
-    
-    # transcript_by_bin = pd.pivot_table(df,                
-    #             index = 'MAF_bin_rank', 
-    #            columns = 'transcript_type_top', 
-    #            aggfunc = 'size').fillna(0)
-
-    # site_count = pd.pivot_table(df,                
-    #             index = 'MAF_bin_rank', 
-    #            columns = 'name', 
-    #            aggfunc = 'size').fillna(0).T
-    
-    # gene_count = pd.pivot_table(df,                
-    #             index = 'MAF_bin_rank', 
-    #            columns = 'gene_name', 
-    #            aggfunc = 'size').fillna(0).T
-
     # test by subset
     feature_stat = test_selection_in_subset(df, groupby = 'feature_type_top')
     transcript_stat = test_selection_in_subset(df, groupby = 'transcript_type_top')
