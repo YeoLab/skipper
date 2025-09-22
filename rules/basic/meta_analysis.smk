@@ -189,7 +189,7 @@ rule join_reproducible_enriched_re:
         echo "[`date`] Finished join_reproducible_enriched_re" 2>&1 | tee -a {log}
         """
 
-rule join_reproducible_enriched_windows:
+rule join_reproducible_enriched_windows_binary:
     input:
         expand(
             "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",

@@ -30,12 +30,12 @@ rule uniq_repeats:
             2>&1 | tee -a {log}
 
         bedtools coverage -s -d -a {output.sorted_bed} -b {output.sorted_bed} \
-            | awk -v OFS="\t" '$NF > 1 {print $1,$2+$(NF-1)-1,$2+$(NF-1),$4,$5,$6}' \
+            | awk -v OFS="\t" '$NF > 1 {{print $1,$2+$(NF-1)-1,$2+$(NF-1),$4,$5,$6}}' \
             | bedtools sort -i - \
             | bedtools merge -c 4,5,6 -o distinct -s -i - \
             | bedtools subtract -s -a {output.sorted_bed} -b - \
             | bedtools nuc -s -fi {input.genome} -bed - \
-            | awk -v OFS="\t" 'NR > 1 {print $1,$2,$3,$4,$5,$6,$7,$8,$9,$11}' \
+            | awk -v OFS="\t" 'NR > 1 {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$11}}' \
             | gzip -c \
             > {output.unique_repeats} \
             2>&1 | tee -a {log}

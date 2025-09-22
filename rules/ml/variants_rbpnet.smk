@@ -115,7 +115,7 @@ rule fetch_variant_sequence:
     output:
         ref_fa = temp("output/variants/{subset}/{experiment_label_thing}.ref.fa"),
         alt_fa = temp("output/variants/{subset}/{experiment_label_thing}.alt.fa"),
-        csv = "output/variants/{subset}/{experiment_label_thing}.csv"
+        csv = "output/variants/{subset}/{experiment_label_thing}.placeholder.csv"
     threads: 2
     resources:
         mem_mb=80000,

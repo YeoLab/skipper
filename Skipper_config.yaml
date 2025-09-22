@@ -28,14 +28,14 @@ TOOL_DIR: tools
 RBPNET_PATH: /tscc/nfs/home/hsher/projects/RBPNet/
 TMPDIR: tmp
 
-# Population genetics / VCF-related
-HEADER: /tscc/nfs/home/hsher/bin/Roulette/header.hr
-RENAME: /tscc/nfs/home/hsher/projects/oligoCLIP/utils/rename_chr.txt
-ROULETTE_DIR: /tscc/nfs/home/hsher/ps-yeolab5/roulette/
-GNOMAD_DIR: /tscc/nfs/home/hsher/ps-yeolab5/gnomAD/v4/
-CLINVAR_VCF: /tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.vcf.gz
-VEP_CACHEDIR: /tscc/nfs/home/hsher/scratch/vep_cache/
-VEP_CACHE_VERSION: 113
-SINGLETON_REFERENCE: popgen_reference/singleton_adjust.coef.csv
-OE_RATIO_REFERENCE: popgen_reference/vep.csv
-GNOMAD_CONSTRAINT: popgen_reference/gnomad.v4.0.constraint_metrics.tsv
+# Population genetics / VCF-related. Optional
+# HEADER: /Users/keeganflanagan/Desktop/for_skipper/header.hr
+# RENAME: /Users/keeganflanagan/Desktop/for_skipper/rename_chr.txt
+# ROULETTE_DIR: /Users/keeganflanagan/Desktop/for_skipper/roulette/
+# GNOMAD_DIR: /Users/keeganflanagan/Desktop/for_skipper/v4/
+# CLINVAR_VCF: /Users/keeganflanagan/Desktop/for_skipper/clinvar.vcf.gz
+# VEP_CACHEDIR: /Users/keeganflanagan/Desktop/for_skipper/vep_cache/
+# VEP_CACHE_VERSION: 113
+# SINGLETON_REFERENCE: popgen_reference/singleton_adjust.coef.csv
+# OE_RATIO_REFERENCE: popgen_reference/vep.csv
+# GNOMAD_CONSTRAINT: popgen_reference/gnomad.v4.0.constraint_metrics.tsv

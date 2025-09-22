@@ -1,3 +1,6 @@
+*.DS_Store
+.DS_Store/
+profiles/Keegan_custom_DO_NOT_COMMIT/
 .snakemake
 .ipynb_checkpoints
 __pycache__

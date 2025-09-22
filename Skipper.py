@@ -17,8 +17,6 @@ workdir: config['WORKDIR']
 
 # Generate directories to hold log files. 
 if not os.path.exists("logs"): os.makedirs("logs")
-# if not os.path.exists(config['TMPDIR']): os.makedirs(config['TMPDIR'])
-###!!!### not needed? 
 
 # Check for proper overdispersion mode. 
 if OVERDISPERSION_MODE not in ["clip","input"]:
@@ -190,13 +188,36 @@ def call_enriched_window_output(wildcards):
 
 ############################## Define which parts of skipper to run #################################
 
-# Calls upon the outputs from each "all" rule. 
+# Always include the basic.
+all_inputs = ["basic_done.txt"]
+
+# Look through all ml related keys. 
+required_keys = [
+    "HEADER", "RENAME", "ROULETTE_DIR", "GNOMAD_DIR", "CLINVAR_VCF", "VEP_CACHEDIR",
+    "VEP_CACHE_VERSION", "SINGLETON_REFERENCE", "OE_RATIO_REFERENCE", "GNOMAD_CONSTRAINT",
+]
+
+# Auto assign keys to None (avoids DAG error in snakemake).
+for k in required_keys:
+    if k not in config:
+        config[k] = ""
+
+# A function that checks if all ml keys are present. 
+def has_all_required(cfg, keys):
+    return all(cfg.get(k) not in [None, ""] for k in keys)
+
+# If all ml configs are provided, include the ml rules.
+if has_all_required(config, required_keys):
+    all_inputs += [
+        "ml_variants_done.txt",
+        "ml_benchmark_done.txt",
+        "mcross_done.txt",
+    ]
+
+# Run rule all. 
 rule all:
     input:
-        #"ml_variants_done.txt",
-        #"ml_benchmark_done.txt",
-        "basic_done.txt",
-        #"mcross_done.txt",
+        all_inputs
 
 # Calls upon outputs needed for basic.
 rule all_basic_output:
