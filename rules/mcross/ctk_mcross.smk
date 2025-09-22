@@ -329,7 +329,7 @@ rule ctk_mcross_kmer_enrichment:
             {output.ctk_kmer_enrichment}
         
         # generate config
-        echo '{output.ctk_kmer_enrichment}\t\{params.experiment_label}' > {output.ctk_config}
+        echo '{output.ctk_kmer_enrichment}\t{params.experiment_label}' > {output.ctk_config}
         """
         
         
@@ -414,7 +414,7 @@ rule skipper_mcross_kmer_enrichment:
             {output.clip_kmer_enrichment}
         
         # generate config
-        echo '{output.clip_kmer_enrichment}\t\{wildcards.experiment_label}' > {output.clip_config}
+        echo '{output.clip_kmer_enrichment}\t{wildcards.experiment_label}' > {output.clip_config}
         """
         
         

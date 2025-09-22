@@ -22,3 +22,10 @@ annotations/
 .java/
 repeats.sort.temp.bed.gz
 land_ho.txt
+.cache/
+basic_done.txt
+mcross_done.txt
+ml_variants_done.txt
+skipper_config.py
+skipper_config.yaml
+logs/
