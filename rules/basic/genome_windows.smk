@@ -31,6 +31,44 @@ rule parse_gff:
         echo "[`date`] Finished parse_gff" 2>&1 | tee -a {log}
         """
 
+rule run_star_genome_generate:
+    input:
+        gff = ancient(GFF),
+        fasta_file = ancient(GENOME),
+    output:
+        star_dir = directory(STAR_DIR),
+        chrom_sizes = CHROM_SIZES,
+    threads: 8
+    resources:
+        mem_mb = 48000,
+        runtime = "2h",
+    benchmark: "benchmarks/run_star_genome_generate.txt"
+    log: "logs/run_star_genome_generate.log"
+    container:
+        "docker://howardxu520/skipper:star_2.7.10b"
+    shell:        
+        r"""
+        set -euo pipefail
+
+        echo "[`date`] Starting star_genome_generate." 2>&1 | tee {log}
+
+        tmp_gff=tmp/tmp.gff
+        zcat {input.gff} > $tmp_gff
+
+        STAR \
+            --runMode genomeGenerate \
+            --runThreadN {threads} \
+            --genomeDir {output.star_dir} \
+            --genomeFastaFiles {input.fasta_file} \
+            --sjdbGTFfile $tmp_gff \
+            --sjdbOverhang 99 \
+            2>&1 | tee -a {log}
+
+        rm -f $tmp_gff
+
+        echo "[`date`] Finished star_genome_generate." 2>&1 | tee -a {log}
+        """
+
 rule partition_bam_reads:
     input:
         CHROM_SIZES,

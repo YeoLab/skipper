@@ -156,12 +156,12 @@ rule align_reads_encode:
     input:
         fq_1 = rules.trim_fastq_encode.output.fq_1_trimmed,
         fq_2 = rules.trim_fastq_encode.output.fq_2_trimmed
+        star_sjdb = STAR_DIR
     output:
         ubam = temp("output/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
         log= "output/bams/raw/genome/{replicate_label}.genome.Log.final.out",
     threads: 8
     params:
-        star_sjdb = STAR_DIR,
         outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
         rg = "{replicate_label}"
     benchmark: "benchmarks/align/unassigned_experiment.{replicate_label}.align_reads_genome.txt"
@@ -178,7 +178,7 @@ rule align_reads_encode:
 
         STAR \
             --alignEndsType EndToEnd \
-            --genomeDir {params.star_sjdb} \
+            --genomeDir {input.star_sjdb} \
             --genomeLoad NoSharedMemory \
             --outBAMcompression 10 \
             --outFileNamePrefix {params.outprefix} \

@@ -32,3 +32,5 @@ ml_variants_done.txt
 skipper_config.py
 skipper_config.yaml
 logs/
+_STARtmp/
+.nv/

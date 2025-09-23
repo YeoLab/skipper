@@ -20,7 +20,7 @@ default-resources:
   slurm_account: "csd792"
   runtime: 30
   mem_mb: 20000
-  slurm_extra: "--qos=hcg-csd792 --exclude=tscc-14-46,tscc-1-3,tscc-1-15,tscc-1-2,tscc-1-41,tscc-4-15,tscc-8-35"
+  slurm_extra: "--qos=hcg-csd792"
 set-resources:
   rbpnet_variants_score_fa:
     slurm_partition: "rtx3090"
