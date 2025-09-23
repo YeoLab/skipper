@@ -24,7 +24,7 @@ clip_betabinom_fit_data = lapply(other_clip_replicates, function(other_clip_repl
 		global_given_clip_fraction = sum(clip_gc_data[[given_clip_replicate]]) / sum(clip_gc_data[[other_clip_replicate]] + clip_gc_data[[given_clip_replicate]])
 		distribution_data = processed_clip_data %>% group_by(clip_total = .data[[given_clip_replicate]] + .data[[other_clip_replicate]], .data[[given_clip_replicate]], given_clip_fraction, gc_bin) %>%
 			count(name = "count") %>% group_by(clip_total, gc_bin) %>% mutate(pdf = count / sum(count)) %>% rowwise %>% 
-			mutate(binomial = dbinom(x = .data[[given_clip_replicate]], size = clip_total, prob = global_given_clip_fraction),
+			mutate(binomial = dbinom(x = .data[[given_clip_replicate]], size = clip_total, prob = given_clip_fraction %>% (VGAM::logitlink)(inverse=TRUE)),
 				betabinomial = VGAM::dbetabinom(x = .data[[given_clip_replicate]], size = clip_total, prob = (betabinom_coefs[1] + given_clip_fraction * betabinom_coefs[3]) %>% (VGAM::logitlink)(inverse=TRUE), rho = betabinom_coefs[2] %>% (VGAM::logitlink)(inverse=TRUE) )) 
 		pdf(paste0('output/figures/clip_distributions/', experiment, ".", given_clip_replicate, ".", other_clip_replicate, '.clip_distribution.pdf'),height = 3.5, width = 6)
 		print(

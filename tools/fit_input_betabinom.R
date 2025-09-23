@@ -21,7 +21,7 @@ input_betabinom_fit_data = lapply(other_input_replicates, function(other_input_r
 		global_given_input_fraction = sum(input_gc_data[[given_input_replicate]]) / sum(input_gc_data[[other_input_replicate]] + input_gc_data[[given_input_replicate]])
 		distribution_data = processed_input_data %>% group_by(input_total = .data[[given_input_replicate]] + .data[[other_input_replicate]], .data[[given_input_replicate]], given_input_fraction, gc_bin) %>%
 			count(name = "count") %>% group_by(input_total, gc_bin) %>% mutate(pdf = count / sum(count)) %>% rowwise %>% 
-			mutate(binomial = dbinom(x = .data[[given_input_replicate]], size = input_total, prob = global_given_input_fraction),
+			mutate(binomial = dbinom(x = .data[[given_input_replicate]], size = input_total, prob = given_input_fraction %>% (VGAM::logitlink)(inverse=TRUE)),
 				betabinomial = VGAM::dbetabinom(x = .data[[given_input_replicate]], size = input_total, prob = (betabinom_coefs[1] + given_input_fraction * betabinom_coefs[3]) %>% (VGAM::logitlink)(inverse=TRUE), rho = betabinom_coefs[2] %>% (VGAM::logitlink)(inverse=TRUE) )) 
 		pdf(paste0("output/figures/input_distributions/", experiment, ".", given_input_replicate, ".", other_input_replicate, '.input_distribution.pdf'),height = 3.5, width = 6)
 		print(
