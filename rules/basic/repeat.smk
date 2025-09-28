@@ -8,15 +8,17 @@ rule uniq_repeats:
         unique_repeats = REPEAT_BED
     benchmark: "benchmarks/uniq_repeats.txt"
     log: "logs/unique_repeats.log"
-    container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
+    conda:
+        "envs/bedbam_tools.yaml"
     resources:
         mem_mb=16000,
         runtime="2h"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting uniq_repeats" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting uniq_repeats" | tee {log}
 
         zcat {REPEAT_TABLE} \
             | awk -v OFS="\t" '{{print $6,$7,$8,$11 ":" name_count[$11]++, $2, $10,$11,$12,$13}} 
@@ -40,7 +42,7 @@ rule uniq_repeats:
             > {output.unique_repeats} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished uniq_repeats" 2>&1 | tee -a {log}
+        echo "[`date`] Finished uniq_repeats" | tee -a {log}
         """
 
 rule quantify_repeats:
@@ -52,15 +54,17 @@ rule quantify_repeats:
         counts = "output/counts/repeats/vectors/{replicate_label}.counts"
     benchmark: "benchmarks/repeats/unassigned_experiment.{replicate_label}.quantify_repeats.txt"
     log: "logs/{replicate_label}.quantify_repeats.log"
-    container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
+    conda:
+        "envs/bedbam_tools.yaml"
     resources:
-        mem_mb=60000,
-        runtime="1h"
+        mem_mb=64000,
+        runtime="2h"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting quantify_repeats for {wildcards.replicate_label}" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting quantify_repeats for {wildcards.replicate_label}" | tee {log}
 
         bedtools bamtobed -i {input.bam} \
             | awk '($1 != "chrEBV") && ($4 !~ "/{UNINFORMATIVE_READ}$")' \
@@ -72,7 +76,7 @@ rule quantify_repeats:
             > {output.counts} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished quantify_repeats for {wildcards.replicate_label}" 2>&1 | tee -a {log}
+        echo "[`date`] Finished quantify_repeats for {wildcards.replicate_label}" | tee -a {log}
         """
 
 rule make_repeat_count_tables:
@@ -94,7 +98,9 @@ rule make_repeat_count_tables:
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting make_repeat_count_tables for {wildcards.experiment_label}" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting make_repeat_count_tables for {wildcards.experiment_label}" | tee {log}
 
         echo "repeat_name" \
             | paste - {input.replicate_counts} \
@@ -147,7 +153,7 @@ rule make_repeat_count_tables:
             >> {output.family_table} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished make_repeat_count_tables for {wildcards.experiment_label}" 2>&1 | tee -a {log}
+        echo "[`date`] Finished make_repeat_count_tables for {wildcards.experiment_label}" | tee -a {log}
         """
 
 rule fit_clip_betabinomial_re_model:
@@ -157,15 +163,17 @@ rule fit_clip_betabinomial_re_model:
         coef = "output/clip_model_coef_re/{experiment_label}.{clip_replicate_label}.tsv",
     benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     log: "logs/{experiment_label}.{clip_replicate_label}.fit_clip.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     resources:
         mem_mb=32000,
         runtime="3h"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting fit_clip_betabinomial_re_model for {wildcards.experiment_label}.{wildcards.clip_replicate_label}" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting fit_clip_betabinomial_re_model for {wildcards.experiment_label}.{wildcards.clip_replicate_label}" | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom_re.R \
             {input.table} \
@@ -173,7 +181,7 @@ rule fit_clip_betabinomial_re_model:
             {wildcards.clip_replicate_label} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished fit_clip_betabinomial_re_model for {wildcards.experiment_label}.{wildcards.clip_replicate_label}" 2>&1 | tee -a {log}
+        echo "[`date`] Finished fit_clip_betabinomial_re_model for {wildcards.experiment_label}.{wildcards.clip_replicate_label}" | tee -a {log}
         """
 
 rule fit_input_betabinomial_re_model:
@@ -183,15 +191,17 @@ rule fit_input_betabinomial_re_model:
         coef = "output/input_model_coef_re/{experiment_label}.{input_replicate_label}.tsv",
     benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
     log: "logs/{experiment_label}.{input_replicate_label}.fit_input.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     resources:
         mem_mb=32000,
         runtime="1h"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting fit_input_betabinomial_re_model for {wildcards.experiment_label}.{wildcards.input_replicate_label}" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting fit_input_betabinomial_re_model for {wildcards.experiment_label}.{wildcards.input_replicate_label}" | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/fit_input_betabinom_re.R \
             {input.table} \
@@ -199,7 +209,7 @@ rule fit_input_betabinomial_re_model:
             {wildcards.input_replicate_label} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished fit_input_betabinomial_re_model for {wildcards.experiment_label}.{wildcards.input_replicate_label}" 2>&1 | tee -a {log}
+        echo "[`date`] Finished fit_input_betabinomial_re_model for {wildcards.experiment_label}.{wildcards.input_replicate_label}" | tee -a {log}
         """
 
 rule call_enriched_re:
@@ -214,8 +224,8 @@ rule call_enriched_re:
         "output/enriched_re/{experiment_label}.{clip_replicate_label}.enriched_re.tsv.gz"
     benchmark: "benchmarks/call_enriched_re/{experiment_label}.{clip_replicate_label}.call_enriched_re.txt"
     log: "logs/{experiment_label}.{clip_replicate_label}.call_enriched_re.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     params:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label]
     resources:
@@ -224,7 +234,9 @@ rule call_enriched_re:
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting call_enriched_re for {wildcards.experiment_label}.{wildcards.clip_replicate_label}" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting call_enriched_re for {wildcards.experiment_label}.{wildcards.clip_replicate_label}" | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/call_enriched_re.R \
             {input.table} \
@@ -235,7 +247,7 @@ rule call_enriched_re:
             {wildcards.experiment_label}.{wildcards.clip_replicate_label} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished call_enriched_re for {wildcards.experiment_label}.{wildcards.clip_replicate_label}" 2>&1 | tee -a {log}
+        echo "[`date`] Finished call_enriched_re for {wildcards.experiment_label}.{wildcards.clip_replicate_label}" | tee -a {log}
         """
 
 rule find_reproducible_enriched_re:
@@ -248,21 +260,23 @@ rule find_reproducible_enriched_re:
         reproducible_windows = "output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz",
     benchmark: "benchmarks/find_reproducible_enriched_re/{experiment_label}.all_replicates.reproducible.txt"
     log: "logs/{experiment_label}.find_reproducible_enriched_re.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     resources:
         mem_mb=8000,
         runtime="2h"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting find_reproducible_enriched_re for {wildcards.experiment_label}" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting find_reproducible_enriched_re for {wildcards.experiment_label}" | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/identify_reproducible_re.R \
             output/enriched_re/ \
             {wildcards.experiment_label} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished find_reproducible_enriched_re for {wildcards.experiment_label}" 2>&1 | tee -a {log}
+        echo "[`date`] Finished find_reproducible_enriched_re for {wildcards.experiment_label}" | tee -a {log}
         """
         

@@ -16,13 +16,14 @@ rule make_genome_mega_table:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting make_genome_mega_table" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting make_genome_mega_table" | tee {log}
 
         paste <(zcat {input.feature}) {input.replicate_counts} \
             | gzip \
             > {output} 2>&1 | tee -a {log}
 
-        echo "[`date`] Finished make_genome_mega_table" 2>&1 | tee -a {log}
+        echo "[`date`] Finished make_genome_mega_table" | tee -a {log}
         """
 
 rule make_repeat_mega_tables:
@@ -43,7 +44,8 @@ rule make_repeat_mega_tables:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting make_repeat_mega_tables" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting make_repeat_mega_tables" | tee {log}
 
         echo "repeat_name" \
             | paste - {input.replicate_counts} \
@@ -87,7 +89,7 @@ rule make_repeat_mega_tables:
             | gzip \
             >> {output.family_table} 2>&1 | tee -a {log}
 
-        echo "[`date`] Finished make_repeat_mega_tables" 2>&1 | tee -a {log}
+        echo "[`date`] Finished make_repeat_mega_tables" | tee -a {log}
         """
 
 # Unique fragment per library
@@ -104,11 +106,12 @@ rule join_unique_fragments:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting join_unique_fragments" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting join_unique_fragments" | tee {log}
 
         awk '{{print FILENAME "," $0}}' {input} > {output} 2>&1 | tee -a {log}
 
-        echo "[`date`] Finished join_unique_fragments" 2>&1 | tee -a {log}
+        echo "[`date`] Finished join_unique_fragments" | tee -a {log}
         """
 
 rule join_aligned_reads:
@@ -124,11 +127,12 @@ rule join_aligned_reads:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting join_aligned_reads" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting join_aligned_reads" | tee {log}
 
         awk '{{print FILENAME "," $0}}' {input} > {output} 2>&1 | tee -a {log}
 
-        echo "[`date`] Finished join_aligned_reads" 2>&1 | tee -a {log}
+        echo "[`date`] Finished join_aligned_reads" | tee -a {log}
         """
 
 # summarize per transcript type and family type
@@ -148,7 +152,8 @@ rule summarize_genome_megatable:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting summarize_genome_megatable" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting summarize_genome_megatable" | tee {log}
 
         python {TOOL_DIR}/group_genome_megatable.py \
             {input} \
@@ -156,7 +161,7 @@ rule summarize_genome_megatable:
             {output.t} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished summarize_genome_megatable" 2>&1 | tee -a {log}
+        echo "[`date`] Finished summarize_genome_megatable" | tee -a {log}
         """
 
 rule join_reproducible_enriched_re:
@@ -178,7 +183,8 @@ rule join_reproducible_enriched_re:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting join_reproducible_enriched_re" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting join_reproducible_enriched_re" | tee {log}
 
         python {TOOL_DIR}/join_reproducible_enriched_re.py \
             . \
@@ -186,7 +192,7 @@ rule join_reproducible_enriched_re:
             {output.l2or} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished join_reproducible_enriched_re" 2>&1 | tee -a {log}
+        echo "[`date`] Finished join_reproducible_enriched_re" | tee -a {log}
         """
 
 rule join_reproducible_enriched_windows_binary:
@@ -208,7 +214,8 @@ rule join_reproducible_enriched_windows_binary:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting join_reproducible_enriched_windows" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting join_reproducible_enriched_windows" | tee {log}
 
         python {TOOL_DIR}/join_reproducible_enriched_windows.py \
             . \
@@ -217,7 +224,7 @@ rule join_reproducible_enriched_windows_binary:
             {output.l2or} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished join_reproducible_enriched_windows" 2>&1 | tee -a {log}
+        echo "[`date`] Finished join_reproducible_enriched_windows" | tee -a {log}
         """
 
 def find_all_tested_windows(experiment_labels, experiment_to_clip_replicate_labels):
@@ -248,12 +255,13 @@ rule join_reproducible_enriched_windows:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting join_reproducible_enriched_windows" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting join_reproducible_enriched_windows" | tee {log}
 
         python {TOOL_DIR}/join_all_reproducible_enriched_windows.py \
             . \
             {output.binary} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished join_reproducible_enriched_windows" 2>&1 | tee -a {log}
+        echo "[`date`] Finished join_reproducible_enriched_windows" | tee -a {log}
         """

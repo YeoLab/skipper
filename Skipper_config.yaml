@@ -25,10 +25,10 @@ OVERDISPERSION_MODE: input   # input or clip
 
 # Tools and scripts
 TOOL_DIR: tools
-RBPNET_PATH: /tscc/nfs/home/hsher/projects/RBPNet/
 TMPDIR: tmp
 
 # Population genetics / VCF-related. Optional
+# RBPNET_PATH: /tscc/nfs/home/hsher/projects/RBPNet/
 # HEADER: /Users/keeganflanagan/Desktop/for_skipper/header.hr
 # RENAME: /Users/keeganflanagan/Desktop/for_skipper/rename_chr.txt
 # ROULETTE_DIR: /Users/keeganflanagan/Desktop/for_skipper/roulette/

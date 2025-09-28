@@ -17,6 +17,7 @@ workdir: config['WORKDIR']
 
 # Generate directories to hold log files. 
 if not os.path.exists("logs"): os.makedirs("logs")
+if not os.path.exists("tmp"): os.makedirs("tmp")
 
 # Check for proper overdispersion mode. 
 if OVERDISPERSION_MODE not in ["clip","input"]:

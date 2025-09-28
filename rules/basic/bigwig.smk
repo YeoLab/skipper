@@ -15,13 +15,14 @@ rule make_unscaled_bigwig:
         runtime = "1h"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     log: "logs/{replicate_label}.make_unscaled_bigwig.log"
-    container:
-        "docker://howardxu520/skipper:bigwig_1.0"
+    conda:
+        "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting make_unscaled_bigwig" 2>&1 | tee "{log}"
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting make_unscaled_bigwig" | tee "{log}"
 
         samtools index {input.bam} 2>&1 | tee -a "{log}"
 
@@ -38,7 +39,7 @@ rule make_unscaled_bigwig:
         bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus} 2>&1 | tee -a "{log}"
         bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus} 2>&1 | tee -a "{log}"
 
-        echo "[`date`] Finished make_unscaled_bigwig" 2>&1 | tee -a "{log}"
+        echo "[`date`] Finished make_unscaled_bigwig" | tee -a "{log}"
         """
 
 rule make_scaled_bigwig:
@@ -56,12 +57,14 @@ rule make_scaled_bigwig:
         runtime = "1h"
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     log: "logs/{replicate_label}.make_scaled_bigwig.log"
-    container:
-        "docker://howardxu520/skipper:bigwig_1.0"
+    conda:
+        "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting make_scaled_bigwig" 2>&1 | tee "{log}"
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting make_scaled_bigwig" | tee "{log}"
 
         samtools index {input.bam} 2>&1 | tee -a "{log}"
 
@@ -87,7 +90,7 @@ rule make_scaled_bigwig:
         bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus} 2>&1 | tee -a "{log}"
         bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus} 2>&1 | tee -a "{log}"
 
-        echo "[`date`] Finished make_scaled_bigwig" 2>&1 | tee -a "{log}"
+        echo "[`date`] Finished make_scaled_bigwig" | tee -a "{log}"
         """
 
 rule make_scaled_bigwig_coverage:
@@ -105,13 +108,14 @@ rule make_scaled_bigwig_coverage:
         mem_mb = 10000,
         tmpdir = TMPDIR,
         runtime = "1h"
-    container:
-        "docker://howardxu520/skipper:bigwig_1.0"
+    conda:
+        "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting make_scaled_bigwig_coverage" 2>&1 | tee "{log}"
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting make_scaled_bigwig_coverage" | tee "{log}"
 
         factor=$(samtools idxstats {input.bam} \
             | cut -f 3 \
@@ -133,5 +137,5 @@ rule make_scaled_bigwig_coverage:
         bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus} 2>&1 | tee -a "{log}"
         bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus} 2>&1 | tee -a "{log}"
 
-        echo "[`date`] Finished make_scaled_bigwig_coverage" 2>&1 | tee -a "{log}"
+        echo "[`date`] Finished make_scaled_bigwig_coverage" | tee -a "{log}"
         """

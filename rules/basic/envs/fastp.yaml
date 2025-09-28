@@ -1,0 +1,16 @@
+name: fastp
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+  - defaults
+dependencies:
+  - _libgcc_mutex=0.1=conda_forge
+  - _openmp_mutex=4.5=2_gnu
+  - fastp=1.0.1=heae3180_0
+  - isa-l=2.31.1=hb9d3cd8_1
+  - libdeflate=1.24=h86f0d12_0
+  - libgcc=15.1.0=h767d61c_5
+  - libgomp=15.1.0=h767d61c_5
+  - libstdcxx=15.1.0=h8f9b012_5
+prefix: /tscc/nfs/home/kflanagan/miniconda3/envs/fastp

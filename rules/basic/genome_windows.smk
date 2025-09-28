@@ -9,17 +9,18 @@ rule parse_gff:
         feature_annotations = FEATURE_ANNOTATIONS,
     threads: 1
     resources:
-        mem_mb = 48000,
+        mem_mb = 64000,
         runtime = "3h"
     benchmark: "benchmarks/parse_gff.txt"
     log: "logs/parse_gff.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting parse_gff" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting parse_gff" | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/parse_gff.R \
             {input.gff} \
@@ -28,45 +29,7 @@ rule parse_gff:
             {output.feature_annotations} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished parse_gff" 2>&1 | tee -a {log}
-        """
-
-rule run_star_genome_generate:
-    input:
-        gff = ancient(GFF),
-        fasta_file = ancient(GENOME),
-    output:
-        star_dir = directory(STAR_DIR),
-        chrom_sizes = CHROM_SIZES,
-    threads: 8
-    resources:
-        mem_mb = 48000,
-        runtime = "2h",
-    benchmark: "benchmarks/run_star_genome_generate.txt"
-    log: "logs/run_star_genome_generate.log"
-    container:
-        "docker://howardxu520/skipper:star_2.7.10b"
-    shell:        
-        r"""
-        set -euo pipefail
-
-        echo "[`date`] Starting star_genome_generate." 2>&1 | tee {log}
-
-        tmp_gff=tmp/tmp.gff
-        zcat {input.gff} > $tmp_gff
-
-        STAR \
-            --runMode genomeGenerate \
-            --runThreadN {threads} \
-            --genomeDir {output.star_dir} \
-            --genomeFastaFiles {input.fasta_file} \
-            --sjdbGTFfile $tmp_gff \
-            --sjdbOverhang 99 \
-            2>&1 | tee -a {log}
-
-        rm -f $tmp_gff
-
-        echo "[`date`] Finished star_genome_generate." 2>&1 | tee -a {log}
+        echo "[`date`] Finished parse_gff" | tee -a {log}
         """
 
 rule partition_bam_reads:
@@ -77,17 +40,18 @@ rule partition_bam_reads:
     output:
         counts = "output/counts/genome/vectors/{replicate_label}.counts",
     resources:
-        mem_mb = 60000,
-        runtime = "2h"
+        mem_mb = 64000,
+        runtime = "3h"
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
     log: "logs/{replicate_label}.partition_bam_reads.log"
-    container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
+    conda:
+        "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting partition_bam_reads" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting partition_bam_reads" | tee {log}
 
         bedtools bamtobed -i {input.bam} \
             | awk '($1 != "chrEBV") && ($4 !~ "/{UNINFORMATIVE_READ}$")' \
@@ -99,7 +63,7 @@ rule partition_bam_reads:
             | awk 'BEGIN {{print "{wildcards.replicate_label}"}} {{print}}' \
             > {output.counts} 2>&1 | tee -a {log}
 
-        echo "[`date`] Finished partition_bam_reads" 2>&1 | tee -a {log}
+        echo "[`date`] Finished partition_bam_reads" | tee -a {log}
         """
         
 rule calc_partition_nuc:
@@ -113,12 +77,14 @@ rule calc_partition_nuc:
         runtime = "2h"
     benchmark: "benchmarks/partition_nuc.txt"
     log: "logs/calc_partition_nuc.log"
-    container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
+    conda:
+        "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting calc_partition_nuc" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting calc_partition_nuc" | tee {log}
 
         bedtools nuc -s \
             -fi {input.genome} \
@@ -127,7 +93,7 @@ rule calc_partition_nuc:
             > {output.nuc} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished calc_partition_nuc" 2>&1 | tee -a {log}
+        echo "[`date`] Finished calc_partition_nuc" | tee -a {log}
         """
 
 rule make_genome_count_table:
@@ -145,12 +111,14 @@ rule make_genome_count_table:
         runtime = "30m"
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_genome_count_table.txt"
     log: "logs/{experiment_label}.make_genome_count_table.log"
-    container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
+    conda:
+        "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting make_genome_count_table" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting make_genome_count_table" | tee {log}
 
         paste <(
             zcat {input.partition} \
@@ -160,7 +128,7 @@ rule make_genome_count_table:
             > {output.count_table} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished make_genome_count_table" 2>&1 | tee -a {log}
+        echo "[`date`] Finished make_genome_count_table" | tee -a {log}
         """
 
 rule fit_input_betabinomial_model:
@@ -175,12 +143,14 @@ rule fit_input_betabinomial_model:
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
     log:
         "logs/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_model.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting fit_input_betabinomial_model" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting fit_input_betabinomial_model" | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/fit_input_betabinom.R \
             {input.table} \
@@ -188,7 +158,7 @@ rule fit_input_betabinomial_model:
             {wildcards.input_replicate_label} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished fit_input_betabinomial_model" 2>&1 | tee -a {log}
+        echo "[`date`] Finished fit_input_betabinomial_model" | tee -a {log}
         """
 
 rule fit_clip_betabinomial_model:
@@ -202,12 +172,14 @@ rule fit_clip_betabinomial_model:
         runtime = "2h"
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     log: "logs/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting fit_clip_betabinomial_model" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting fit_clip_betabinomial_model" | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom.R \
             {input.table} \
@@ -215,7 +187,7 @@ rule fit_clip_betabinomial_model:
             {wildcards.clip_replicate_label} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished fit_clip_betabinomial_model" 2>&1 | tee -a {log}
+        echo "[`date`] Finished fit_clip_betabinomial_model" | tee -a {log}
         """
 
 rule call_enriched_windows:
@@ -263,14 +235,16 @@ rule call_enriched_windows:
         runtime = "2h"
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
     log: "logs/{experiment_label}.{clip_replicate_label}.call_enriched_windows.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     params:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label]
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting call_enriched_windows" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting call_enriched_windows" | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/call_enriched_windows.R \
             {input.table} \
@@ -282,7 +256,7 @@ rule call_enriched_windows:
             {wildcards.experiment_label}.{wildcards.clip_replicate_label} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished call_enriched_windows" 2>&1 | tee -a {log}
+        echo "[`date`] Finished call_enriched_windows" | tee -a {log}
         """
 
 rule check_window_concordance:
@@ -300,14 +274,14 @@ rule check_window_concordance:
         runtime = "30m"
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
     log: "logs/{experiment_label}.check_window_concordance.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     params:
         blacklist = (BLACKLIST if BLACKLIST is not None else "")
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting check_window_concordance" 2>&1 | tee {log}
+        echo "[`date`] Starting check_window_concordance" | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/check_window_concordance.R \
             output/tested_windows \
@@ -315,7 +289,7 @@ rule check_window_concordance:
             {params.blacklist} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished check_window_concordance" 2>&1 | tee -a {log}
+        echo "[`date`] Finished check_window_concordance" | tee -a {log}
         """
 
 rule find_reproducible_enriched_windows:
@@ -333,14 +307,16 @@ rule find_reproducible_enriched_windows:
         runtime = "30m"
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
     log: "logs/{experiment_label}.find_reproducible_enriched_windows.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     params:
         blacklist = (BLACKLIST if BLACKLIST is not None else "")
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting find_reproducible_enriched_windows" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting find_reproducible_enriched_windows" | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R \
             output/enriched_windows/ \
@@ -348,7 +324,7 @@ rule find_reproducible_enriched_windows:
             {params.blacklist} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished find_reproducible_enriched_windows" 2>&1 | tee -a {log}
+        echo "[`date`] Finished find_reproducible_enriched_windows" | tee -a {log}
         """
 
 rule sample_background_windows_by_region:
@@ -363,12 +339,14 @@ rule sample_background_windows_by_region:
         runtime = "30m"
     benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
     log: "logs/{experiment_label}.sample_background_windows_by_region.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting sample_background_windows_by_region" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting sample_background_windows_by_region" | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/sample_matched_background_by_region.R \
             {input.enriched_windows} \
@@ -378,5 +356,5 @@ rule sample_background_windows_by_region:
             {wildcards.experiment_label} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished sample_background_windows_by_region" 2>&1 | tee -a {log}
+        echo "[`date`] Finished sample_background_windows_by_region" | tee -a {log}
         """

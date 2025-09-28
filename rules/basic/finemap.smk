@@ -22,12 +22,13 @@ rule get_nt_coverage:
         runtime = "2h"
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     log: "logs/{experiment_label}.get_nt_coverage.log"
-    container:
-        "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
+    conda:
+        "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
 
+        echo "Running on node: $(hostname)" | tee -a {log}
         echo "[`date`] Starting get_nt_coverage" 2>&1 | tee {log}
 
         zcat {input.windows} \
@@ -77,12 +78,13 @@ rule finemap_windows:
         runtime = "2h"
     benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
     log: "logs/{experiment_label}.finemap_windows.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
+        echo "Running on node: $(hostname)" | tee -a {log}
         echo "[`date`] Starting finemap_windows" 2>&1 | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/finemap_enriched_windows.R \
@@ -112,6 +114,7 @@ rule annotate_finemap:
         r"""
         set -euo pipefail
 
+        echo "Running on node: $(hostname)" | tee -a {log}
         echo "[`date`] Starting annotate_finemap" 2>&1 | tee {log}
 
         if [ -s {input.finemapped} ]; then
@@ -148,6 +151,7 @@ rule find_both_tested_windows:
         r"""
         set -euo pipefail
 
+        echo "Running on node: $(hostname)" | tee -a {log}
         echo "[`date`] Starting find_both_tested_windows" 2>&1 | tee {log}
 
         python {TOOL_DIR}/find_both_tested_windows.py \

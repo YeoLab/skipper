@@ -7,6 +7,45 @@ import glob
 from time import sleep
 locals().update(config)
 
+rule run_star_genome_generate:
+    input:
+        gff = ancient(GFF),
+        fasta_file = ancient(GENOME),
+    output:
+        star_dir = directory(STAR_DIR),
+        chrom_sizes = CHROM_SIZES,
+    threads: 8
+    resources:
+        mem_mb = 48000,
+        runtime = "2h",
+    benchmark: "benchmarks/run_star_genome_generate.txt"
+    log: "logs/run_star_genome_generate.log"
+    conda:
+        "envs/star.yaml"
+    shell:        
+        r"""
+        set -euo pipefail
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting star_genome_generate." | tee {log}
+
+        tmp_gff=tmp/tmp.gff
+        zcat {input.gff} > $tmp_gff
+
+        STAR \
+            --runMode genomeGenerate \
+            --runThreadN {threads} \
+            --genomeDir {output.star_dir} \
+            --genomeFastaFiles {input.fasta_file} \
+            --sjdbGTFfile $tmp_gff \
+            --sjdbOverhang 99 \
+            2>&1 | tee -a {log}
+
+        rm -f $tmp_gff
+
+        echo "[`date`] Finished star_genome_generate." | tee -a {log}
+        """
+
 rule copy_with_umi:
     input:
         fq_1 = lambda wildcards: config['replicate_label_to_fastq_1'][wildcards.replicate_label],
@@ -23,7 +62,7 @@ rule copy_with_umi:
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting copy_with_umi" 2>&1 | tee {log}
+        echo "[`date`] Starting copy_with_umi" | tee {log}
 
         zcat {input.fq_1} \
             | awk 'NR % 4 != 1 {print} NR % 4 == 1 {split($1,header,":"); print $1 ":" substr(header[1],2,length(header[1]) - 1) }' \
@@ -37,7 +76,7 @@ rule copy_with_umi:
             > {output.fq_2} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished copy_with_umi" 2>&1 | tee -a {log}
+        echo "[`date`] Finished copy_with_umi" | tee -a {log}
         """
 
 rule run_initial_fastqc:
@@ -52,8 +91,8 @@ rule run_initial_fastqc:
     threads: 2
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
     log: "logs/{replicate_label}.run_initial_fastqc.log"
-    container:
-        "docker://howardxu520/skipper:fastqc_0.12.1"
+    conda:
+        "envs/fastqc.yaml"
     resources:
         mem_mb=16000,
         runtime="3h"
@@ -62,7 +101,9 @@ rule run_initial_fastqc:
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting run_initial_fastqc" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting run_initial_fastqc" | tee {log}
 
         fastqc {input.r1} \
             --extract \
@@ -76,7 +117,7 @@ rule run_initial_fastqc:
             -t {threads} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished run_initial_fastqc" 2>&1 | tee -a {log}
+        echo "[`date`] Finished run_initial_fastqc" | tee -a {log}
         """
         
 rule trim_fastq_encode:
@@ -96,12 +137,12 @@ rule trim_fastq_encode:
         runtime="3h"
     benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
     log: "logs/{replicate_label}.trim_fastq_encode.log"
-    container:
-        "docker://howardxu520/skipper:skewer_0.2.2"
+    conda:
+        "envs/skewer.yaml"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting trim_fastq_encode" 2>&1 | tee {log}
+        echo "[`date`] Starting trim_fastq_encode" | tee {log}
 
         skewer \
             -t {threads} \
@@ -112,7 +153,7 @@ rule trim_fastq_encode:
             {input.fq_1} {input.fq_2} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished trim_fastq_encode" 2>&1 | tee -a {log}
+        echo "[`date`] Finished trim_fastq_encode" | tee -a {log}
         """
 
 rule run_trimmed_fastqc:
@@ -127,15 +168,17 @@ rule run_trimmed_fastqc:
     threads: 2
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.trimmed_fastqc.txt"
     log: "logs/{replicate_label}.run_trimmed_fastqc.log"
-    container:
-        "docker://howardxu520/skipper:fastqc_0.12.1"
+    conda:
+        "envs/fastqc.yaml"
     resources:
         mem_mb=16000,
         runtime="2h"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting run_trimmed_fastqc" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting run_trimmed_fastqc" | tee {log}
 
         fastqc {input.r1} \
             --extract \
@@ -149,7 +192,7 @@ rule run_trimmed_fastqc:
             -t {threads} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished run_trimmed_fastqc" 2>&1 | tee -a {log}
+        echo "[`date`] Finished run_trimmed_fastqc" | tee -a {log}
         """
         
 rule align_reads_encode:
@@ -166,15 +209,17 @@ rule align_reads_encode:
         rg = "{replicate_label}"
     benchmark: "benchmarks/align/unassigned_experiment.{replicate_label}.align_reads_genome.txt"
     log: "logs/{replicate_label}.align_reads_encode.log"
-    container:
-        "docker://howardxu520/skipper:star_2.7.10b"
+    conda:
+        "envs/star.yaml"
     resources:
         mem_mb=160000,
         runtime="2h"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting align_reads_encode" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting align_reads_encode" | tee {log}
 
         STAR \
             --alignEndsType EndToEnd \
@@ -203,7 +248,7 @@ rule align_reads_encode:
             --runThreadN {threads} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished align_reads_encode" 2>&1 | tee -a {log}
+        echo "[`date`] Finished align_reads_encode" | tee -a {log}
         """
 
 rule sort_bam:
@@ -214,15 +259,17 @@ rule sort_bam:
     threads: 2
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
     log: "logs/{replicate_label}.{ref}.sort_bam.log"
-    container:
-        "docker://howardxu520/skipper:samtools_1.17"
+    conda:
+        "envs/bedbam_tools.yaml"
     resources:
         mem_mb = 16000,
         runtime = "1h"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting sort_bam" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting sort_bam" | tee {log}
 
         samtools sort \
             -T {wildcards.replicate_label} \
@@ -231,7 +278,7 @@ rule sort_bam:
             {input.bam} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished sort_bam" 2>&1 | tee -a {log}
+        echo "[`date`] Finished sort_bam" | tee -a {log}
         """
 
 rule index_bams:
@@ -242,22 +289,24 @@ rule index_bams:
     threads: 2
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
     log: "logs/{replicate_label}.{ref}.{mid}.{round}.index_bams.log"
-    container:
-        "docker://howardxu520/skipper:samtools_1.17"
+    conda:
+        "envs/bedbam_tools.yaml"
     resources:
         mem_mb = 1000,
         runtime = "1h"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting index_bams" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting index_bams" | tee {log}
 
         samtools index \
             -@ {threads} \
             {input.bam} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished index_bams" 2>&1 | tee -a {log}
+        echo "[`date`] Finished index_bams" | tee -a {log}
         """
 
 rule dedup_umi_encode:
@@ -274,12 +323,14 @@ rule dedup_umi_encode:
         tmpdir = TMPDIR
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
     log: "logs/{replicate_label}.dedup_umi_encode.log"
-    container:
-        "docker://howardxu520/skipper:umicollapse_1.0.0"
+    conda:
+        "envs/umicollapse.yaml"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting dedup_umi_encode" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting dedup_umi_encode" | tee {log}
 
         java -server -Xms32G -Xmx32G -Xss40M \
             -jar /UMICollapse/umicollapse.jar bam \
@@ -289,7 +340,7 @@ rule dedup_umi_encode:
             --two-pass \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished dedup_umi_encode" 2>&1 | tee -a {log}
+        echo "[`date`] Finished dedup_umi_encode" | tee -a {log}
         """
 
 rule select_informative_read:
@@ -299,15 +350,17 @@ rule select_informative_read:
         bam_informative = "output/bams/dedup/genome_R" + str(INFORMATIVE_READ) + "/{replicate_label}.genome.Aligned.sort.dedup.R" + str(INFORMATIVE_READ) + ".bam"
     benchmark: "benchmarks/select/unassigned_experiment.{replicate_label}.select_informative_read.txt"
     log: "logs/{replicate_label}.select_informative_read.log"
-    container:
-        "docker://howardxu520/skipper:samtools_1.17"
+    conda:
+        "envs/bedbam_tools.yaml"
     resources:
         mem_mb = 10000,
         runtime = "1h"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting select_informative_read" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting select_informative_read" | tee {log}
 
         samtools view \
             -bF {64 if UNINFORMATIVE_READ == 1 else 128} \
@@ -315,7 +368,7 @@ rule select_informative_read:
             > {output.bam_informative} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished select_informative_read" 2>&1 | tee -a {log}
+        echo "[`date`] Finished select_informative_read" | tee -a {log}
         """
 
 rule obtain_unique_reads:
@@ -327,22 +380,24 @@ rule obtain_unique_reads:
         "benchmarks/{replicate_label}.count_uniq_fragments.txt"
     log: 
         "logs/{replicate_label}.obtain_unique_reads.log"
-    container:
-        "docker://howardxu520/skipper:samtools_1.17"
+    conda:
+        "envs/bedbam_tools.yaml"
     resources:
         mem_mb=10000,
         runtime="1h"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting obtain_unique_reads" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting obtain_unique_reads" | tee {log}
 
         samtools idxstats {input} \
             | awk -F '\t' '{{s+=$3+$4}} END {{print s}}' \
             > {output} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished obtain_unique_reads" 2>&1 | tee -a {log}
+        echo "[`date`] Finished obtain_unique_reads" | tee -a {log}
         """
 
 rule obtain_aligned_reads:
@@ -354,20 +409,22 @@ rule obtain_aligned_reads:
         "benchmarks/{replicate_label}.count_aligned_reads.txt"
     log: 
         "logs/{replicate_label}.obtain_aligned_reads.log"
-    container:
-        "docker://howardxu520/skipper:samtools_1.17"
+    conda:
+        "envs/bedbam_tools.yaml"
     resources:
         mem_mb=8000,
         runtime="1h"
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting obtain_aligned_reads" 2>&1 | tee {log}
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting obtain_aligned_reads" | tee {log}
 
         samtools idxstats {input} \
             | awk -F '\t' '{{s+=$3+$4}} END {{print s}}' \
             > {output} \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished obtain_aligned_reads" 2>&1 | tee -a {log}
+        echo "[`date`] Finished obtain_aligned_reads" | tee -a {log}
         """

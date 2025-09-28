@@ -13,13 +13,14 @@ rule run_homer:
         runtime = "1h"
     benchmark: "benchmarks/run_homer/{experiment_label}.all_replicates.reproducible.txt"
     log: "logs/{experiment_label}.run_homer.log"
-    container:
-        "docker://howardxu520/skipper:Homer_4.11"
+    conda:
+        "envs/homer.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting run_homer" 2>&1 | tee "{log}"
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting run_homer" | tee "{log}"
 
         # Prepare process-substitution inputs
         fg_input=<(zcat {input.finemapped_windows} \
@@ -36,7 +37,7 @@ rule run_homer:
             -bg "$bg_input" \
             2>&1 | tee -a "{log}"
 
-        echo "[`date`] Finished run_homer" 2>&1 | tee -a "{log}"
+        echo "[`date`] Finished run_homer" | tee -a "{log}"
         """
 
 rule consult_encode_reference:
@@ -61,13 +62,14 @@ rule consult_encode_reference:
         runtime = "30m"
     benchmark: "benchmarks/consult_encode_reference/skipper.txt"
     log: "logs/consult_encode_reference.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting consult_encode_reference" 2>&1 | tee "{log}"
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting consult_encode_reference" | tee "{log}"
 
         Rscript --vanilla {TOOL_DIR}/consult_encode_reference.R \
             output/reproducible_enriched_windows \
@@ -76,7 +78,7 @@ rule consult_encode_reference:
             skipper \
             2>&1 | tee -a "{log}"
 
-        echo "[`date`] Finished consult_encode_reference" 2>&1 | tee -a "{log}"
+        echo "[`date`] Finished consult_encode_reference" | tee -a "{log}"
         """
 
 rule consult_term_reference:
@@ -93,13 +95,14 @@ rule consult_term_reference:
         runtime = "30m"
     benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
     log: "logs/{experiment_label}.consult_term_reference.log"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
+    conda:
+        "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "[`date`] Starting consult_term_reference" 2>&1 | tee "{log}"
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting consult_term_reference" | tee "{log}"
 
         Rscript --vanilla {TOOL_DIR}/consult_term_reference.R \
             {input.enriched_windows} \
@@ -109,5 +112,5 @@ rule consult_term_reference:
             {wildcards.experiment_label} \
             2>&1 | tee -a "{log}"
 
-        echo "[`date`] Finished consult_term_reference" 2>&1 | tee -a "{log}"
+        echo "[`date`] Finished consult_term_reference" | tee -a "{log}"
         """
