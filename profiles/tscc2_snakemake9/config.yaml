@@ -1,6 +1,6 @@
 verbose: false
 quiet: reason
-printshellcmds: true
+printshellcmds: false
 notemp: true
 latency: 60
 skip-script-cleanup: true

@@ -1,8 +1,43 @@
 locals().update(config)
 
-rule parse_gff:
+rule filter_gff:
     input:
         gff = ancient(GFF),
+        rankings = ancient(ACCESSION_RANKINGS),
+    output:
+        gff_filt = "output/gff/filtered.gff3",
+        rankings_filt = "output/gff/filtered_ranks.txt",
+    params:
+        source = config["GFF_SOURCE"]
+    threads: 1
+    resources:
+        mem_mb = 32000,
+        runtime = "1h"
+    benchmark: "benchmarks/filter_gff.txt"
+    log: "logs/filter_gff.log"
+    conda:
+        "envs/skipper_R.yaml"
+    shell:
+        r"""
+        set -euo pipefail
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting filter_gff" | tee {log}
+
+        Rscript --vanilla {TOOL_DIR}/filter_gff.R \
+            {params.source} \
+            {input.gff} \
+            {input.rankings} \
+            {output.gff_filt} \
+            {output.rankings_filt} \
+            2>&1 | tee -a {log}
+
+        echo "[`date`] Finished filter_gff" | tee -a {log}
+        """
+
+rule parse_gff:
+    input:
+        gff_filt = "output/gff/filtered.gff3",
         rankings = ancient(ACCESSION_RANKINGS),
     output:
         partition = PARTITION,
@@ -23,7 +58,7 @@ rule parse_gff:
         echo "[`date`] Starting parse_gff" | tee {log}
 
         Rscript --vanilla {TOOL_DIR}/parse_gff.R \
-            {input.gff} \
+            {input.gff_filt} \
             {input.rankings} \
             {output.partition} \
             {output.feature_annotations} \

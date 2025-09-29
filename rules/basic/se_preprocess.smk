@@ -8,7 +8,7 @@ else:
 
 rule run_star_genome_generate:
     input:
-        gff = ancient(GFF),
+        gff = "output/gff/filtered.gff3",
         fasta_file = ancient(GENOME),
     output:
         star_dir = directory(STAR_DIR),
@@ -28,19 +28,14 @@ rule run_star_genome_generate:
         echo "Running on node: $(hostname)" | tee -a {log}
         echo "[`date`] Starting star_genome_generate." | tee {log}
 
-        tmp_gff=tmp/tmp.gff
-        zcat {input.gff} > $tmp_gff
-
         STAR \
             --runMode genomeGenerate \
             --runThreadN {threads} \
             --genomeDir {output.star_dir} \
             --genomeFastaFiles {input.fasta_file} \
-            --sjdbGTFfile $tmp_gff \
+            --sjdbGTFfile {input.gff} \
             --sjdbOverhang 99 \
             2>&1 | tee -a {log}
-
-        rm -f $tmp_gff
 
         echo "[`date`] Finished star_genome_generate." | tee -a {log}
         """

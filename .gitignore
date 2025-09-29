@@ -21,6 +21,9 @@ annotations/gencode.v38.annotation.k562_totalrna.gt1.gff3
 annotations/repeatmasker.grch38.sort.unique.bed.gz
 annotations/repeatmasker.grch38.tsv.gz
 annotations/
+annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.bed.gz
+tmp/
+annotations/*
 .snakemake/
 .ipynb_checkpoints
 .fontconfig/

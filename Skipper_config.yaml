@@ -3,6 +3,7 @@ protocol: ENCODE4
 MANIFEST: example/Example_manifest.csv
 
 # Annotation files
+GFF_SOURCE: "gencode" # One of either "gencode" or "ensembl". 
 GFF: annotations/gencode.v38.annotation.k562_totalrna.gt1.gff3.gz
 PARTITION: annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.bed.gz
 FEATURE_ANNOTATIONS: annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.features.tsv.gz

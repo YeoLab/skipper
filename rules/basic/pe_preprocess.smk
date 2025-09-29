@@ -9,7 +9,7 @@ locals().update(config)
 
 rule run_star_genome_generate:
     input:
-        gff = ancient(GFF),
+        gff = "output/gff/filtered.gff3",
         fasta_file = ancient(GENOME),
     output:
         star_dir = directory(STAR_DIR),
