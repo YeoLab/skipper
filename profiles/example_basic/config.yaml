@@ -1,0 +1,14 @@
+verbose: false
+quiet: reason
+printshellcmds: false
+notemp: true
+latency: 60
+skip-script-cleanup: true
+retries: 3
+nolock: true
+keep-going: true
+use-conda: true
+conda-prefix: "PATH/TO/SAVE/CONDA_ENVS"
+conda-frontend: conda
+rerun-incomplete: true
+jobs: 30

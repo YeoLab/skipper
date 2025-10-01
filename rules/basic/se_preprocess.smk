@@ -1,4 +1,4 @@
-locals().update(config) 
+∂locals().update(config) 
 if config.get('AGGRESSIVE_TRIM', False):
     skewer_k = 1
     skewer_m = 'any'

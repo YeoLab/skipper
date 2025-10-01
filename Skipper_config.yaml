@@ -3,10 +3,16 @@ protocol: ENCODE4
 MANIFEST: example/Example_manifest.csv
 
 # Annotation files
-GFF_SOURCE: "gencode" # One of either "gencode" or "ensembl". 
-GFF: annotations/gencode.v38.annotation.k562_totalrna.gt1.gff3.gz
-PARTITION: annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.bed.gz
-FEATURE_ANNOTATIONS: annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.features.tsv.gz
+# GFF_SOURCE: "gencode" # One of either "gencode" or "ensembl". 
+# GFF: annotations/gencode.v38.annotation.k562_totalrna.gt1.gff3.gz
+# PARTITION: annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.bed.gz
+# FEATURE_ANNOTATIONS: annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.features.tsv.gz
+
+GFF_SOURCE: "ensembl" # One of either "gencode" or "ensembl". 
+GFF: /tscc/nfs/home/kflanagan/projects/skipper_update/raw_gff_files/ensembl_Homo_sapiens.GRCh38.114.chr.gff3.gz
+PARTITION: annotations/ensembl_Homo_sapiens.GRCh38.114.tiled_partition.bed.gz
+FEATURE_ANNOTATIONS: annotations/ensembl_Homo_sapiens.GRCh38.114.tiled_partition.features.tsv.gz
+
 ACCESSION_RANKINGS: annotations/accession_type_ranking.txt
 GENOME: annotations/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta
 STAR_DIR: annotations/genome_ref

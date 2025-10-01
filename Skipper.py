@@ -1,4 +1,4 @@
-############################## SETUP #################################
+ ############################## SETUP #################################
 
 # Import packages. 
 import pandas as pd
@@ -135,14 +135,6 @@ for experiment_label, label_list in zip(experiment_data.index, experiment_data.I
 
 # Save mapping into config for downstream steps
 config['experiment_to_input_replicate_labels']=experiment_to_input_replicate_labels
-
-# Fool-proof detect disagreement for GFF and PARTITION
-if Path(GFF).name.replace('.gff3.gz', '') != Path(FEATURE_ANNOTATIONS).name.replace('.tiled_partition.features.tsv.gz', ''):
-    warnings.warn(f'''Detected Name Mismatch in GFF and FEATURE ANNOTATIONS:
-    FEATURE_ANNOTATIONS={FEATURE_ANNOTATIONS}
-    GFF={GFF}
-    Check if they are the same cell line
-    ''')
 
 # Add the manifest to the config file
 config['manifest'] = manifest

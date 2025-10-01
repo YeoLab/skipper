@@ -29,19 +29,14 @@ rule run_star_genome_generate:
         echo "Running on node: $(hostname)" | tee -a {log}
         echo "[`date`] Starting star_genome_generate." | tee {log}
 
-        tmp_gff=tmp/tmp.gff
-        zcat {input.gff} > $tmp_gff
-
         STAR \
             --runMode genomeGenerate \
             --runThreadN {threads} \
             --genomeDir {output.star_dir} \
             --genomeFastaFiles {input.fasta_file} \
-            --sjdbGTFfile $tmp_gff \
+            --sjdbGTFfile {input.gff} \
             --sjdbOverhang 99 \
             2>&1 | tee -a {log}
-
-        rm -f $tmp_gff
 
         echo "[`date`] Finished star_genome_generate." | tee -a {log}
         """
@@ -65,13 +60,13 @@ rule copy_with_umi:
         echo "[`date`] Starting copy_with_umi" | tee {log}
 
         zcat {input.fq_1} \
-            | awk 'NR % 4 != 1 {print} NR % 4 == 1 {split($1,header,":"); print $1 ":" substr(header[1],2,length(header[1]) - 1) }' \
+            | awk 'NR % 4 != 1 {{print}} NR % 4 == 1 {{split($1,header,":"); print $1 ":" substr(header[1],2,length(header[1]) - 1) }}' \
             | gzip \
             > {output.fq_1} \
             2>&1 | tee -a {log}
 
         zcat {input.fq_2} \
-            | awk 'NR % 4 != 1 {print} NR % 4 == 1 {split($1,header,":"); print $1 ":" substr(header[1],2,length(header[1]) - 1) }' \
+            | awk 'NR % 4 != 1 {{print}} NR % 4 == 1 {{split($1,header,":"); print $1 ":" substr(header[1],2,length(header[1]) - 1) }}' \
             | gzip \
             > {output.fq_2} \
             2>&1 | tee -a {log}
@@ -198,7 +193,7 @@ rule run_trimmed_fastqc:
 rule align_reads_encode:
     input:
         fq_1 = rules.trim_fastq_encode.output.fq_1_trimmed,
-        fq_2 = rules.trim_fastq_encode.output.fq_2_trimmed
+        fq_2 = rules.trim_fastq_encode.output.fq_2_trimmed,
         star_sjdb = STAR_DIR
     output:
         ubam = temp("output/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
@@ -309,38 +304,38 @@ rule index_bams:
         echo "[`date`] Finished index_bams" | tee -a {log}
         """
 
-rule dedup_umi_encode:
+rule dedup_umi:
     input:
         bam = "output/bams/raw/genome/{replicate_label}.genome.Aligned.sort.bam",
         ibam = "output/bams/raw/genome/{replicate_label}.genome.Aligned.sort.bam.bai"
     output:
         bam_dedup = "output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
-    params:
-        prefix = "output/bams/dedup/genome/{replicate_label}.genome.sort"
-    resources:
-        mem_mb = 34000,
-        runtime = "2h",
-        tmpdir = TMPDIR
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
-    log: "logs/{replicate_label}.dedup_umi_encode.log"
+    log: "logs/{replicate_label}.dedup_umi.log"
     conda:
         "envs/umicollapse.yaml"
+    resources:
+        mem_mb = 48000,
+        runtime = "2h",
+        tmpdir = TMPDIR
     shell:
         r"""
         set -euo pipefail
 
         echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting dedup_umi_encode" | tee {log}
+        echo "[`date`] Starting dedup_umi for {wildcards.replicate_label}" | tee {log}
+
+        JAR=$(dirname $(which umicollapse))/../share/umicollapse*/umicollapse.jar
 
         java -server -Xms32G -Xmx32G -Xss40M \
-            -jar /UMICollapse/umicollapse.jar bam \
+            -jar $JAR bam \
             -i {input.bam} \
             -o {output.bam_dedup} \
             --umi-sep : \
             --two-pass \
             2>&1 | tee -a {log}
 
-        echo "[`date`] Finished dedup_umi_encode" | tee -a {log}
+        echo "[`date`] Finished dedup_umi for {wildcards.replicate_label}" | tee -a {log}
         """
 
 rule select_informative_read:
@@ -355,6 +350,8 @@ rule select_informative_read:
     resources:
         mem_mb = 10000,
         runtime = "1h"
+    params:
+        flag = 64 if UNINFORMATIVE_READ == 1 else 128
     shell:
         r"""
         set -euo pipefail
@@ -363,7 +360,7 @@ rule select_informative_read:
         echo "[`date`] Starting select_informative_read" | tee {log}
 
         samtools view \
-            -bF {64 if UNINFORMATIVE_READ == 1 else 128} \
+            -bF {params.flag} \
             {input.bam_combined} \
             > {output.bam_informative} \
             2>&1 | tee -a {log}

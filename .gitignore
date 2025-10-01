@@ -22,6 +22,10 @@ annotations/repeatmasker.grch38.sort.unique.bed.gz
 annotations/repeatmasker.grch38.tsv.gz
 annotations/
 annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.bed.gz
+paired_end_example/
+Rplots.pdf
+run_skipper_pe.sh
+Skipper_pe_small_test.yaml
 tmp/
 annotations/*
 .snakemake/
