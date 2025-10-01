@@ -1,3 +1,4 @@
+# Load core libraries for data manipulation/IO
 library(rtracklayer)
 library(GenomicRanges)
 library(dplyr)
@@ -5,15 +6,13 @@ library(readr)
 library(stringr)
 library(tibble)
 
+# Parse command-line arguments in the expected order.
 args <- commandArgs(trailingOnly = TRUE)
-
 source_mode         <- args[1]
 input_gff           <- args[2]
 master_ranking_path <- args[3]
 output_gff          <- args[4]
 output_accession    <- args[5]
-
-# ---------------------- Helpers: I/O & mapping ----------------------
 
 # Read GFF3 into a data.frame. 
 read_gff_as_df <- function(path) {

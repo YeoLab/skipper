@@ -1,17 +1,23 @@
-#!/home/eboyle/bin/Rscript --vanilla 
-
+# Load required packages
 library(magrittr)
 library(GenomicRanges)
 
+# Command-line arguments
 args = commandArgs(trailingOnly=TRUE)
-gff3_file = args[1]
-accession_ranking_file = args[2]
-partition_output = args[3]
-annotations_output = args[4]
-window_size = 100
+gff3_file = args[1]               # Input GFF3 annotation
+accession_ranking_file = args[2]  # Accession ranking table
+partition_output = args[3]        # BED output of tiled partition
+annotations_output = args[4]      # TSV output of feature annotations
+window_size = 100                 # Window size for tiling
 
+# -------------------------------
+# Read annotation data
+# -------------------------------
+# Import GFF3, excluding transcripts of type "artifact"
 transcript_data = rtracklayer::readGFF(gff3_file) %>% .[which(.$transcript_type != "artifact"),]
 gr = makeGRangesFromDataFrame(transcript_data, keep.extra.columns=TRUE)
+
+# Import accession rankings and define type/subtype priorities
 accession_data = readr::read_tsv(accession_ranking_file) %>% (dplyr::arrange)(rank)
 accession_type_rankings = c(accession_data$accession, "primary_miRNA")
 exon_subtypes = accession_data$exon_subtype %>% unique
@@ -19,32 +25,52 @@ protein_coding_subtype = accession_data$exon_subtype[accession_data$accession ==
 prioritized_exon_subtypes = exon_subtypes[cumsum(exon_subtypes == protein_coding_subtype) < 1]
 unprioritized_exon_subtypes = exon_subtypes[cumsum(exon_subtypes == protein_coding_subtype) >= 1]
 
-feature_order = c(paste0("EXON_", prioritized_exon_subtypes), "CDS_SOLITARY", "CDS_START","CDS_STOP","CDS","UTR3","UTR5",paste0("EXON_", unprioritized_exon_subtypes),"SSB_ADJ","SS3_ADJ","SS5_ADJ","SSB_PROX","SS3_PROX","SS5_PROX","PRIMIRNA","INTRON")
+# Define a canonical order of feature types
+feature_order = c(paste0("EXON_", prioritized_exon_subtypes), "CDS_SOLITARY", "CDS_START","CDS_STOP","CDS",
+                  "UTR3","UTR5",paste0("EXON_", unprioritized_exon_subtypes),
+                  "SSB_ADJ","SS3_ADJ","SS5_ADJ","SSB_PROX","SS3_PROX","SS5_PROX","PRIMIRNA","INTRON")
+
+# Check that gene/transcript types in GFF match rankings
 write("Checking that all gene and transcript types are included in ranking", stderr())
-stopifnot(length(setdiff(unique(gr$gene_type), accession_type_rankings)) == 0, length(setdiff(unique(gr$transcript_type), accession_type_rankings)) == 0)
+stopifnot(length(setdiff(unique(gr$gene_type), accession_type_rankings)) == 0,
+          length(setdiff(unique(gr$transcript_type), accession_type_rankings)) == 0)
 write("...Success", stderr())
 
+# Build metadata string for each feature
 gr$metadata = paste0(gr$gene_name, ":", gr$gene_id, ":", gr$transcript_id, ":", gr$gene_type, ":", gr$transcript_type)
 
+# -------------------------------
+# Define feature-level GRanges
+# -------------------------------
 # UTRs
 utr3 = gr[(gr$type == "three_prime_UTR")] %>% sort
 utr5 = gr[(gr$type == "five_prime_UTR")] %>% sort
 
-# CDSs
+# CDS regions and codons
 cds = gr[gr$type == "CDS"] %>% sort
 cds_split = split(cds, cds$metadata)
 
 start_codon = gr[gr$type == "start_codon"]
 stop_codon = gr[gr$type == "stop_codon"]
-cds_start = findOverlaps(cds, start_codon) %>% (function(overlaps) cds[queryHits(overlaps[cds$metadata[queryHits(overlaps)] == start_codon$metadata[subjectHits(overlaps)]])]) %>% resize(.,ifelse(width(.) < 100, width(.), 100)) %>% sort
-cds_stop = findOverlaps(cds, stop_codon) %>% (function(overlaps) cds[queryHits(overlaps[cds$metadata[queryHits(overlaps)] == stop_codon$metadata[subjectHits(overlaps)]])]) %>% resize(.,ifelse(width(.) < 100, width(.), 100),fix="end") %>% sort
+
+# Find CDSs overlapping with start/stop codons and resize them to <=100 bp
+cds_start = findOverlaps(cds, start_codon) %>%
+  (function(overlaps) cds[queryHits(overlaps[cds$metadata[queryHits(overlaps)] == start_codon$metadata[subjectHits(overlaps)]])]) %>%
+  resize(., ifelse(width(.) < 100, width(.), 100)) %>% sort
+
+cds_stop = findOverlaps(cds, stop_codon) %>%
+  (function(overlaps) cds[queryHits(overlaps[cds$metadata[queryHits(overlaps)] == stop_codon$metadata[subjectHits(overlaps)]])]) %>%
+  resize(., ifelse(width(.) < 100, width(.), 100), fix="end") %>% sort
 
 cds_start_split = split(cds_start, cds_start$metadata)
 cds_stop_split = split(cds_stop, cds_stop$metadata)
-first_last_transcripts = intersect(names(cds_start_split), names(cds_stop_split))
-cds_single = intersect(cds_start_split[first_last_transcripts], cds_stop_split[first_last_transcripts]) %>% stack("metadata") %>% sort 
 
-# miRNA padding
+# Identify transcripts that have both start and stop codons
+first_last_transcripts = intersect(names(cds_start_split), names(cds_stop_split))
+cds_single = intersect(cds_start_split[first_last_transcripts],
+                       cds_stop_split[first_last_transcripts]) %>% stack("metadata") %>% sort 
+
+# miRNA: pad with ±500bp to define "primary miRNA" features
 primirna = (gr[which(gr$transcript_type == "miRNA")] + 500) %>% sort
 if (length(primirna) > 0){                                    
     primirna$transcript_type = "primary_miRNA" 
@@ -53,34 +79,39 @@ if (length(primirna) > 0){
     primirna = NULL
 }
 
-# exons (not CDS)
+# Exons (excluding CDS)
 exons = gr[gr$type == "exon"] %>% sort
 exons_split = split(exons, exons$metadata) 
 
+# Transcripts
 transcripts = gr[gr$type == "transcript"] %>% sort
 transcripts_split = split(transcripts, transcripts$metadata)
 
-# introns
+# Introns = transcript span minus exon span
 introns_split = setdiff(transcripts_split, exons_split)
 introns_unsplit = introns_split %>% stack("metadata")
 
-# splice site adjacent
-ss5_adj = resize(introns_unsplit,ifelse(width(introns_unsplit) < 100, width(introns_unsplit), 100)) 
-ss3_adj = resize(introns_unsplit,ifelse(width(introns_unsplit) < 100, width(introns_unsplit), 100), fix = "end") 
+# Splice site adjacent windows (~100bp at ends of introns)
+ss5_adj = resize(introns_unsplit, ifelse(width(introns_unsplit) < 100, width(introns_unsplit), 100)) 
+ss3_adj = resize(introns_unsplit, ifelse(width(introns_unsplit) < 100, width(introns_unsplit), 100), fix="end") 
 ssb_adj = intersect(split(ss5_adj,ss5_adj$metadata), split(ss3_adj,ss3_adj$metadata)) %>% stack("metadata")
 
-# splice site proximal
-ss5_prox = resize(introns_unsplit,ifelse(width(introns_unsplit) < 500, width(introns_unsplit), 500)) 
-ss3_prox = resize(introns_unsplit,ifelse(width(introns_unsplit) < 500, width(introns_unsplit), 500), fix = "end") 
+# Splice site proximal windows (~500bp at ends of introns)
+ss5_prox = resize(introns_unsplit, ifelse(width(introns_unsplit) < 500, width(introns_unsplit), 500)) 
+ss3_prox = resize(introns_unsplit, ifelse(width(introns_unsplit) < 500, width(introns_unsplit), 500), fix="end") 
 ssb_prox = intersect(split(ss5_prox,ss5_prox$metadata), split(ss3_prox,ss3_prox$metadata)) %>% stack("metadata")
 
+# -------------------------------
+# Helper: reduce overlapping features
+# -------------------------------
 reduce_grange <- function(data, f_type) {
-  # Return an empty GRanges with the right column when there is no data.
+  # Return an empty GRanges with the right column when no data is available
   if (length(data) == 0L) {
     gr0 <- GRanges()
     mcols(gr0)$feature_type <- character(0)
     return(gr0)
   }
+  # Split by transcript type, reduce overlaps, and prioritize by accession ranking
   split_reduction <- (tidyr::separate((dplyr::as_tibble)(data), metadata,
                                       c("gene_name","gene_id","transcript_id","gene_type","transcript_type"), ":")) %>%
     GRanges() %>% split(., .$transcript_type) %>% reduce
@@ -93,21 +124,27 @@ reduce_grange <- function(data, f_type) {
   feature_partition
 }
 
-# Add subtype to exon features
-exons$exon_subtype = dplyr::tibble(transcript_type=exons$transcript_type) %>% dplyr::left_join(., dplyr::rename(accession_data, transcript_type = accession)) %>% dplyr::pull(exon_subtype)
+# -------------------------------
+# Reduce exon subtypes separately
+# -------------------------------
+exons$exon_subtype = dplyr::tibble(transcript_type=exons$transcript_type) %>%
+  dplyr::left_join(., dplyr::rename(accession_data, transcript_type = accession)) %>%
+  dplyr::pull(exon_subtype)
 
-exons_reduced_list = lapply(exon_subtypes, function(subtype) reduce_grange(exons[exons$exon_subtype == subtype], paste0("EXON_", subtype)))
+exons_reduced_list = lapply(exon_subtypes, function(subtype) 
+  reduce_grange(exons[exons$exon_subtype == subtype], paste0("EXON_", subtype)))
 prioritized_exon_subtypes_reduced = exons_reduced_list[cumsum(exon_subtypes == protein_coding_subtype) < 1]
 unprioritized_exon_subtypes_reduced = exons_reduced_list[cumsum(exon_subtypes == protein_coding_subtype) >= 1]
 
+# -------------------------------
+# Reduce other features
+# -------------------------------
 cds_single_reduced = reduce_grange(cds_single, "CDS_SOLITARY")
 cds_start_reduced = reduce_grange(cds_start, "CDS_START") 
 cds_stop_reduced = reduce_grange(cds_stop, "CDS_STOP") 
 cds_reduced = reduce_grange(cds, "CDS") 
 utr3_reduced = reduce_grange(utr3, "UTR3")
 utr5_reduced = reduce_grange(utr5, "UTR5")
-## exons are typically broken down by subtype
-# exons_reduced = reduce_grange(exons, "EXON")
 ssb_adj_reduced = reduce_grange(ssb_adj, "SSB_ADJ")
 ss3_adj_reduced = reduce_grange(ss3_adj, "SS3_ADJ")
 ss5_adj_reduced = reduce_grange(ss5_adj, "SS5_ADJ")
@@ -117,27 +154,16 @@ ss5_prox_reduced = reduce_grange(ss5_prox, "SS5_PROX")
 primirna_reduced = reduce_grange(primirna, "PRIMIRNA")
 introns_reduced = reduce_grange(introns_unsplit, "INTRON")
 
+# -------------------------------
+# Combine all reduced feature sets into a partition
+# -------------------------------
 feature_data_list <- c(
   prioritized_exon_subtypes_reduced,
-  list(
-    cds_single_reduced,
-    cds_start_reduced,
-    cds_stop_reduced,
-    cds_reduced,
-    utr3_reduced,
-    utr5_reduced
-  ),
+  list(cds_single_reduced, cds_start_reduced, cds_stop_reduced, cds_reduced, utr3_reduced, utr5_reduced),
   unprioritized_exon_subtypes_reduced,
-  list(
-    ssb_adj_reduced,
-    ss3_adj_reduced,
-    ss5_adj_reduced,
-    ssb_prox_reduced,
-    ss3_prox_reduced,
-    ss5_prox_reduced,
-    primirna_reduced,   # This will be empty if there are no miRNAs.
-    introns_reduced
-  )
+  list(ssb_adj_reduced, ss3_adj_reduced, ss5_adj_reduced,
+       ssb_prox_reduced, ss3_prox_reduced, ss5_prox_reduced,
+       primirna_reduced, introns_reduced)
 )
 
 full_partition <- GRanges()
@@ -146,10 +172,14 @@ for (feature_data in feature_data_list) {
   full_partition <- c(full_partition, subtracted_data)
 }
 
-# Tile to fixed windows.
+# -------------------------------
+# Tile reduced features into fixed-size windows
+# -------------------------------
 tiled_partition <- sort(full_partition) %>% tile(width = window_size) %>% stack("feature_id")
 
-# Feature annotations (types).
+# -------------------------------
+# Annotate tiled windows by overlapping features
+# -------------------------------
 feature_data_concat <- do.call("c", feature_data_list)
 feature_hits <- findOverlaps(tiled_partition, feature_data_concat)
 
@@ -164,7 +194,9 @@ feature_annotations <- dplyr::tibble(
     .groups = "drop"
   )
 
-# Meta annotations: always concatenate transcripts and primirna; empty primirna is harmless.
+# -------------------------------
+# Meta-annotations (gene/transcript IDs)
+# -------------------------------
 meta_hits <- findOverlaps(tiled_partition, c(transcripts, primirna))
 
 meta_annotations <- dplyr::tibble(
@@ -184,6 +216,9 @@ meta_annotations <- dplyr::tibble(
     .groups = "drop"
   )
 
+# -------------------------------
+# Export partition (BED) and annotations (TSV)
+# -------------------------------
 tiled_partition$name <- seq_len(length(tiled_partition))
 rtracklayer::export.bed(tiled_partition, partition_output)
 
