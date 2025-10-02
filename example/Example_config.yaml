@@ -1,0 +1,26 @@
+################################# BASIC INPUTS (required for all runs) ####################################
+
+# Required work/organizational files. 
+WORKDIR: /path/to/save/output
+TMPDIR: tmp
+MANIFEST: /path/to/your/skipper/example/Example_manifest.csv
+TOOL_DIR: /path/to/your/skipper/tools
+
+# Required Annotation Files
+GFF_SOURCE: "gencode" # One of either "gencode" or "ensembl". 
+GFF: /path/to/your/skipper/annotations/gencode.v38.annotation.k562_totalrna.gt1.gff3.gz
+GENOME: /path/to/your/skipper/annotations/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta
+ACCESSION_RANKINGS: /path/to/your/skipper/annotations/accession_type_ranking.txt
+BLACKLIST: /path/to/your/skipper/annotations/encode3_eclip_blacklist.bed # set to None for no blacklist
+
+# Auto Generated Annotation Files.
+# MUST still specify paths/names so skipper knows where to save generated files to!
+PARTITION: /path/to/save/output/annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.bed.gz
+FEATURE_ANNOTATIONS: /path/to/save/output/annotations/gencode.v38.annotation.k562_totalrna.gt1.tiled_partition.features.tsv.gz
+STAR_DIR: /path/to/save/output/annotations/genome_ref
+
+# eCLIP Parameters
+protocol: ENCODE4 # ENCODE4 for single end, ENCODE3 for paired end. ###!!!### Capitolize this for consistency. 
+UMI_SIZE: 10
+INFORMATIVE_READ: 1
+OVERDISPERSION_MODE: input   # input or clip, input is reccomended

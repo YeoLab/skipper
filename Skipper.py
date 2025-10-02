@@ -179,20 +179,30 @@ def call_enriched_window_output(wildcards):
             outputs.append(f"output/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_feature_summary.tsv")
     return outputs
 
+# Add path to the chrom sizes file to config
+config["CHROM_SIZES"] = config["STAR_DIR"] + "/chrNameLength.txt"
+config["UNINFORMATIVE_READ"] = str(3 - config["INFORMATIVE_READ"])
+
 ############################## Define which parts of skipper to run #################################
 
 # Always include the basic.
 all_inputs = ["basic_done.txt"]
 
 # Look through all ml related keys. 
-required_keys = [
-    "HEADER", "RENAME", "ROULETTE_DIR", "GNOMAD_DIR", "CLINVAR_VCF", "VEP_CACHEDIR",
-    "VEP_CACHE_VERSION", "SINGLETON_REFERENCE", "OE_RATIO_REFERENCE", "GNOMAD_CONSTRAINT",
-]
+ml_keys = ["HEADER", "RENAME", "ROULETTE_DIR", "GNOMAD_DIR", "CLINVAR_VCF", "VEP_CACHEDIR",
+           "VEP_CACHE_VERSION", "SINGLETON_REFERENCE", "OE_RATIO_REFERENCE", "GNOMAD_CONSTRAINT"]
+
+repeat_keys = ["REPEAT_TABLE", "REPEAT_BED"]
+
+geneset_keys = ["GENE_SETS", "GENE_SET_REFERENCE", "GENE_SET_DISTANCE"]
+
+homer_keys = ["HOMER"]
+
+meta_keys = ["META_ANALYSIS"]
 
 # Auto assign keys to None (avoids DAG error in snakemake).
-for k in required_keys:
-    if k not in config:
+for k in ml_keys + repeat_keys + geneset_keys + homer_keys + meta_keys:
+    if k not in config or k == False:
         config[k] = ""
 
 # A function that checks if all ml keys are present. 
@@ -200,19 +210,44 @@ def has_all_required(cfg, keys):
     return all(cfg.get(k) not in [None, ""] for k in keys)
 
 # If all ml configs are provided, include the ml rules.
-if has_all_required(config, required_keys):
+if has_all_required(config, ml_keys):
     all_inputs += [
         "ml_variants_done.txt",
         "ml_benchmark_done.txt",
         "mcross_done.txt",
     ]
 
+if has_all_required(config, repeat_keys):
+    all_inputs += [
+        "repeat_done.txt",
+    ]
+
+if has_all_required(config, geneset_keys):
+    all_inputs += [
+        "geneset_done.txt",
+    ]
+
+if config["HOMER"] != "" or has_all_required(config, ml_keys):
+    all_inputs += [
+        "homer_done.txt",
+    ]
+
+if config["META_ANALYSIS"] != "":
+    all_inputs += [
+        "meta_done.txt",
+    ]
+
+if config["META_ANALYSIS"] != "" and has_all_required(config, repeat_keys):
+    all_inputs += [
+        "meta_repeats_done.txt",
+    ]
+
 # Run rule all. 
 rule all:
     input:
         all_inputs
-
-# Calls upon outputs needed for basic.
+    
+############################## Call all basic outputs #################################
 rule all_basic_output:
     input:
         expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
@@ -220,32 +255,96 @@ rule all_basic_output:
         expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
         expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
         expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw", replicate_label = replicate_labels),
-        expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz",
                zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
         expand("output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf", experiment_label = manifest.Experiment),
         expand("output/enrichment_reproducibility/{experiment_label}.odds_data.tsv", experiment_label = manifest.Experiment),
-        expand("output/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
-        expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", experiment_label = manifest.Experiment),
-        expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz", experiment_label = manifest.Experiment),
-        expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv", experiment_label = manifest.Experiment),
-        expand("output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",experiment_label = manifest.Experiment),
-        expand("output/homer/finemapped_results/{experiment_label}/homerResults.html", experiment_label = manifest.Experiment),
-        expand("output/gene_sets/{experiment_label}.enriched_terms.tsv.gz", experiment_label = manifest.Experiment),
         lambda wildcards: call_enriched_window_output(wildcards),
         "output/figures/tsne/skipper.tsne_query.pdf",
         # Quality control
         expand("output/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
         expand("output/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
         expand("output/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment),
-        expand("output/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
-        expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
         "output/QC/unique_fragments.csv",
-        expand("output/qc/{experiment_label}.gc_bias.txt", experiment_label = manifest.Experiment),
-        expand("output/qc/{experiment_label}.nread_in_finemapped_regions.txt", experiment_label=manifest.Experiment),
+        expand("output/QC/{experiment_label}.gc_bias.txt", experiment_label = manifest.Experiment),
     output:
         "basic_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
+    shell:
+        """
+        touch {output}
+        """
+
+############################## Call specific optional outputs #################################
+
+rule all_meta_output:
+    input:
+        expand("output/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
+    output:
+        "meta_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
+    shell:
+        """
+        touch {output}
+        """
+
+rule all_meta_repeat_output:
+    input:
+        expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
+    output:
+        "meta_repeats_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
+    shell:
+        """
+        touch {output}
+        """
+
+
+rule all_homer_output:
+    input:
+        expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz", experiment_label = manifest.Experiment),
+        expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv", experiment_label = manifest.Experiment),
+        expand("output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",experiment_label = manifest.Experiment),
+        expand("output/homer/finemapped_results/{experiment_label}/homerResults.html", experiment_label = manifest.Experiment),
+        expand("output/QC/{experiment_label}.nread_in_finemapped_regions.txt", experiment_label=manifest.Experiment),
+    output:
+        "homer_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
+    shell:
+        """
+        touch {output}
+        """
+
+rule all_repeat_output:
+    input:
+        expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
+        expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", experiment_label = manifest.Experiment),
+        expand("output/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
+        "output/figures/tsne_re/skipper.tsne_re_query.pdf",
+    output:
+        "repeat_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
+    shell:
+        """
+        touch {output}
+        """
+
+rule all_geneset_output:
+    input:
+        expand("output/gene_sets/{experiment_label}.enriched_terms.tsv.gz", experiment_label = manifest.Experiment),
+    output:
+        "geneset_done.txt"
     resources:
         mem_mb=400,
         run_time=20

@@ -92,28 +92,6 @@ rule make_repeat_mega_tables:
         echo "[`date`] Finished make_repeat_mega_tables" | tee -a {log}
         """
 
-# Unique fragment per library
-rule join_unique_fragments:
-    input:
-        expand("output/QC/{replicate_label}.uniq_fragments", replicate_label = replicate_labels)
-    output:
-        "output/QC/unique_fragments.csv"
-    log: "logs/join_unique_fragments.log"
-    resources:
-        mem_mb=2000,
-        runtime=25
-    shell:
-        r"""
-        set -euo pipefail
-
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting join_unique_fragments" | tee {log}
-
-        awk '{{print FILENAME "," $0}}' {input} > {output} 2>&1 | tee -a {log}
-
-        echo "[`date`] Finished join_unique_fragments" | tee -a {log}
-        """
-
 rule join_aligned_reads:
     input:
         expand("output/QC/{replicate_label}.aligned_reads", replicate_label = replicate_labels)

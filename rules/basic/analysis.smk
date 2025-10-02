@@ -1,5 +1,37 @@
 locals().update(config)
 
+rule sample_background_windows_by_region:
+    input:
+        enriched_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
+        all_windows = ancient(FEATURE_ANNOTATIONS)
+    output:
+        variable_windows = "output/homer/region_matched_background/variable/{experiment_label}.sampled_variable_windows.bed.gz",
+        fixed_windows = "output/homer/region_matched_background/fixed/{experiment_label}.sampled_fixed_windows.bed.gz"
+    resources:
+        mem_mb = 16000,
+        runtime = "30m"
+    benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
+    log: "logs/{experiment_label}.sample_background_windows_by_region.log"
+    conda:
+        "envs/skipper_R.yaml"
+    shell:
+        r"""
+        set -euo pipefail
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting sample_background_windows_by_region" | tee {log}
+
+        Rscript --vanilla {TOOL_DIR}/sample_matched_background_by_region.R \
+            {input.enriched_windows} \
+            {input.all_windows} \
+            75 \
+            output/homer/region_matched_background \
+            {wildcards.experiment_label} \
+            2>&1 | tee -a {log}
+
+        echo "[`date`] Finished sample_background_windows_by_region" | tee -a {log}
+        """
+
 rule run_homer:
     input:
         finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz",
@@ -46,10 +78,6 @@ rule consult_encode_reference:
             "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
             experiment_label = experiment_labels
         ),
-        enriched_re = lambda wildcards: expand(
-            "output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz",
-            experiment_label = experiment_labels
-        ),
         encode_references = lambda wildcards: expand(
             TOOL_DIR + "/{reference}.reference.tsv",
             reference=["encode3_feature_summary", "encode3_eclip_enrichment", "encode3_class_assignment"]
@@ -71,9 +99,8 @@ rule consult_encode_reference:
         echo "Running on node: $(hostname)" | tee -a {log}
         echo "[`date`] Starting consult_encode_reference" | tee "{log}"
 
-        Rscript --vanilla {TOOL_DIR}/consult_encode_reference.R \
+        Rscript --vanilla {TOOL_DIR}/consult_encode_reference_windows.R \
             output/reproducible_enriched_windows \
-            output/reproducible_enriched_re \
             {TOOL_DIR} \
             skipper \
             2>&1 | tee -a "{log}"
@@ -81,15 +108,52 @@ rule consult_encode_reference:
         echo "[`date`] Finished consult_encode_reference" | tee -a "{log}"
         """
 
+rule consult_encode_reference_re:
+    input:
+        enriched_re = lambda wildcards: expand(
+            "output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz",
+            experiment_label = experiment_labels
+        ),
+        encode_references = lambda wildcards: expand(
+            TOOL_DIR + "/{reference}.reference.tsv",
+            reference=["encode3_feature_summary", "encode3_eclip_enrichment", "encode3_class_assignment"]
+        )
+    output:
+        tsne_coordinates = "output/tsne_re/skipper.tsne_re_query.tsv",
+        tsne_plot = "output/figures/tsne_re/skipper.tsne_re_query.pdf"
+    resources:
+        mem_mb = 1000,
+        runtime = "30m"
+    benchmark: "benchmarks/consult_encode_reference_re/skipper.txt"
+    log: "logs/consult_encode_reference_re.log"
+    conda:
+        "envs/skipper_R.yaml"
+    shell:
+        r"""
+        set -euo pipefail
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting consult_encode_reference" | tee "{log}"
+
+        Rscript --vanilla {TOOL_DIR}/consult_encode_reference_re.R \
+            output/reproducible_enriched_re \
+            {TOOL_DIR} \
+            skipper \
+            2>&1 | tee -a "{log}"
+
+        echo "[`date`] Finished consult_encode_reference_re" | tee -a "{log}"
+        """
+
 rule consult_term_reference:
     input:
         enriched_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
-        gene_sets = GENE_SETS,
-        gene_set_reference = GENE_SET_REFERENCE,
-        gene_set_distance = GENE_SET_DISTANCE
     output:
         enrichment_results = "output/gene_sets/{experiment_label}.enriched_terms.tsv.gz",
         enrichment_plot = "output/figures/gene_sets/{experiment_label}.clustered_top_terms.pdf"
+    params:
+        gene_sets = config["GENE_SETS"],
+        gene_set_reference = config["GENE_SET_REFERENCE"],
+        gene_set_distance = config["GENE_SET_DISTANCE"]
     resources:
         mem_mb = 1000,
         runtime = "30m"
@@ -106,9 +170,9 @@ rule consult_term_reference:
 
         Rscript --vanilla {TOOL_DIR}/consult_term_reference.R \
             {input.enriched_windows} \
-            {input.gene_sets} \
-            {input.gene_set_reference} \
-            {input.gene_set_distance} \
+            {params.gene_sets} \
+            {params.gene_set_reference} \
+            {params.gene_set_distance} \
             {wildcards.experiment_label} \
             2>&1 | tee -a "{log}"
 

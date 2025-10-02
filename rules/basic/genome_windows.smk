@@ -69,11 +69,13 @@ rule parse_gff:
 
 rule partition_bam_reads:
     input:
-        CHROM_SIZES,
+        chrom_sizes = config["CHROM_SIZES"],
         bam = lambda wildcards: config['replicate_label_to_bams'][wildcards.replicate_label],
         region_partition = PARTITION,
     output:
         counts = "output/counts/genome/vectors/{replicate_label}.counts",
+    params:
+        uninformative = config["UNINFORMATIVE_READ"]
     resources:
         mem_mb = 32000,
         runtime = "1h"
@@ -89,9 +91,9 @@ rule partition_bam_reads:
         echo "[`date`] Starting partition_bam_reads" | tee {log}
 
         bedtools bamtobed -i {input.bam} \
-            | awk '($1 != "chrEBV") && ($4 !~ "/{UNINFORMATIVE_READ}$")' \
-            | bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - \
-            | bedtools shift -p 1 -m -1 -g {CHROM_SIZES} -i - \
+            | awk '($1 != "chrEBV") && ($4 !~ "/{params.uninformative}$")' \
+            | bedtools flank -s -l 1 -r 0 -g {input.chrom_sizes} -i - \
+            | bedtools shift -p 1 -m -1 -g {input.chrom_sizes} -i - \
             | bedtools sort -i - \
             | bedtools coverage -counts -s -a {input.region_partition} -b - \
             | cut -f 7 \
@@ -356,8 +358,6 @@ rule find_reproducible_enriched_windows:
 
         echo "[`date`] Finished find_reproducible_enriched_windows" | tee -a {log}
         """
-###!!!### Mmmmm, this is going to be slightly harder than I thought. I will have to move the plots into filter GINI. 
-###!!!### NOTE TOO SELF: You still need to add the DescTools package to the conda environment. Without it, none of this works. 
 
 rule filter_reproducible_windows:
     input:
@@ -391,36 +391,4 @@ rule filter_reproducible_windows:
             2>&1 | tee -a {log}
 
         echo "[`date`] Finished filter_reproducible_windows" | tee -a {log}
-        """
-
-rule sample_background_windows_by_region:
-    input:
-        enriched_windows = rules.find_reproducible_enriched_windows.output.reproducible_windows,
-        all_windows = ancient(FEATURE_ANNOTATIONS)
-    output:
-        variable_windows = "output/homer/region_matched_background/variable/{experiment_label}.sampled_variable_windows.bed.gz",
-        fixed_windows = "output/homer/region_matched_background/fixed/{experiment_label}.sampled_fixed_windows.bed.gz"
-    resources:
-        mem_mb = 16000,
-        runtime = "30m"
-    benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
-    log: "logs/{experiment_label}.sample_background_windows_by_region.log"
-    conda:
-        "envs/skipper_R.yaml"
-    shell:
-        r"""
-        set -euo pipefail
-
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting sample_background_windows_by_region" | tee {log}
-
-        Rscript --vanilla {TOOL_DIR}/sample_matched_background_by_region.R \
-            {input.enriched_windows} \
-            {input.all_windows} \
-            75 \
-            output/homer/region_matched_background \
-            {wildcards.experiment_label} \
-            2>&1 | tee -a {log}
-
-        echo "[`date`] Finished sample_background_windows_by_region" | tee -a {log}
         """

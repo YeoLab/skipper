@@ -4,31 +4,17 @@ library(Rtsne)
 library(ggrepel)
 
 # Create output directories if missing (idempotent) for tables and figures produced by this script.
-dir.create("output/tsne/", showWarnings = FALSE, recursive = TRUE)
-dir.create("output/figures/tsne/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/tsne_re/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/figures/tsne_re/", showWarnings = FALSE, recursive = TRUE)
 
 # Parse command-line arguments.
-# args[1]: directory with reproducible enriched windows TSVs.
-# args[2]: directory with reproducible enriched repeat-element TSVs.
-# args[3]: directory with reference files (feature priors, annotations).
-# args[4]: prefix for output file names.
 args = commandArgs(trailingOnly=TRUE)
-
-win_directory = args[1]
-re_directory = args[2]
-ref_directory = args[3]
-prefix = args[4]
+re_directory = args[1]
+ref_directory = args[2]
+prefix = args[3]
 
 # Discover all enriched window and repeat-element result files to be ingested.
-enriched_window_files = list.files(path = win_directory, pattern = ".*\\.reproducible_enriched_windows.tsv.gz", full.names = TRUE)
 enriched_re_files = list.files(path = re_directory, pattern = ".*\\.reproducible_enriched_re.tsv.gz", full.names = TRUE)
-
-# Read, keep nonempty, and bind enriched windows across experiments, tagging each row with its experiment label.
-enriched_windows = enriched_window_files %>%
-    setNames(sub("\\.reproducible_enriched_windows\\.tsv.gz", "", basename(.))) %>% 
-    map(function(x) read_tsv(x)) %>% 
-    Filter(function(x) nrow(x) > 0, .) %>%
-    bind_rows(.id = "experiment_label") 
 
 # Same for enriched repeat elements (REs).
 enriched_re = enriched_re_files %>%
@@ -38,7 +24,7 @@ enriched_re = enriched_re_files %>%
     bind_rows(.id = "experiment_label") 
 
 # Collect the union of all experiment IDs present in either input.
-experiment_labels = c(enriched_re$experiment_label, enriched_windows$experiment_label) %>% unique
+experiment_labels = enriched_re$experiment_label %>% unique
 
 # Load reference resources used to standardize features and to plot against ENCODE reference embeddings/clusters.
 repeatmasker_labels = read_tsv(paste0(ref_directory, "/repeat_masker_hierarchy.tsv"))
@@ -49,17 +35,6 @@ reference_assignments = read_tsv(paste0(ref_directory, "/encode3_class_assignmen
 	mutate(class = factor(class, levels = c("5' UTR","CDS","3' UTR","Splice site","Intron","MtRNA", "YRNA","snoRNA","tRNA/snRNA","Query")))
 
 # Helpers to map detailed window/RE annotations to a simplified feature vocabulary for cross-sample comparison.
-simplify_window_data = function(df) {
-	df %>% mutate(
-		feature = paste0(transcript_type_top,":",feature_type_top),
-		feature = ifelse(grepl("Y_RNA|^RNY", gene_name), "Y_RNA", feature),
-		feature = ifelse(grepl("^7SK$|^RN7SK", gene_name), "7SK", feature),
-		feature = ifelse(chrom == "chrM", "Mt_RNA", feature),
-		feature = ifelse(gene_type_top == "snRNA", "snRNA", feature),
-		feature = ifelse(gene_type_top == "snoRNA", "snoRNA", feature),
-		feature = ifelse(gene_type_top == "^rRNA", "rRNA", feature)
-	)
-}
 simplify_re_data = function(df) {
 	filter(df, simple == "element", enrichment_l2or_mean > 2.5) %>% mutate(
 		feature = replace(repeat_name, repeat_class == "snRNA", "snRNA"),
@@ -77,13 +52,11 @@ simplify_re_data = function(df) {
 }
 
 # Count simplified feature occurrences per experiment for windows and REs, and merge with reference feature priors.
-win_features = simplify_window_data(enriched_windows) %>% 
-	group_by(id = experiment_label, feature) %>% count(name="value") %>% ungroup
 re_features = inner_join(enriched_re,repeatmasker_labels) %>% simplify_re_data %>% 
 	group_by(id = experiment_label, feature) %>% count(name = "value")  %>% ungroup
 
 # Join with reference background fractions, fill missing with priors, and aggregate per id/feature counts.
-clip_count_data = bind_rows(win_features,re_features) %>% group_by(id) %>% summarize(left_join(reference_features %>% mutate(id=unique(id)), tibble(.))) %>% 
+clip_count_data = re_features %>% group_by(id) %>% summarize(left_join(reference_features %>% mutate(id=unique(id)), tibble(.))) %>% 
 	mutate(value = ifelse(is.na(value), global_fraction, value)) %>% group_by(id, feature, global_fraction) %>% summarize(clip_count = sum(value)) 
 
 # Convert counts to fractions and compute information contribution (entropy_contribution) per feature and sample.
@@ -103,7 +76,7 @@ tsne_data = tibble(id = enrichment_dist %>% as.matrix %>% row.names) %>% bind_co
 samba_colors = c("#1B85ED", "#1AA2F6", "#00BFFF", "#4AC596", "#00CC00", "#A7D400", "#FFD700", "#FFBE00", "#FFA500", "#636363")
 
 # Plot the t-SNE embedding, labeling query points, and save to PDF.
-pdf(paste0("output/figures/tsne/", prefix, ".tsne_query.pdf"),height = 1.7, width = 2.6)
+pdf(paste0("output/figures/tsne_re/", prefix, ".tsne_re_query.pdf"),height = 1.7, width = 2.6)
 ggplot(tsne_data, aes(tsne_1, tsne_2,color = class)) + theme_bw(base_size = 7) + 
 	geom_point(size = 0.8,stroke=0) + theme(panel.grid = element_blank(),aspect.ratio = 1,legend.key.size = unit(0.25,"cm"), legend.spacing.y = unit(0.2,"cm")) + 
 	xlab("t-SNE 1") + ylab("t-SNE 2") + scale_color_manual(values = samba_colors) +
@@ -111,4 +84,4 @@ ggplot(tsne_data, aes(tsne_1, tsne_2,color = class)) + theme_bw(base_size = 7) +
 dev.off() 
 
 # Persist the embedding coordinates and class labels for downstream analyses.
-write_tsv(tsne_data, paste0("output/tsne/", prefix, ".tsne_query.tsv"))
+write_tsv(tsne_data, paste0("output/tsne_re/", prefix, ".tsne_re_query.tsv"))

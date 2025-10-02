@@ -47,11 +47,13 @@ rule uniq_repeats:
 
 rule quantify_repeats:
     input:
-        CHROM_SIZES,
+        chrom_sizes = config["CHROM_SIZES"],
         bam = lambda wildcards: replicate_label_to_bams[wildcards.replicate_label],
-        repeats = REPEAT_BED
+        repeats = REPEAT_BED,
     output:
         counts = "output/counts/repeats/vectors/{replicate_label}.counts"
+    params:
+        uninformative = config["UNINFORMATIVE_READ"]
     benchmark: "benchmarks/repeats/unassigned_experiment.{replicate_label}.quantify_repeats.txt"
     log: "logs/{replicate_label}.quantify_repeats.log"
     conda:
@@ -67,9 +69,9 @@ rule quantify_repeats:
         echo "[`date`] Starting quantify_repeats for {wildcards.replicate_label}" | tee {log}
 
         bedtools bamtobed -i {input.bam} \
-            | awk '($1 != "chrEBV") && ($4 !~ "/{UNINFORMATIVE_READ}$")' \
-            | bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - \
-            | bedtools shift -p 1 -m -1 -g {CHROM_SIZES} -i - \
+            | awk '($1 != "chrEBV") && ($4 !~ "/{params.uninformative}$")' \
+            | bedtools flank -s -l 1 -r 0 -g {input.chrom_sizes} -i - \
+            | bedtools shift -p 1 -m -1 -g {input.chrom_sizes} -i - \
             | bedtools sort -i - \
             | bedtools coverage -s -counts -a {input.repeats} -b - \
             | awk 'BEGIN {{print "{wildcards.replicate_label}"}} {{print $NF}}' \

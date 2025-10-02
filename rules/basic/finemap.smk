@@ -16,6 +16,9 @@ rule get_nt_coverage:
         nt_input_counts = temp("output/finemapping/nt_coverage/{experiment_label}.nt_coverage.input.counts"),
         nt_clip_counts = temp("output/finemapping/nt_coverage/{experiment_label}.nt_coverage.clip.counts"),
         nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
+    params:
+        chrom_sizes = config["CHROM_SIZES"],
+        uninformative = config["UNINFORMATIVE_READ"]
     threads: 6
     resources:
         mem_mb = 45000,
@@ -42,9 +45,9 @@ rule get_nt_coverage:
         samtools cat {input.input_bams} \
             | bedtools intersect -s -wa -a - -b {output.nt_census} \
             | bedtools bamtobed -i - \
-            | awk '($1 != "chrEBV") && ($4 !~ "/{UNINFORMATIVE_READ}$")' \
-            | bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - \
-            | bedtools shift -p 1 -m -1 -g {CHROM_SIZES} -i - \
+            | awk '($1 != "chrEBV") && ($4 !~ "/{params.uninformative}$")' \
+            | bedtools flank -s -l 1 -r 0 -g {params.chrom_sizes} -i - \
+            | bedtools shift -p 1 -m -1 -g {params.chrom_sizes} -i - \
             | bedtools sort -i - \
             | bedtools coverage -counts -s -a {output.nt_census} -b - \
             | awk '{{print $NF}}' \
@@ -53,9 +56,9 @@ rule get_nt_coverage:
         samtools cat {input.clip_bams} \
             | bedtools intersect -s -wa -a - -b {output.nt_census} \
             | bedtools bamtobed -i - \
-            | awk '($1 != "chrEBV") && ($4 !~ "/{UNINFORMATIVE_READ}$")' \
-            | bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - \
-            | bedtools shift -p 1 -m -1 -g {CHROM_SIZES} -i - \
+            | awk '($1 != "chrEBV") && ($4 !~ "/{params.uninformative}$")' \
+            | bedtools flank -s -l 1 -r 0 -g {params.chrom_sizes} -i - \
+            | bedtools shift -p 1 -m -1 -g {params.chrom_sizes} -i - \
             | bedtools sort -i - \
             | bedtools coverage -counts -s -a {output.nt_census} -b - \
             | awk '{{print $NF}}' \

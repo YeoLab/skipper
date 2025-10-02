@@ -26,6 +26,7 @@ paired_end_example/
 Rplots.pdf
 run_skipper_pe.sh
 Skipper_pe_small_test.yaml
+configs/
 tmp/
 annotations/*
 .snakemake/

@@ -2,7 +2,7 @@ locals().update(config)
 
 rule make_unscaled_bigwig:
     input:
-        CHROM_SIZES,
+        chrom_sizes = config["CHROM_SIZES"],
         bam = lambda wildcards: config['replicate_label_to_bams'][wildcards.replicate_label],
     output:
         bg_plus = temp("output/bedgraphs/unscaled/plus/{replicate_label}.unscaled.plus.bg"),
@@ -36,15 +36,15 @@ rule make_unscaled_bigwig:
             | grep -v EBV \
             > {output.bg_minus} 2>&1 | tee -a "{log}"
 
-        bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus} 2>&1 | tee -a "{log}"
-        bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus} 2>&1 | tee -a "{log}"
+        bedGraphToBigWig {output.bg_plus} {input.chrom_sizes} {output.bw_plus} 2>&1 | tee -a "{log}"
+        bedGraphToBigWig {output.bg_minus} {input.chrom_sizes} {output.bw_minus} 2>&1 | tee -a "{log}"
 
         echo "[`date`] Finished make_unscaled_bigwig" | tee -a "{log}"
         """
 
 rule make_scaled_bigwig:
     input:
-        CHROM_SIZES,
+        chrom_sizes = config["CHROM_SIZES"],
         bam = lambda wildcards: config['replicate_label_to_bams'][wildcards.replicate_label],
     output:
         bg_plus = temp("output/bedgraphs/scaled/plus/{replicate_label}.scaled.plus.bg"),
@@ -87,15 +87,15 @@ rule make_scaled_bigwig:
             > {output.bg_minus} \
             2>&1 | tee -a "{log}"
 
-        bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus} 2>&1 | tee -a "{log}"
-        bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus} 2>&1 | tee -a "{log}"
+        bedGraphToBigWig {output.bg_plus} {input.chrom_sizes} {output.bw_plus} 2>&1 | tee -a "{log}"
+        bedGraphToBigWig {output.bg_minus} {input.chrom_sizes} {output.bw_minus} 2>&1 | tee -a "{log}"
 
         echo "[`date`] Finished make_scaled_bigwig" | tee -a "{log}"
         """
 
 rule make_scaled_bigwig_coverage:
     input:
-        CHROM_SIZES,
+        chrom_sizes = config["CHROM_SIZES"],
         bam = lambda wildcards: config['replicate_label_to_bams'][wildcards.replicate_label],
     output:
         bg_plus = temp("output/bedgraphs/scaled/plus/{replicate_label}.scaled.cov.plus.bg"),
@@ -134,8 +134,8 @@ rule make_scaled_bigwig_coverage:
             | grep -v EBV \
             > {output.bg_minus} 2>&1 | tee -a "{log}"
 
-        bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus} 2>&1 | tee -a "{log}"
-        bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus} 2>&1 | tee -a "{log}"
+        bedGraphToBigWig {output.bg_plus} {input.chrom_sizes} {output.bw_plus} 2>&1 | tee -a "{log}"
+        bedGraphToBigWig {output.bg_minus} {input.chrom_sizes} {output.bw_minus} 2>&1 | tee -a "{log}"
 
         echo "[`date`] Finished make_scaled_bigwig_coverage" | tee -a "{log}"
         """

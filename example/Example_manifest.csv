@@ -1,5 +1,5 @@
 ﻿# Filter gene annotation files to genes expressed in the cell type to improve sensitivity,,,,,,,,,
 # Replicates of the same sample must have identical experiment and sample fields. Replicates are numbered per experiment.,,,,,,,,,
 Experiment,Sample,Cells,Input_replicate,Input_adapter,Input_fastq,CLIP_replicate,CLIP_adapter,CLIP_fastq,Notes
-RBFOX2,RBFOX2,K562,1,example/InvRiL19.fasta,example/fastqs/RBFOX2_small_input_rep1.fastq.gz,1,example/InvRiL19.fasta,example/fastqs/RBFOX2_small_clip_rep1.fastq.gz,
-RBFOX2,RBFOX2,K562,2,example/InvRiL19.fasta,example/fastqs/RBFOX2_small_input_rep2.fastq.gz,2,example/InvRiL19.fasta,example/fastqs/RBFOX2_small_clip_rep2.fastq.gz,
+RBFOX2,RBFOX2,K562,1,/path/to/your/skipper/example/InvRiL19.fasta,/path/to/your/skipper/example/fastqs/RBFOX2_small_input_rep1.fastq.gz,1,/path/to/your/skipper/example/InvRiL19.fasta,/path/to/your/skipper/example/fastqs/RBFOX2_small_clip_rep1.fastq.gz,
+RBFOX2,RBFOX2,K562,2,/path/to/your/skipper/example/InvRiL19.fasta,/path/to/your/skipper/example/fastqs/RBFOX2_small_input_rep2.fastq.gz,2,/path/to/your/skipper/example/InvRiL19.fasta,/path/to/your/skipper/example/fastqs/RBFOX2_small_clip_rep2.fastq.gz,

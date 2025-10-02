@@ -65,11 +65,33 @@ rule multiqc:
         echo "[`date`] Finished multiqc" | tee -a {log}
         """
 
+# Unique fragment per library
+rule join_unique_fragments:
+    input:
+        expand("output/QC/{replicate_label}.uniq_fragments", replicate_label = replicate_labels)
+    output:
+        "output/QC/unique_fragments.csv"
+    log: "logs/join_unique_fragments.log"
+    resources:
+        mem_mb=2000,
+        runtime=25
+    shell:
+        r"""
+        set -euo pipefail
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting join_unique_fragments" | tee {log}
+
+        awk '{{print FILENAME "," $0}}' {input} > {output} 2>&1 | tee -a {log}
+
+        echo "[`date`] Finished join_unique_fragments" | tee -a {log}
+        """
+
 rule quantify_gc_bias:
     input:
         "output/counts/genome/tables/{experiment_label}.tsv.gz"
     output:
-        gc_bias = "output/qc/{experiment_label}.gc_bias.txt"
+        gc_bias = "output/QC/{experiment_label}.gc_bias.txt"
     conda:
         "envs/metadensity.yaml"
     log: 
@@ -109,7 +131,7 @@ rule nread_in_finemapped_regions:
         bed="output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     output:
         sorted_bed="output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.sorted.bed.gz",
-        nread_in_finemapped_regions = "output/qc/{experiment_label}.nread_in_finemapped_regions.txt"
+        nread_in_finemapped_regions = "output/QC/{experiment_label}.nread_in_finemapped_regions.txt"
     conda:
         "envs/bedbam_tools.yaml"
     params:
