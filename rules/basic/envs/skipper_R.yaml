@@ -102,7 +102,7 @@ dependencies:
   - libzlib=1.3.1=hb9d3cd8_2
   - make=4.4.1=hb9d3cd8_2
   - ncurses=6.5=h2d0b736_3
-  - openssl=3.5.3=h26f9b46_1
+  - openssl=3.5.4=h26f9b46_0
   - pandoc=3.8=ha770c72_0
   - pango=1.56.4=hadf4263_0
   - pcre2=10.45=hc749103_0
@@ -123,11 +123,13 @@ dependencies:
   - r-bit64=4.6.0_1=r44h54b55ab_1
   - r-bitops=1.0_9=r44h54b55ab_1
   - r-blob=1.2.4=r44hc72bb7e_3
+  - r-boot=1.3_32=r44hc72bb7e_1
   - r-broom=1.0.10=r44hc72bb7e_0
   - r-bslib=0.9.0=r44hc72bb7e_1
   - r-cachem=1.1.0=r44h54b55ab_2
   - r-callr=3.7.6=r44hc72bb7e_2
   - r-cellranger=1.1.0=r44hc72bb7e_1008
+  - r-class=7.3_23=r44h54b55ab_1
   - r-cli=3.6.5=r44h3697838_1
   - r-clipr=0.8.0=r44hc72bb7e_4
   - r-codetools=0.2_20=r44hc72bb7e_2
@@ -140,11 +142,15 @@ dependencies:
   - r-data.table=1.17.8=r44h1c8cec4_1
   - r-dbi=1.2.3=r44hc72bb7e_2
   - r-dbplyr=2.5.1=r44hc72bb7e_1
+  - r-desctools=0.99.59=r44he59cc3e_0
   - r-digest=0.6.37=r44h3697838_1
   - r-dplyr=1.1.4=r44h3697838_2
   - r-dtplyr=1.3.2=r44hc72bb7e_1
+  - r-e1071=1.7_16=r44h3697838_1
   - r-ellipsis=0.3.2=r44h54b55ab_4
   - r-evaluate=1.0.5=r44hc72bb7e_1
+  - r-exact=3.3=r44hc72bb7e_1
+  - r-expm=1.0_0=r44h11cdb10_1
   - r-fansi=1.0.6=r44h54b55ab_2
   - r-farver=2.1.2=r44h3697838_2
   - r-fastmap=1.2.0=r44h3697838_2
@@ -161,6 +167,7 @@ dependencies:
   - r-ggplot2=4.0.0=r44h785f33e_0
   - r-ggrepel=0.9.6=r44h3697838_2
   - r-ggupset=0.4.1=r44hc72bb7e_1
+  - r-gld=2.6.8=r44h54b55ab_0
   - r-glue=1.8.0=r44h54b55ab_1
   - r-googledrive=2.1.2=r44hc72bb7e_1
   - r-googlesheets4=1.1.2=r44h785f33e_1
@@ -180,6 +187,7 @@ dependencies:
   - r-lambda.r=1.2.4=r44hc72bb7e_5
   - r-lattice=0.22_7=r44h54b55ab_1
   - r-lifecycle=1.0.4=r44hc72bb7e_2
+  - r-lmom=3.2=r44heaba542_1
   - r-lubridate=1.9.4=r44h54b55ab_1
   - r-magrittr=2.0.4=r44h54b55ab_0
   - r-mass=7.3_65=r44h54b55ab_0
@@ -189,12 +197,14 @@ dependencies:
   - r-mime=0.13=r44h54b55ab_1
   - r-modelr=0.1.11=r44hc72bb7e_3
   - r-munsell=0.5.1=r44hc72bb7e_2
+  - r-mvtnorm=1.3_3=r44h11cdb10_1
   - r-openssl=2.3.3=r44h50f7d53_1
   - r-pillar=1.11.1=r44hc72bb7e_0
   - r-pkgconfig=2.0.3=r44hc72bb7e_5
   - r-prettyunits=1.2.0=r44hc72bb7e_2
   - r-processx=3.8.6=r44h54b55ab_1
   - r-progress=1.2.3=r44hc72bb7e_2
+  - r-proxy=0.4_27=r44h54b55ab_4
   - r-ps=1.9.1=r44h54b55ab_1
   - r-purrr=1.1.0=r44h54b55ab_1
   - r-r6=2.6.1=r44hc72bb7e_1
@@ -212,6 +222,7 @@ dependencies:
   - r-rjson=0.2.23=r44h3697838_1
   - r-rlang=1.1.6=r44h3697838_1
   - r-rmarkdown=2.29=r44hc72bb7e_1
+  - r-rootsolve=1.8.2.4=r44heaba542_2
   - r-rstudioapi=0.17.1=r44hc72bb7e_1
   - r-rtsne=0.17=r44hf1899b2_3
   - r-rvest=1.0.5=r44hc72bb7e_1

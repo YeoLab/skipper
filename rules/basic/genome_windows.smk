@@ -75,8 +75,8 @@ rule partition_bam_reads:
     output:
         counts = "output/counts/genome/vectors/{replicate_label}.counts",
     resources:
-        mem_mb = 64000,
-        runtime = "3h"
+        mem_mb = 32000,
+        runtime = "1h"
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
     log: "logs/{replicate_label}.partition_bam_reads.log"
     conda:
@@ -334,9 +334,7 @@ rule find_reproducible_enriched_windows:
             clip_replicate_label = experiment_to_clip_replicate_labels[wildcards.experiment_label]
         )
     output:
-        reproducible_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
-        linear_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.linear.pdf",
-        log_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.log10.pdf"
+        reproducible_windows = "output/unfiltered_reproducible_enriched_windows/{experiment_label}.unfiltered_reproducible_enriched_windows.tsv.gz",
     resources:
         mem_mb = 2000,
         runtime = "30m"
@@ -344,8 +342,6 @@ rule find_reproducible_enriched_windows:
     log: "logs/{experiment_label}.find_reproducible_enriched_windows.log"
     conda:
         "envs/skipper_R.yaml"
-    params:
-        blacklist = (BLACKLIST if BLACKLIST is not None else "")
     shell:
         r"""
         set -euo pipefail
@@ -356,10 +352,45 @@ rule find_reproducible_enriched_windows:
         Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R \
             output/enriched_windows/ \
             {wildcards.experiment_label} \
-            {params.blacklist} \
             2>&1 | tee -a {log}
 
         echo "[`date`] Finished find_reproducible_enriched_windows" | tee -a {log}
+        """
+###!!!### Mmmmm, this is going to be slightly harder than I thought. I will have to move the plots into filter GINI. 
+###!!!### NOTE TOO SELF: You still need to add the DescTools package to the conda environment. Without it, none of this works. 
+
+rule filter_reproducible_windows:
+    input:
+        unfiltered_enriched_windows = "output/unfiltered_reproducible_enriched_windows/{experiment_label}.unfiltered_reproducible_enriched_windows.tsv.gz",
+        nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
+    output:
+        reproducible_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
+        linear_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.linear.pdf",
+        log_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.log10.pdf"
+    resources:
+        mem_mb = 8000,
+        runtime = "30m"
+    benchmark: "benchmarks/filter_reproducible_windows/{experiment_label}.all_replicates.reproducible.txt"
+    log: "logs/{experiment_label}.filter_reproducible_windows.log"
+    conda:
+        "envs/skipper_R.yaml"
+    params:
+        blacklist = (BLACKLIST if BLACKLIST is not None else "")
+    shell:
+        r"""
+        set -euo pipefail
+
+        echo "Running on node: $(hostname)" | tee -a {log}
+        echo "[`date`] Starting filter_reproducible_windows" | tee {log}
+
+        Rscript --vanilla {TOOL_DIR}/reproducible_windows_filtration.R \
+            {input.unfiltered_enriched_windows} \
+            {input.nt_coverage} \
+            {wildcards.experiment_label} \
+            {params.blacklist} \
+            2>&1 | tee -a {log}
+
+        echo "[`date`] Finished filter_reproducible_windows" | tee -a {log}
         """
 
 rule sample_background_windows_by_region:

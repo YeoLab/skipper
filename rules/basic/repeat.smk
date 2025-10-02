@@ -57,8 +57,8 @@ rule quantify_repeats:
     conda:
         "envs/bedbam_tools.yaml"
     resources:
-        mem_mb=64000,
-        runtime="2h"
+        mem_mb=32000,
+        runtime="1h"
     shell:
         r"""
         set -euo pipefail

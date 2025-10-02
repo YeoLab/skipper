@@ -2,7 +2,7 @@ locals().update(config)
 
 rule get_nt_coverage:
     input:
-        windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
+        windows = "output/unfiltered_reproducible_enriched_windows/{experiment_label}.unfiltered_reproducible_enriched_windows.tsv.gz",
         clip_bams = lambda wildcards: [
             config['replicate_label_to_bams'][clip_replicate_label]
             for clip_replicate_label in experiment_to_clip_replicate_labels[wildcards.experiment_label]
