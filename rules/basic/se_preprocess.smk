@@ -15,8 +15,8 @@ rule run_star_genome_generate:
         chrom_sizes = CHROM_SIZES,
     threads: 8
     resources:
-        mem_mb = 48000,
-        runtime = "2h",
+        mem_mb = 64000,
+        runtime = "1h",
     benchmark: "benchmarks/run_star_genome_generate.txt"
     log: "logs/run_star_genome_generate.log"
     conda:
