@@ -10,7 +10,7 @@ rule make_genome_mega_table:
     threads: 4
     log: "logs/make_genome_mega_table.log"
     resources:
-        mem_mb=1000,
+        mem_mb=8000,
         runtime="2h"
     shell:
         r"""
@@ -38,7 +38,7 @@ rule make_repeat_mega_tables:
         family_table = "output/counts/repeats/megatables/family.tsv.gz",
     log: "logs/make_repeat_mega_tables.log"
     resources:
-        mem_mb=2000,
+        mem_mb=8000,
         runtime="2h"
     shell:
         r"""
@@ -124,7 +124,7 @@ rule summarize_genome_megatable:
     conda:
         "envs/metadensity.yaml"
     resources:
-        mem_mb=2000,
+        mem_mb=4000,
         runtime=60
     shell:
         r"""

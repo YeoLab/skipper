@@ -10,9 +10,9 @@ rule make_unscaled_bigwig:
         bw_plus = "output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw",
         bw_minus = "output/bigwigs/unscaled/minus/{replicate_label}.unscaled.minus.bw",
     resources:
-        mem_mb = 12000,
         tmpdir = TMPDIR,
-        runtime = "1h"
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     log: "logs/{replicate_label}.make_unscaled_bigwig.log"
     conda:
@@ -52,9 +52,9 @@ rule make_scaled_bigwig:
         bw_plus = "output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw",
         bw_minus = "output/bigwigs/scaled/minus/{replicate_label}.scaled.minus.bw",
     resources:
-        mem_mb = 12000,
         tmpdir = TMPDIR,
-        runtime = "1h"
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     log: "logs/{replicate_label}.make_scaled_bigwig.log"
     conda:
@@ -105,9 +105,9 @@ rule make_scaled_bigwig_coverage:
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     log: "logs/{replicate_label}.make_unscaled_bigwig_coverage.log"
     resources:
-        mem_mb = 10000,
         tmpdir = TMPDIR,
-        runtime = "1h"
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     conda:
         "envs/bedbam_tools.yaml"
     shell:

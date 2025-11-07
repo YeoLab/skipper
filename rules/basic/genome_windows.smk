@@ -44,8 +44,8 @@ rule parse_gff:
         feature_annotations = FEATURE_ANNOTATIONS,
     threads: 1
     resources:
-        mem_mb = 64000,
-        runtime = "3h"
+        mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/parse_gff.txt"
     log: "logs/parse_gff.log"
     conda:
@@ -77,8 +77,8 @@ rule partition_bam_reads:
     params:
         uninformative = config["UNINFORMATIVE_READ"]
     resources:
-        mem_mb = 32000,
-        runtime = "1h"
+        mem_mb=lambda wildcards, attempt: 48000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
     log: "logs/{replicate_label}.partition_bam_reads.log"
     conda:
@@ -110,8 +110,8 @@ rule calc_partition_nuc:
     output:
         nuc = PARTITION.replace(".bed", ".nuc")
     resources:
-        mem_mb = 16000,
-        runtime = "2h"
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/partition_nuc.txt"
     log: "logs/calc_partition_nuc.log"
     conda:
@@ -144,8 +144,8 @@ rule make_genome_count_table:
         count_table = "output/counts/genome/tables/{experiment_label}.tsv.gz"
     threads: 4
     resources:
-        mem_mb = 1000,
-        runtime = "30m"
+        mem_mb=lambda wildcards, attempt: 1000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 30 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_genome_count_table.txt"
     log: "logs/{experiment_label}.make_genome_count_table.log"
     conda:
@@ -175,8 +175,8 @@ rule fit_input_betabinomial_model:
         coef = "output/input_model_coef/{experiment_label}.{input_replicate_label}.tsv"
     threads: 4
     resources:
-        mem_mb = 32000,
-        runtime = "2h"
+        mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
     log:
         "logs/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_model.log"
@@ -205,8 +205,8 @@ rule fit_clip_betabinomial_model:
         coef = "output/clip_model_coef/{experiment_label}.{clip_replicate_label}.tsv"
     threads: 2
     resources:
-        mem_mb = 32000,
-        runtime = "2h"
+        mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     log: "logs/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.log"
     conda:
@@ -268,8 +268,8 @@ rule call_enriched_windows:
         "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature_gc.pdf"
     threads: 2
     resources:
-        mem_mb = 24000,
-        runtime = "2h"
+        mem_mb=lambda wildcards, attempt: 24000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
     log: "logs/{experiment_label}.{clip_replicate_label}.call_enriched_windows.log"
     conda:
@@ -338,8 +338,8 @@ rule find_reproducible_enriched_windows:
     output:
         reproducible_windows = "output/unfiltered_reproducible_enriched_windows/{experiment_label}.unfiltered_reproducible_enriched_windows.tsv.gz",
     resources:
-        mem_mb = 2000,
-        runtime = "30m"
+        mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
     log: "logs/{experiment_label}.find_reproducible_enriched_windows.log"
     conda:
@@ -368,8 +368,8 @@ rule filter_reproducible_windows:
         linear_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.linear.pdf",
         log_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.log10.pdf"
     resources:
-        mem_mb = 8000,
-        runtime = "30m"
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/filter_reproducible_windows/{experiment_label}.all_replicates.reproducible.txt"
     log: "logs/{experiment_label}.filter_reproducible_windows.log"
     conda:

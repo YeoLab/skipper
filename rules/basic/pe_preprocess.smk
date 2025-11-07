@@ -351,7 +351,7 @@ rule select_informative_read:
         mem_mb = 10000,
         runtime = "1h"
     params:
-        flag = 64 if UNINFORMATIVE_READ == 1 else 128
+        flag = 64 if UNINFORMATIVE_READ == "1" else 128
     shell:
         r"""
         set -euo pipefail

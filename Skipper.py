@@ -182,7 +182,6 @@ def call_enriched_window_output(wildcards):
 # Add path to the chrom sizes file to config
 config["CHROM_SIZES"] = config["STAR_DIR"] + "/chrNameLength.txt"
 config["UNINFORMATIVE_READ"] = str(3 - config["INFORMATIVE_READ"])
-
 ############################## Define which parts of skipper to run #################################
 
 # Always include the basic.
@@ -260,8 +259,8 @@ rule all_basic_output:
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
         expand("output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf", experiment_label = manifest.Experiment),
         expand("output/enrichment_reproducibility/{experiment_label}.odds_data.tsv", experiment_label = manifest.Experiment),
-        lambda wildcards: call_enriched_window_output(wildcards),
-        "output/figures/tsne/skipper.tsne_query.pdf",
+        # lambda wildcards: call_enriched_window_output(wildcards),
+        # "output/figures/tsne/skipper.tsne_query.pdf",
         # Quality control
         expand("output/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
         expand("output/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
@@ -329,7 +328,7 @@ rule all_repeat_output:
         expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", experiment_label = manifest.Experiment),
         expand("output/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
-        "output/figures/tsne_re/skipper.tsne_re_query.pdf",
+        # "output/figures/tsne_re/skipper.tsne_re_query.pdf",
     output:
         "repeat_done.txt"
     resources:
@@ -520,10 +519,17 @@ use rule * from qc
 use rule * from genome
 use rule * from repeat
 use rule * from finemap
-use rule * from analysis
+if has_all_required(config, geneset_keys):
+    use rule consult_term_reference from analysis
+    use rule consult_encode_reference_re from analysis
+    use rule consult_encode_reference from analysis
+if config["HOMER"] != "":
+    use rule sample_background_windows_by_region from analysis
+    use rule run_homer from analysis
+if has_all_required(config, ml_keys):
+    use rule * from prep_ml as ml_*
+    use rule * from rbpnet as rbpnet_*
+    use rule * from variants_rbpnet as rbpnet_variants_*
+    use rule * from ctk_mcross
 use rule * from meta_analysis
-use rule * from prep_ml as ml_*
-use rule * from rbpnet as rbpnet_*
-use rule * from variants_rbpnet as rbpnet_variants_*
-use rule * from ctk_mcross
 use rule * from benchmark

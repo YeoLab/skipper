@@ -196,8 +196,8 @@ rule align_reads:
     conda:
         "envs/star.yaml"
     resources:
-        mem_mb=64000,
-        runtime="2h",
+        mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
         tmpdir=TMPDIR,
         exclusive = True  # <-- tag for exclusivity
     shell:
@@ -245,8 +245,8 @@ rule sort_bam:
     conda:
         "envs/bedbam_tools.yaml"
     resources:
-        mem_mb=16000,
-        runtime="2h"
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail
@@ -303,8 +303,9 @@ rule dedup_umi:
     conda:
         "envs/umicollapse.yaml"
     resources:
-        mem_mb = 48000,
-        runtime = "2h",
+        mem_mb=lambda wildcards, attempt: 48000 * (1.5 ** (attempt - 1)),
+        java_mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
         tmpdir = TMPDIR
     shell:
         r"""
@@ -315,7 +316,7 @@ rule dedup_umi:
 
         JAR=$(dirname $(which umicollapse))/../share/umicollapse*/umicollapse.jar
 
-        java -server -Xms32G -Xmx32G -Xss40M \
+        java -server -Xms{resources.java_mem_mb}M -Xmx{resources.java_mem_mb}M -Xss40M \
             -jar $JAR bam \
             -i {input.bam} \
             -o {output.bam_dedup} \
@@ -338,8 +339,8 @@ rule obtain_unique_reads:
     conda:
         "envs/bedbam_tools.yaml"
     resources:
-        mem_mb=8000,
-        runtime="1h"
+        mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail
