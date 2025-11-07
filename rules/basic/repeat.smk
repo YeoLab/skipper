@@ -11,8 +11,8 @@ rule uniq_repeats:
     conda:
         "envs/bedbam_tools.yaml"
     resources:
-        mem_mb=16000,
-        runtime="2h"
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail
@@ -59,8 +59,8 @@ rule quantify_repeats:
     conda:
         "envs/bedbam_tools.yaml"
     resources:
-        mem_mb=32000,
-        runtime="1h"
+        mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail
@@ -95,8 +95,8 @@ rule make_repeat_count_tables:
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_repeat_count_table.txt"
     log: "logs/{experiment_label}.make_repeat_count_tables.log"
     resources:
-        mem_mb=2000,
-        runtime="2h"
+        mem_mb=lambda wildcards, attempt: 2000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail
@@ -168,8 +168,8 @@ rule fit_clip_betabinomial_re_model:
     conda:
         "envs/skipper_R.yaml"
     resources:
-        mem_mb=32000,
-        runtime="3h"
+        mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail
@@ -196,8 +196,8 @@ rule fit_input_betabinomial_re_model:
     conda:
         "envs/skipper_R.yaml"
     resources:
-        mem_mb=32000,
-        runtime="1h"
+        mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail
@@ -231,8 +231,8 @@ rule call_enriched_re:
     params:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label]
     resources:
-        mem_mb=16000,
-        runtime="3h"
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail
@@ -265,8 +265,8 @@ rule find_reproducible_enriched_re:
     conda:
         "envs/skipper_R.yaml"
     resources:
-        mem_mb=8000,
-        runtime="2h"
+        mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail

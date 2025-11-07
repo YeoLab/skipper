@@ -21,8 +21,8 @@ rule get_nt_coverage:
         uninformative = config["UNINFORMATIVE_READ"]
     threads: 6
     resources:
-        mem_mb = 45000,
-        runtime = "2h"
+        mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     log: "logs/{experiment_label}.get_nt_coverage.log"
     conda:
@@ -77,8 +77,8 @@ rule finemap_windows:
         finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     threads: 6
     resources:
-        mem_mb = 45000,
-        runtime = "2h"
+        mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
     log: "logs/{experiment_label}.finemap_windows.log"
     conda:
@@ -95,7 +95,7 @@ rule finemap_windows:
             output/finemapping/mapped_sites/ \
             {wildcards.experiment_label} \
             2>&1 | tee -a {log}
-
+        gzip -t {output.finemapped_windows}
         echo "[`date`] Finished finemap_windows" 2>&1 | tee -a {log}
         """
 
@@ -109,8 +109,8 @@ rule annotate_finemap:
     threads: 1
     log: "logs/{experiment_label}.annotate_finemap.log"
     resources:
-        mem_mb = 45000,
-        runtime = "1h"
+        mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     conda:
         "envs/metadensity.yaml"
     shell:
@@ -146,8 +146,8 @@ rule find_both_tested_windows:
     threads: 1
     log: "logs/{experiment_label}.find_both_tested_windows.log"
     resources:
-        mem_mb = 45000,
-        runtime = "1h"
+        mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     conda:
         "envs/metadensity.yaml"
     shell:
