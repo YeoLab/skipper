@@ -2,7 +2,6 @@
 
 # Required work/organizational files. 
 WORKDIR: /path/to/save/output
-TMPDIR: tmp
 MANIFEST: /path/to/your/skipper/example/Example_manifest.csv
 TOOL_DIR: /path/to/your/skipper/tools
 

@@ -1,4 +1,9 @@
 locals().update(config)
+import pandas as pd
+
+manifest = pd.read_csv(MANIFEST, comment = "#", index_col = False).dropna(subset=['Experiment','Sample'])
+experiment_to_sample = dict(zip(manifest["Experiment"], manifest["Sample"]))
+
 rule multiqc:
     input: 
         trimmed_fastqc = lambda wildcards: (
@@ -89,13 +94,15 @@ rule join_unique_fragments:
 
 rule quantify_gc_bias:
     input:
-        "output/counts/genome/tables/{experiment_label}.tsv.gz"
+        table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
     output:
         gc_bias = "output/QC/{experiment_label}.gc_bias.txt"
     conda:
         "envs/metadensity.yaml"
     log: 
         "logs/{experiment_label}.quantify_gc_bias.log"
+    params:
+        sample = lambda w: experiment_to_sample[w.experiment_label]
     resources:
         mem_mb=40000,
         runtime="30m"
@@ -107,7 +114,8 @@ rule quantify_gc_bias:
         echo "[`date`] Starting quantify_gc_bias for {wildcards.experiment_label}" | tee {log}
 
         python {TOOL_DIR}/quantify_gcbias.py \
-            {input} \
+            {input.table} \
+            {params.sample} \
             {output.gc_bias} \
             2>&1 | tee -a {log}
 

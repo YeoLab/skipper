@@ -78,6 +78,7 @@ rule partition_bam_reads:
         uninformative = config["UNINFORMATIVE_READ"]
     resources:
         mem_mb = 32000,
+        tmpdir = TMPDIR,
         runtime = "1h"
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
     log: "logs/{replicate_label}.partition_bam_reads.log"
@@ -94,7 +95,8 @@ rule partition_bam_reads:
             | awk '($1 != "chrEBV") && ($4 !~ "/{params.uninformative}$")' \
             | bedtools flank -s -l 1 -r 0 -g {input.chrom_sizes} -i - \
             | bedtools shift -p 1 -m -1 -g {input.chrom_sizes} -i - \
-            | bedtools sort -i - \
+            | LC_ALL=C sort -S 50% -T "{resources.tmpdir}" -k1,1 -k2,2n \
+            | perl -lane 'print if @F==6' \
             | bedtools coverage -counts -s -a {input.region_partition} -b - \
             | cut -f 7 \
             | awk 'BEGIN {{print "{wildcards.replicate_label}"}} {{print}}' \
@@ -102,7 +104,7 @@ rule partition_bam_reads:
 
         echo "[`date`] Finished partition_bam_reads" | tee -a {log}
         """
-        
+#| bedtools sort -i - \   
 rule calc_partition_nuc:
     input:
         partition = PARTITION,
@@ -366,7 +368,8 @@ rule filter_reproducible_windows:
     output:
         reproducible_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
         linear_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.linear.pdf",
-        log_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.log10.pdf"
+        log_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.log10.pdf",
+        filtered_out = "output/filtered_out_windows/{experiment_label}.filtered_out_windows.tsv.gz"
     resources:
         mem_mb = 8000,
         runtime = "30m"

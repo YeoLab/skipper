@@ -13,11 +13,16 @@ import warnings
 
 # Load config file. 
 locals().update(config)
+WORKDIR = config.get("WORKDIR")
 workdir: config['WORKDIR']
+TMPDIR = config.get("TMPDIR")
 
 # Generate directories to hold log files. 
 if not os.path.exists("logs"): os.makedirs("logs")
-if not os.path.exists("tmp"): os.makedirs("tmp")
+
+# Set the temporary directory within the working directory by default. 
+if not TMPDIR:
+    config['TMPDIR'] = os.path.join(WORKDIR, "tmp")
 
 # Check for proper overdispersion mode. 
 if OVERDISPERSION_MODE not in ["clip","input"]:
@@ -183,6 +188,9 @@ def call_enriched_window_output(wildcards):
 config["CHROM_SIZES"] = config["STAR_DIR"] + "/chrNameLength.txt"
 config["UNINFORMATIVE_READ"] = str(3 - config["INFORMATIVE_READ"])
 
+# Used when the experiment wildcard needs to be changed to the sample label.  
+experiment_to_sample = dict(zip(manifest["Experiment"], manifest["Sample"]))
+
 ############################## Define which parts of skipper to run #################################
 
 # Always include the basic.
@@ -227,7 +235,7 @@ if has_all_required(config, geneset_keys):
         "geneset_done.txt",
     ]
 
-if config["HOMER"] != "" or has_all_required(config, ml_keys):
+if config["HOMER"] or has_all_required(config, ml_keys):
     all_inputs += [
         "homer_done.txt",
     ]

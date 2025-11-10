@@ -49,7 +49,7 @@ Skipper is an end-to-end pipeline for eCLIP analysis, including:
 - Alignment
 - GFF partitioning
 - Enriched window identification
-- Fine mapping
+- Fine-mapping
 - Motif analysis
 
 While Skipper can be run on powerful personal machines, it is primarily designed for **high-performance computing clusters (HPCs)**, where significant speedups are achieved by parallelizing jobs across compute nodes.
@@ -89,17 +89,17 @@ profiles/example_slurm/config.yaml
 
 This section details a small example run of skipper on a subsampled dataset. This example assumes that you are working on a linux based system with slurm set up and have already gone through all installation steps above (including adjusting the example profile). 
 
-1. **change into your skipper directory and download the human genome grom gencode**  
+1. **change into your skipper directory and download the human genome from gencode**  
    ```bash
    cd annotations
    wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/GRCh38.primary_assembly.genome.fa.gz
    cd ..
    ```
 2. **Edit config file**
-   Open the config file in `example/Example_config.yaml` using any text editor and change every instance of /path/to/your/skipper with the **absolute** path to skipper directory you just cloned. Also, change every instance of `/path/to/save/output` with the **absolute** path to whatever location you want to save your skipper outputs too (should be a location with lots of space, such as a scratch directory).
+   Open the config file in `example/Example_config.yaml` using any text editor and change every instance of /path/to/your/skipper with the **absolute** path to the skipper directory you just cloned. Also, change every instance of `/path/to/save/output` with the **absolute** path to whatever location you want to save your skipper outputs too (should be a location with lots of space, such as a scratch directory).
 
 3. **Edit manifest file**
-   Open the config file in `example/Example_config.yaml` using any text editor and change every instance of /path/to/your/skipper with the **absolute** path to skipper directory you just cloned. 
+   Open the config file in `example/Example_config.yaml` using any text editor and change every instance of /path/to/your/skipper with the **absolute** path to the skipper directory you just cloned. 
 
 4. **Run skipper**  
    ```bash
@@ -108,7 +108,7 @@ This section details a small example run of skipper on a subsampled dataset. Thi
    snakemake -s Skipper.py --configfile example/Skipper_config.yaml --profile profiles/example_slurm
    ```
 
-NOTE: The first run of skipper needs to set up all of the necessary conda environments via snakeconda and has to complete several costly steps that only need to be run for the first skipper run (e.g. parsing the GFF and generating the STAR genome index),. As such, this initial skipper run will be quite slow.
+NOTE: The first run of skipper needs to set up all of the necessary conda environments via snakeconda and has to complete several costly steps that only need to be run for the first skipper run (e.g. parsing the GFF and generating the STAR genome index). As such, this initial skipper run will be quite slow, but subsequent runs will be much faster.
 
 NOTE: If difficulties arrise while running this example (or any run of skipper) please see the [Troubleshooting](#Troubleshooting)) section and/or open an issue. 
 
@@ -123,10 +123,10 @@ These inputs are required for all runs of skipper.
 
 | Resource      | Description |
 | ----------- | ----------- |
-| WORKDIR             | Path to outputs |
-| TMPDIR    | Directory to save temporary files too        |
-| MANIFEST            | Information on samples to run (Please see the "making a manifest" section)                                                      |
-| TOOL_DIR    | Directory for the tools located in the GitHub        |
+| WORKDIR             | Path to save outputs to |
+| TMPDIR    | Path to directory to save temporary files too (if left blank, will default to a /tmp directory inside of WORKDIR)       |
+| MANIFEST            | Path to a manifest file containing information on which samples to run (Please see the "making a manifest" section)                                                      |
+| TOOL_DIR    | Path to the tools directory from this repository        |
 
 ### Required Annotation Files
 Each of the files in this section must already exist on your machine. Instructions for where to find/download these files for your species/cell type of interest are included in the descriptions. 
@@ -134,13 +134,13 @@ Each of the files in this section must already exist on your machine. Instructio
 | Resource      | Description |
 | ----------- | ----------- |
 | GFF_source          | A short string specifying if the data came from either gencode or ensembl (options: "gencode", "ensembl") |
-| GFF                 | Gzipped gene annotation to partition the transcriptome and count reads (must br from [gencode](https://www.gencodegenes.org/) or ensembl [ensembl](https://useast.ensembl.org/index.html)). |
-| GENOME              | Samtools- and STAR-indexed fasta of genome for the sample of interest |
+| GFF                 | Gzipped gene annotation to partition the transcriptome and count reads (must be from [gencode](https://www.gencodegenes.org/) or [ensembl](https://useast.ensembl.org/index.html)). |
+| GENOME              | Fasta for the genome of interest (also available from gencode and ensembl) |
 | ACCESSION_RANKINGS  | A ranking of gene and transcript types present in the GFF to facilitate the transcriptome partitioning  |
 | BLACKLIST           | Removes windows from reproducible enriched window files. Start and end coordinates must match tiled windows exactly.  Set to None for no blacklisting    |
 
 ### Auto Generated Annotation Files.
-These files can be automatically generated by Skipper. HOWEVER, it is still necessary to specify paths to these files even if they do not yet exist so that skipper knows where to save them. If these files have already been generated from other skipper runs, then specifying pre-made files will lead to significant speed-ups for skipper. 
+These files can be automatically generated by Skipper. HOWEVER, it is still necessary to specify paths to these files even if they do not yet exist so that skipper knows where to save them. If these files have already been generated from other skipper runs, then specifying pre-made files will lead to significant speed-ups. 
 
 | Input      | Description |
 | ----------- | ----------- |
@@ -169,7 +169,7 @@ These inputs are required only if you wish to perform some of the many additiona
 ### Meta analysis (work in progress)
 | Input      | Description |
 | ----------- | ----------- |
-| HOMER           | A boolean (True or False) specifying if you would like to run a meta analsis|
+| META_ANALYSIS           | A boolean (True or False) specifying if you would like to run a meta analsis|
 
 ### Repeat analysis
 | Input      | Description |
@@ -231,7 +231,7 @@ NOTE: Skipper requires at least 2 replicates per sample to identify reproducible
 
 # Running Skipper with ml options (work in progress)
 
-Some deep learning rules will benefit from using GPU (temporary solution), the profiles and rules is already updated such fastq to model training to variant interpretation can be run end-to-end. If you are on a different platform, you may consider editing the following parameters in profile or specific rules:
+Some deep learning rules will benefit from using GPU (temporary solution), the profiles and rules is already updated so that fastq to model training to variant interpretation can be run end-to-end. If you are on a different platform, you may consider editing the following parameters in profile or specific rules:
 ```
 # in profile
 set-resources:
@@ -253,7 +253,7 @@ rule train_model:
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
 ```
 
-Also, the `--nv` flag in singularity_args is essential for application to see CUDA. At the time of development, [snakemake does not offer a rule-specific singularity-args](https://github.com/snakemake/snakemake/issues/3478), so I enabled all rules to use `--nv`. CPU rules still run without problems, luckily.
+Also, the `--nv` flag in singularity_args is essential for application to see CUDA. At the time of development, [snakemake does not offer a rule-specific singularity-args](https://github.com/snakemake/snakemake/issues/3478), so I enabled all rules to use `--nv`. CPU rules still run without problems.
 
 Did Skipper terminate? Sometimes jobs fail - inspect any error output and rerun the same command if there is no apparent explanation such as uninstalled dependencies or a misformatted input file. Snakemake will try to pick up where it left off.
 
@@ -280,7 +280,7 @@ Skipper generates two types of log files. The first type can be found within the
 However, in some cases additional information from snakemake may be necessary, in which cases users are encouraged to investigate the log files in `WORKDIR/.snakemake/slurm_logs`. These log files are organized by rules and contain additional information on the snakemake run.
 
 2. Jobs dying with no explanation.
-If you observe that many of your jobs are dying without any explanation (e.g. mostly blank files in WORKDIR/logs, unhelpful error messages in WORKDIR/.snakemake/slurm_logs such as "Killed") then it is likely that this is the result of bad nodes. I would reccomend taking whichever nodes caused the problems and excluding them from the analysis by adding the following lines to the slurm extra command like so:
+If you observe that many of your jobs are dying without any explanation (e.g. mostly blank files in WORKDIR/logs, unhelpful error messages in WORKDIR/.snakemake/slurm_logs such as "Killed") then it is likely that this is the result of problematic nodes on your cluster. I would reccomend taking whichever nodes were used for the failed jobs and excluding them from the analysis by adding the following lines to the slurm extra command like so:
 
   ```yaml
   slurm_extra: "--exclude=YOUR_NODE"

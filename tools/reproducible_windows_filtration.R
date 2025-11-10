@@ -72,10 +72,17 @@ window_data = left_join(window_data, dplyr::select(nt_counts, c("ID", "window_n"
 
 # Use the ratios to filter the data. 
 window_data_filtered <- window_data %>%
-  filter(gini < 0.9)
+  filter(gini < 0.95)
 
-# Save the 
+# Save the resulting filtered data. 
 write_tsv(window_data_filtered, paste0('output/reproducible_enriched_windows/', prefix, '.reproducible_enriched_windows.tsv.gz'))
+
+# Use the ratios to filter the data. 
+discarded_windows <- window_data %>%
+  filter(gini >= 0.95)
+
+# Save the resulting filtered data. 
+write_tsv(discarded_windows, paste0('output/filtered_out_windows/', prefix, '.filtered_out_windows.tsv.gz'))
 
 # Plot reproducible enriched window counts (linear scale).
 pdf(paste0('output/figures/reproducible_enriched_windows/', prefix, '.reproducible_enriched_window_counts.linear.pdf'), height = 1.8, width = 2.2)

@@ -11,17 +11,18 @@ rule run_star_genome_generate:
         gff = "output/gff/filtered.gff3",
         fasta_file = ancient(GENOME),
     output:
-        star_dir = directory(STAR_DIR),
         chrom_sizes = CHROM_SIZES,
+    params:
+        star_dir = STAR_DIR
     threads: 8
     resources:
-        mem_mb = 64000,
-        runtime = "1h",
+        mem_mb = 48000,
+        runtime = "2h",
     benchmark: "benchmarks/run_star_genome_generate.txt"
     log: "logs/run_star_genome_generate.log"
     conda:
         "envs/star.yaml"
-    shell:        
+    shell:
         r"""
         set -euo pipefail
 
@@ -31,7 +32,7 @@ rule run_star_genome_generate:
         STAR \
             --runMode genomeGenerate \
             --runThreadN {threads} \
-            --genomeDir {output.star_dir} \
+            --genomeDir {params.star_dir} \
             --genomeFastaFiles {input.fasta_file} \
             --sjdbGTFfile {input.gff} \
             --sjdbOverhang 99 \
@@ -183,12 +184,13 @@ rule run_trimmed_fastqc:
 rule align_reads:
     input:
         fq = rules.extract_umi.output.fq_umi,
-        star_sjdb = STAR_DIR,
+        chrom_sizes = CHROM_SIZES,
     output:
         ubam = temp("output/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
         log_file = "output/bams/raw/genome/{replicate_label}.genome.Log.final.out",
     threads: 4
     params:
+        star_sjdb = STAR_DIR,
         outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
         rg = "{replicate_label}",
     benchmark: "benchmarks/align/unassigned_experiment.{replicate_label}.align_reads_genome.txt"
@@ -207,7 +209,7 @@ rule align_reads:
 
         STAR \
             --alignEndsType EndToEnd \
-            --genomeDir {input.star_sjdb} \
+            --genomeDir {params.star_sjdb} \
             --genomeLoad NoSharedMemory \
             --outBAMcompression 10 \
             --outFileNamePrefix {params.outprefix} \

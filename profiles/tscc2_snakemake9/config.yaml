@@ -4,8 +4,10 @@ printshellcmds: true
 notemp: true
 latency: 60
 skip-script-cleanup: true
-retries: 3
+retries: 1
 nolock: true
+default-storage-provider: none
+rerun-triggers: software-env
 keep-going: true
 use-conda: true
 conda-prefix: "/tscc/nfs/home/kflanagan/snakeconda"
