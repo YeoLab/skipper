@@ -8,8 +8,8 @@ rule sample_background_windows_by_region:
         variable_windows = "output/homer/region_matched_background/variable/{experiment_label}.sampled_variable_windows.bed.gz",
         fixed_windows = "output/homer/region_matched_background/fixed/{experiment_label}.sampled_fixed_windows.bed.gz"
     resources:
-        mem_mb = 16000,
-        runtime = "30m"
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
     log: "logs/{experiment_label}.sample_background_windows_by_region.log"
     conda:
@@ -41,8 +41,8 @@ rule run_homer:
         report = "output/homer/finemapped_results/{experiment_label}/homerResults.html",
         pwm = "output/homer/finemapped_results/{experiment_label}/homerMotifs.all.motifs",
     resources:
-        mem_mb = 8000,
-        runtime = "1h"
+        mem_mb=lambda wildcards, attempt: 12000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/run_homer/{experiment_label}.all_replicates.reproducible.txt"
     log: "logs/{experiment_label}.run_homer.log"
     conda:
