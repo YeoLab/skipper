@@ -2,6 +2,7 @@
 library(glue)
 library(tidyverse)
 library(DescTools)
+library(data.table)
 
 # Create output directories for figures and data.
 dir.create("output/figures/reproducible_enriched_windows/", showWarnings = FALSE, recursive = TRUE)
@@ -21,11 +22,11 @@ if(length(args) > 3) {
 }
 
 # Load in the window data, nucleotide counts data, and the blacklist. 
-window_data = read_tsv(input_window_path)
-nt_counts = read_tsv(input_nt_path, col_names = c("chr","start","end","name","score","strand","window_n","input","clip"), col_types = c("ciiciciii"))
+windows = read_tsv(input_window_path)
+nucs = read_tsv(input_nt_path, col_names = c("chr","start","end","name","score","strand","window_n","input","clip"), col_types = c("ciiciciii"))
 
 # Check to make sure it is not an instance of 0 reproducible windows. 
-if (nrow(window_data) == 0){
+if (nrow(windows) == 0){
 	# Output placeholder "No data" plots
 	pdf(paste0('output/figures/reproducible_enriched_windows/', prefix, '.reproducible_enriched_window_counts.linear.pdf'), height = 1, width = 2)
 		print(ggplot() + annotate("text", x = 1, y = 1, label = "No data") + theme_void())
@@ -41,52 +42,79 @@ if (nrow(window_data) == 0){
 	"gene_types","transcript_types", "input_sum","clip_sum","enrichment_n",
 	"enrichment_l2or_min","enrichment_l2or_mean","enrichment_l2or_max","p_max","p_min",
 	"q_max","q_min") 
-	reproducible_enriched_window_data = data.frame(matrix(nrow = 0, ncol = length(columns))) 
-	colnames(reproducible_enriched_window_data) = columns
+	reproducible_enriched_windows = data.frame(matrix(nrow = 0, ncol = length(columns))) 
+	colnames(reproducible_enriched_windows) = columns
 
 	# Save empty table and exit
-	write_tsv(reproducible_enriched_window_data, paste0("output/reproducible_enriched_windows/", prefix, ".reproducible_enriched_windows.tsv.gz"))
+	write_tsv(reproducible_enriched_windows, paste0("output/reproducible_enriched_windows/", prefix, ".reproducible_enriched_windows.tsv.gz"))
 	quit()
 }	
 
 # Filter out the blacklist
-window_data = window_data %>% anti_join(blacklist %>% select(-name)) 
+windows = windows %>% anti_join(blacklist %>% select(-name)) 
+
+# Convert to data.table
+dt_windows <- as.data.table(windows)
+dt_nucs    <- as.data.table(nucs)
+
+# Set keys (required for foverlaps)
+setkey(dt_windows, chr, start, end)
+setkey(dt_nucs,    chr, start, end)
+
+# Overlap join: which window contains each nucleotide?
+res <- foverlaps(
+  dt_nucs,
+  dt_windows,
+  by.x = c("chr", "start", "end"),
+  type = "within",  # nucleotide interval must lie within window
+  mult = "first"    # windows don't overlap, so there is at most 1 anyway
+)
+
+# Clean up: keep original nuc pos + window info
+nucs_with_window <- res[
+  , .(
+    chr  = chr,
+    start = i.start,
+    end = i.end,
+    name,
+    input,
+    clip,
+    window_start = start,
+    window_end   = end
+  )
+]
+
+# Remove all nucleotides that appear in no windows. 
+nucs_with_window_filt <- na.omit(nucs_with_window)
 
 # Calculate the gini-coefficient of each window from the nt counts. 
-window_metrics <- nt_counts %>% 
-    group_by(window_n) %>% 
+window_metrics <- nucs_with_window_filt %>% 
+    group_by(name) %>% 
     summarize(
     gini     = DescTools::Gini(clip),
     .groups  = "drop"
     )
-    
-# add the ratios to nt_counts. 
-nt_counts = left_join(nt_counts, window_metrics, by = "window_n")
-
-# Create ID columns for both nt_counts and window_data for merging. 
-window_data$ID = paste(window_data$chr, window_data$start, sep = "_")
-nt_counts$ID = paste(nt_counts$chr, nt_counts$start, sep = "_")
 
 # Merge the ratio information into the window data
-window_data = left_join(window_data, dplyr::select(nt_counts, c("ID", "window_n", "gini")), by = "ID")
+window_data = left_join(windows, window_metrics, by = "name")
 
 # Use the ratios to filter the data. 
-window_data_filtered <- window_data %>%
-  filter(gini < 0.95)
+windows_filtered <- window_data %>%
+  filter(gini < 0.9)
 
 # Save the resulting filtered data. 
-write_tsv(window_data_filtered, paste0('output/reproducible_enriched_windows/', prefix, '.reproducible_enriched_windows.tsv.gz'))
+write_tsv(windows_filtered, paste0('output/reproducible_enriched_windows/', prefix, '.reproducible_enriched_windows.tsv.gz'))
 
 # Use the ratios to filter the data. 
 discarded_windows <- window_data %>%
-  filter(gini >= 0.95)
+  filter(gini >= 0.9)
 
 # Save the resulting filtered data. 
 write_tsv(discarded_windows, paste0('output/filtered_out_windows/', prefix, '.filtered_out_windows.tsv.gz'))
 
 # Plot reproducible enriched window counts (linear scale).
 pdf(paste0('output/figures/reproducible_enriched_windows/', prefix, '.reproducible_enriched_window_counts.linear.pdf'), height = 1.8, width = 2.2)
-window_data_filtered %>% 
+windows_filtered %>% 
 	mutate(feature_group = sub("_.*","", feature_type_top)) %>% 
 ggplot(aes(feature_type_top, fill = feature_group, group = feature_type_top)) + theme_bw(base_size = 7) + 
 	geom_bar() + 
@@ -96,7 +124,7 @@ dev.off()
 
 # Plot reproducible enriched window counts (log scale).
 pdf(paste0('output/figures/reproducible_enriched_windows/', prefix, '.reproducible_enriched_window_counts.log10.pdf'), height = 1.8, width = 2.2)
-window_data_filtered %>% 
+windows_filtered %>% 
 	mutate(feature_group = sub("_.*","", feature_type_top)) %>% 
 	group_by(feature_group, feature_type_top) %>% count %>%
 ggplot(aes(feature_type_top, n, color = feature_group, group = feature_type_top)) + theme_bw(base_size = 7) + 
