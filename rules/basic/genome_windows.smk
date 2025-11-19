@@ -14,15 +14,17 @@ rule filter_gff:
         mem_mb = 32000,
         runtime = "1h"
     benchmark: "benchmarks/filter_gff.txt"
-    log: "logs/filter_gff.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/filter_gff.out",
+        stderr = config["WORKDIR"] + "/stderr/filter_gff.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting filter_gff" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting filter_gff" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/filter_gff.R \
             {params.source} \
@@ -30,9 +32,9 @@ rule filter_gff:
             {input.rankings} \
             {output.gff_filt} \
             {output.rankings_filt} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished filter_gff" | tee -a {log}
+        echo "[`date`] Finished filter_gff" | tee -a {log.stdout}
         """
 
 rule parse_gff:
@@ -47,24 +49,26 @@ rule parse_gff:
         mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/parse_gff.txt"
-    log: "logs/parse_gff.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/parse_gff.out",
+        stderr = config["WORKDIR"] + "/stderr/parse_gff.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting parse_gff" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting parse_gff" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/parse_gff.R \
             {input.gff_filt} \
             {input.rankings} \
             {output.partition} \
             {output.feature_annotations} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished parse_gff" | tee -a {log}
+        echo "[`date`] Finished parse_gff" | tee -a {log.stdout}
         """
 
 rule partition_bam_reads:
@@ -81,15 +85,17 @@ rule partition_bam_reads:
         tmpdir = TMPDIR,
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
-    log: "logs/{replicate_label}.partition_bam_reads.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.partition_bam_reads.out",
+        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.partition_bam_reads.err",
     conda:
         "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting partition_bam_reads" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting partition_bam_reads" | tee -a {log.stdout}
 
         bedtools bamtobed -i {input.bam} \
             | awk '($1 != "chrEBV") && ($4 !~ "/{params.uninformative}$")' \
@@ -100,11 +106,11 @@ rule partition_bam_reads:
             | bedtools coverage -counts -s -a {input.region_partition} -b - \
             | cut -f 7 \
             | awk 'BEGIN {{print "{wildcards.replicate_label}"}} {{print}}' \
-            > {output.counts} 2>&1 | tee -a {log}
+        >> {output.counts} 2> {log.stderr}
 
-        echo "[`date`] Finished partition_bam_reads" | tee -a {log}
+        echo "[`date`] Finished partition_bam_reads" | tee -a {log.stdout}
         """
-#| bedtools sort -i - \   
+
 rule calc_partition_nuc:
     input:
         partition = PARTITION,
@@ -115,24 +121,26 @@ rule calc_partition_nuc:
         mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/partition_nuc.txt"
-    log: "logs/calc_partition_nuc.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/calc_partition_nuc.out",
+        stderr = config["WORKDIR"] + "/stderr/calc_partition_nuc.err",
     conda:
         "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting calc_partition_nuc" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting calc_partition_nuc" | tee -a {log.stdout}
 
         bedtools nuc -s \
             -fi {input.genome} \
             -bed {input.partition} \
             | gzip -c \
             > {output.nuc} \
-            2>&1 | tee -a {log}
+        2> {log.stderr}
 
-        echo "[`date`] Finished calc_partition_nuc" | tee -a {log}
+        echo "[`date`] Finished calc_partition_nuc" | tee -a {log.stdout}
         """
 
 rule make_genome_count_table:
@@ -149,15 +157,17 @@ rule make_genome_count_table:
         mem_mb=lambda wildcards, attempt: 1000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 30 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_genome_count_table.txt"
-    log: "logs/{experiment_label}.make_genome_count_table.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.make_genome_count_table.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.make_genome_count_table.err",
     conda:
         "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting make_genome_count_table" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting make_genome_count_table" | tee -a {log.stdout}
 
         paste <(
             zcat {input.partition} \
@@ -165,9 +175,9 @@ rule make_genome_count_table:
         ) {input.replicate_counts} \
             | gzip -c \
             > {output.count_table} \
-            2>&1 | tee -a {log}
+        2> {log.stderr}
 
-        echo "[`date`] Finished make_genome_count_table" | tee -a {log}
+        echo "[`date`] Finished make_genome_count_table" | tee -a {log.stdout}
         """
 
 rule fit_input_betabinomial_model:
@@ -181,23 +191,24 @@ rule fit_input_betabinomial_model:
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
     log:
-        "logs/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_model.log"
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_model.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_model.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting fit_input_betabinomial_model" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting fit_input_betabinomial_model" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/fit_input_betabinom.R \
             {input.table} \
             {wildcards.experiment_label} \
             {wildcards.input_replicate_label} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished fit_input_betabinomial_model" | tee -a {log}
+        echo "[`date`] Finished fit_input_betabinomial_model" | tee -a {log.stdout}
         """
 
 rule fit_clip_betabinomial_model:
@@ -210,23 +221,25 @@ rule fit_clip_betabinomial_model:
         mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
-    log: "logs/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting fit_clip_betabinomial_model" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting fit_clip_betabinomial_model" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom.R \
             {input.table} \
             {wildcards.experiment_label} \
             {wildcards.clip_replicate_label} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished fit_clip_betabinomial_model" | tee -a {log}
+        echo "[`date`] Finished fit_clip_betabinomial_model" | tee -a {log.stdout}
         """
 
 rule call_enriched_windows:
@@ -273,7 +286,9 @@ rule call_enriched_windows:
         mem_mb=lambda wildcards, attempt: 24000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
-    log: "logs/{experiment_label}.{clip_replicate_label}.call_enriched_windows.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.{clip_replicate_label}.call_enriched_windows.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.{clip_replicate_label}.call_enriched_windows.err",
     conda:
         "envs/skipper_R.yaml"
     params:
@@ -282,8 +297,8 @@ rule call_enriched_windows:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting call_enriched_windows" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting call_enriched_windows" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/call_enriched_windows.R \
             {input.table} \
@@ -293,9 +308,9 @@ rule call_enriched_windows:
             {params.input_replicate_label} \
             {wildcards.clip_replicate_label} \
             {wildcards.experiment_label}.{wildcards.clip_replicate_label} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished call_enriched_windows" | tee -a {log}
+        echo "[`date`] Finished call_enriched_windows" | tee -a {log.stdout}
         """
 
 rule check_window_concordance:
@@ -312,23 +327,23 @@ rule check_window_concordance:
         mem_mb = 8000,
         runtime = "30m"
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
-    log: "logs/{experiment_label}.check_window_concordance.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.check_window_concordance.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.check_window_concordance.err",
     conda:
         "envs/skipper_R.yaml"
-    params:
-        blacklist = (BLACKLIST if BLACKLIST is not None else "")
     shell:
         r"""
         set -euo pipefail
-        echo "[`date`] Starting check_window_concordance" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting check_window_concordance" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/check_window_concordance.R \
             output/tested_windows \
-            {wildcards.experiment_label} \
-            {params.blacklist} \
-            2>&1 | tee -a {log}
+            {wildcards.experiment_label}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished check_window_concordance" | tee -a {log}
+        echo "[`date`] Finished check_window_concordance" | tee -a {log.stdout}
         """
 
 rule find_reproducible_enriched_windows:
@@ -343,22 +358,27 @@ rule find_reproducible_enriched_windows:
         mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
-    log: "logs/{experiment_label}.find_reproducible_enriched_windows.log"
+    params:
+        blacklist = (BLACKLIST if BLACKLIST is not None else "")
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.find_reproducible_enriched_windows.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.find_reproducible_enriched_windows.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting find_reproducible_enriched_windows" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting find_reproducible_enriched_windows" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R \
             output/enriched_windows/ \
             {wildcards.experiment_label} \
-            2>&1 | tee -a {log}
+            {params.blacklist} \
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished find_reproducible_enriched_windows" | tee -a {log}
+        echo "[`date`] Finished find_reproducible_enriched_windows" | tee -a {log.stdout}
         """
 
 rule filter_reproducible_windows:
@@ -373,25 +393,27 @@ rule filter_reproducible_windows:
     resources:
         mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
+    params:
+        filter = config["GINI_CUTOFF"]
     benchmark: "benchmarks/filter_reproducible_windows/{experiment_label}.all_replicates.reproducible.txt"
-    log: "logs/{experiment_label}.filter_reproducible_windows.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.filter_reproducible_windows.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.filter_reproducible_windows.err",
     conda:
         "envs/skipper_R.yaml"
-    params:
-        blacklist = (BLACKLIST if BLACKLIST is not None else "")
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting filter_reproducible_windows" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting filter_reproducible_windows" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/reproducible_windows_filtration.R \
             {input.unfiltered_enriched_windows} \
             {input.nt_coverage} \
+            {params.filter} \
             {wildcards.experiment_label} \
-            {params.blacklist} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished filter_reproducible_windows" | tee -a {log}
+        echo "[`date`] Finished filter_reproducible_windows" | tee -a {log.stdout}
         """

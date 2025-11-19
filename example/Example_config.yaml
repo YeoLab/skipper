@@ -23,3 +23,4 @@ protocol: ENCODE4 # ENCODE4 for single end, ENCODE3 for paired end. ###!!!### Ca
 UMI_SIZE: 10
 INFORMATIVE_READ: 1
 OVERDISPERSION_MODE: input   # input or clip, input is reccomended
+GINI_CUTOFF: 0.95

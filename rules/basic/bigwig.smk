@@ -14,32 +14,34 @@ rule make_unscaled_bigwig:
         mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
-    log: "logs/{replicate_label}.make_unscaled_bigwig.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.make_unscaled_bigwig.out",
+        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.make_unscaled_bigwig.err",
     conda:
         "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
-
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting make_unscaled_bigwig" | tee "{log}"
-
-        samtools index {input.bam} 2>&1 | tee -a "{log}"
-
+        
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[$(date)] Starting make_unscaled_bigwig" | tee -a {log.stdout}
+        
+        samtools index {input.bam} >> {log.stdout} 2> {log.stderr}
+        
         bedtools genomecov -split -strand + -bg -ibam {input.bam} \
-            | sort -k1,1 -k2,2n \
-            | grep -v EBV \
-            > {output.bg_plus} 2>&1 | tee -a "{log}"
-
+          | sort -k1,1 -k2,2n \
+          | grep -v EBV \
+          > {output.bg_plus} 2>> {log.stderr}
+        
         bedtools genomecov -split -strand - -bg -ibam {input.bam} \
-            | sort -k1,1 -k2,2n \
-            | grep -v EBV \
-            > {output.bg_minus} 2>&1 | tee -a "{log}"
-
-        bedGraphToBigWig {output.bg_plus} {input.chrom_sizes} {output.bw_plus} 2>&1 | tee -a "{log}"
-        bedGraphToBigWig {output.bg_minus} {input.chrom_sizes} {output.bw_minus} 2>&1 | tee -a "{log}"
-
-        echo "[`date`] Finished make_unscaled_bigwig" | tee -a "{log}"
+          | sort -k1,1 -k2,2n \
+          | grep -v EBV \
+          > {output.bg_minus} 2>> {log.stderr}
+        
+        bedGraphToBigWig {output.bg_plus}  {input.chrom_sizes} {output.bw_plus}  >> {log.stdout} 2>> {log.stderr}
+        bedGraphToBigWig {output.bg_minus} {input.chrom_sizes} {output.bw_minus} >> {log.stdout} 2>> {log.stderr}
+        
+        echo "[$(date)] Finished make_unscaled_bigwig" | tee -a {log.stdout}
         """
 
 rule make_scaled_bigwig:
@@ -56,17 +58,19 @@ rule make_scaled_bigwig:
         mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
-    log: "logs/{replicate_label}.make_scaled_bigwig.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.make_scaled_bigwig.out",
+        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.make_scaled_bigwig.err",
     conda:
         "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting make_scaled_bigwig" | tee "{log}"
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting make_scaled_bigwig" | tee -a {log.stdout}
 
-        samtools index {input.bam} 2>&1 | tee -a "{log}"
+        samtools index {input.bam} 2>&1 | tee -a {log.stdout}
 
         FACTOR=$(samtools idxstats {input.bam} \
             | cut -f 3 \
@@ -78,19 +82,17 @@ rule make_scaled_bigwig:
         bedtools genomecov -scale $FACTOR -split -strand + -bg -ibam {input.bam} \
             | sort -k1,1 -k2,2n \
             | grep -v EBV \
-            > {output.bg_plus} \
-            2>&1 | tee -a "{log}"
+            > {output.bg_plus} 2> {log.stderr}
 
         bedtools genomecov -scale $FACTOR -split -strand - -bg -ibam {input.bam} \
             | sort -k1,1 -k2,2n \
             | grep -v EBV \
-            > {output.bg_minus} \
-            2>&1 | tee -a "{log}"
+            > {output.bg_minus} 2>> {log.stderr}
 
-        bedGraphToBigWig {output.bg_plus} {input.chrom_sizes} {output.bw_plus} 2>&1 | tee -a "{log}"
-        bedGraphToBigWig {output.bg_minus} {input.chrom_sizes} {output.bw_minus} 2>&1 | tee -a "{log}"
+        bedGraphToBigWig {output.bg_plus} {input.chrom_sizes} {output.bw_plus} >> {log.stdout} 2>> {log.stderr}
+        bedGraphToBigWig {output.bg_minus} {input.chrom_sizes} {output.bw_minus} >> {log.stdout} 2>> {log.stderr}
 
-        echo "[`date`] Finished make_scaled_bigwig" | tee -a "{log}"
+        echo "[`date`] Finished make_scaled_bigwig" | tee -a {log.stdout}
         """
 
 rule make_scaled_bigwig_coverage:
@@ -103,7 +105,9 @@ rule make_scaled_bigwig_coverage:
         bw_plus = "output/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw",
         bw_minus = "output/bigwigs/scaled/minus/{replicate_label}.scaled.cov.minus.bw",
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
-    log: "logs/{replicate_label}.make_unscaled_bigwig_coverage.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.make_scaled_bigwig_coverage.out",
+        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.make_scaled_bigwig_coverage.err",
     resources:
         tmpdir = TMPDIR,
         mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
@@ -114,8 +118,8 @@ rule make_scaled_bigwig_coverage:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting make_scaled_bigwig_coverage" | tee "{log}"
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting make_scaled_bigwig_coverage" | tee -a {log.stdout}
 
         factor=$(samtools idxstats {input.bam} \
             | cut -f 3 \
@@ -127,15 +131,15 @@ rule make_scaled_bigwig_coverage:
         bedtools genomecov -scale $factor -strand + -bg -ibam {input.bam} \
             | sort -k1,1 -k2,2n \
             | grep -v EBV \
-            > {output.bg_plus} 2>&1 | tee -a "{log}"
+        > {output.bg_plus} 2> {log.stderr}
 
         bedtools genomecov -scale $factor -strand - -bg -ibam {input.bam} \
             | sort -k1,1 -k2,2n \
             | grep -v EBV \
-            > {output.bg_minus} 2>&1 | tee -a "{log}"
+        > {output.bg_minus} 2>> {log.stderr}
 
-        bedGraphToBigWig {output.bg_plus} {input.chrom_sizes} {output.bw_plus} 2>&1 | tee -a "{log}"
-        bedGraphToBigWig {output.bg_minus} {input.chrom_sizes} {output.bw_minus} 2>&1 | tee -a "{log}"
+        bedGraphToBigWig {output.bg_plus} {input.chrom_sizes} {output.bw_plus} >> {log.stdout} 2>> {log.stderr}
+        bedGraphToBigWig {output.bg_minus} {input.chrom_sizes} {output.bw_minus} >> {log.stdout} 2>> {log.stderr}
 
-        echo "[`date`] Finished make_scaled_bigwig_coverage" | tee -a "{log}"
+        echo "[`date`] Finished make_scaled_bigwig_coverage" | tee -a {log.stdout}
         """

@@ -11,15 +11,17 @@ rule sample_background_windows_by_region:
         mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
-    log: "logs/{experiment_label}.sample_background_windows_by_region.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.sample_background_windows_by_region.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.sample_background_windows_by_region.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting sample_background_windows_by_region" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting sample_background_windows_by_region" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/sample_matched_background_by_region.R \
             {input.enriched_windows} \
@@ -27,9 +29,9 @@ rule sample_background_windows_by_region:
             75 \
             output/homer/region_matched_background \
             {wildcards.experiment_label} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished sample_background_windows_by_region" | tee -a {log}
+        echo "[`date`] Finished sample_background_windows_by_region" | tee -a {log.stdout}
         """
 
 rule run_homer:
@@ -44,15 +46,17 @@ rule run_homer:
         mem_mb=lambda wildcards, attempt: 12000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/run_homer/{experiment_label}.all_replicates.reproducible.txt"
-    log: "logs/{experiment_label}.run_homer.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.run_homer.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.run_homer.err",
     conda:
         "envs/homer.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting run_homer" | tee "{log}"
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting run_homer" | tee  -a {log.stdout}
 
         # Prepare process-substitution inputs
         fg_input=<(zcat {input.finemapped_windows} \
@@ -67,9 +71,9 @@ rule run_homer:
             -preparsedDir output/homer/preparsed \
             -size given -rna -nofacts -S 20 -len 5,6,7,8,9 -nlen 1 \
             -bg "$bg_input" \
-            2>&1 | tee -a "{log}"
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished run_homer" | tee -a "{log}"
+        echo "[`date`] Finished run_homer" | tee -a {log.stdout}
         """
 
 rule consult_encode_reference:
@@ -89,23 +93,25 @@ rule consult_encode_reference:
         mem_mb = 1000,
         runtime = "30m"
     benchmark: "benchmarks/consult_encode_reference/skipper.txt"
-    log: "logs/consult_encode_reference.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.consult_encode_reference.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.consult_encode_reference.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting consult_encode_reference" | tee "{log}"
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting consult_encode_reference" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/consult_encode_reference_windows.R \
             output/reproducible_enriched_windows \
             {TOOL_DIR} \
             skipper \
-            2>&1 | tee -a "{log}"
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished consult_encode_reference" | tee -a "{log}"
+        echo "[`date`] Finished consult_encode_reference" | tee -a {log.stdout}
         """
 
 rule consult_encode_reference_re:
@@ -125,23 +131,25 @@ rule consult_encode_reference_re:
         mem_mb = 1000,
         runtime = "30m"
     benchmark: "benchmarks/consult_encode_reference_re/skipper.txt"
-    log: "logs/consult_encode_reference_re.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.consult_encode_reference_re.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.consult_encode_reference_re.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting consult_encode_reference" | tee "{log}"
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting consult_encode_reference" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/consult_encode_reference_re.R \
             output/reproducible_enriched_re \
             {TOOL_DIR} \
             skipper \
-            2>&1 | tee -a "{log}"
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished consult_encode_reference_re" | tee -a "{log}"
+        echo "[`date`] Finished consult_encode_reference_re" | tee -a {log.stdout}
         """
 
 rule consult_term_reference:
@@ -158,15 +166,17 @@ rule consult_term_reference:
         mem_mb = 1000,
         runtime = "30m"
     benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
-    log: "logs/{experiment_label}.consult_term_reference.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.consult_term_reference.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.consult_term_reference.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting consult_term_reference" | tee "{log}"
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting consult_term_reference" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/consult_term_reference.R \
             {input.enriched_windows} \
@@ -174,7 +184,7 @@ rule consult_term_reference:
             {params.gene_set_reference} \
             {params.gene_set_distance} \
             {wildcards.experiment_label} \
-            2>&1 | tee -a "{log}"
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished consult_term_reference" | tee -a "{log}"
+        echo "[`date`] Finished consult_term_reference" | tee -a {log.stdout}
         """

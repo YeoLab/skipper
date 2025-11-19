@@ -24,15 +24,17 @@ rule get_nt_coverage:
         mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
-    log: "logs/{experiment_label}.get_nt_coverage.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.get_nt_coverage.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.get_nt_coverage.err",
     conda:
         "envs/bedbam_tools.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting get_nt_coverage" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting get_nt_coverage" | tee -a {log.stdout}
 
         zcat {input.windows} \
             | tail -n +2 \
@@ -40,7 +42,7 @@ rule get_nt_coverage:
             | awk -v OFS="\t" '{{start = $2-37; if(start < 0) {{start = 0}}; print $1, start, $3+37,$4,$5,$6}}' \
             | bedtools merge -i - -s -c 6 -o distinct \
             | awk -v OFS="\t" '{{for(i=$2;i<$3;i++) {{print $1,i,i+1,"MW:" NR ":" i - $2,0,$4, NR}} }}' \
-            > {output.nt_census} 2>&1 | tee -a {log}
+            > {output.nt_census} 2> {log.stderr}
 
         samtools cat {input.input_bams} \
             | bedtools intersect -s -wa -a - -b {output.nt_census} \
@@ -51,7 +53,7 @@ rule get_nt_coverage:
             | bedtools sort -i - \
             | bedtools coverage -counts -s -a {output.nt_census} -b - \
             | awk '{{print $NF}}' \
-            > {output.nt_input_counts} 2>&1 | tee -a {log}
+            > {output.nt_input_counts} 2>> {log.stderr}
 
         samtools cat {input.clip_bams} \
             | bedtools intersect -s -wa -a - -b {output.nt_census} \
@@ -62,12 +64,12 @@ rule get_nt_coverage:
             | bedtools sort -i - \
             | bedtools coverage -counts -s -a {output.nt_census} -b - \
             | awk '{{print $NF}}' \
-            > {output.nt_clip_counts} 2>&1 | tee -a {log}
+            > {output.nt_clip_counts} 2>> {log.stderr}
 
         paste {output.nt_census} {output.nt_input_counts} {output.nt_clip_counts} \
-            > {output.nt_coverage} 2>&1 | tee -a {log}
+            > {output.nt_coverage} 2>> {log.stderr}
 
-        echo "[`date`] Finished get_nt_coverage" 2>&1 | tee -a {log}
+        echo "[`date`] Finished get_nt_coverage" >> {log.stdout}
         """
 
 rule finemap_windows:
@@ -80,23 +82,25 @@ rule finemap_windows:
         mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
-    log: "logs/{experiment_label}.finemap_windows.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.finemap_windows.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.finemap_windows.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting finemap_windows" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting finemap_windows" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/finemap_enriched_windows.R \
             {input.nt_coverage} \
             output/finemapping/mapped_sites/ \
             {wildcards.experiment_label} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
         gzip -t {output.finemapped_windows}
-        echo "[`date`] Finished finemap_windows" 2>&1 | tee -a {log}
+        echo "[`date`] Finished finemap_windows" >> {log.stdout}
         """
 
 rule annotate_finemap:
@@ -107,7 +111,9 @@ rule annotate_finemap:
     output:
         "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv"
     threads: 1
-    log: "logs/{experiment_label}.annotate_finemap.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.annotate_finemap.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.annotate_finemap.err",
     resources:
         mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
@@ -117,8 +123,8 @@ rule annotate_finemap:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting annotate_finemap" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting annotate_finemap" | tee -a {log.stdout}
 
         if [ -s {input.finemapped} ]; then
             python {TOOL_DIR}/annotate_finemapped_regions.py \
@@ -126,12 +132,12 @@ rule annotate_finemap:
                 {input.ranking} \
                 {input.feature_annotations} \
                 {output} \
-                2>&1 | tee -a {log}
+            >> {log.stdout} 2> {log.stderr}
         else
-            touch {output} 2>&1 | tee -a {log}
+            touch {output} >> {log.stdout} 2>> {log.stderr}
         fi
 
-        echo "[`date`] Finished annotate_finemap" 2>&1 | tee -a {log}
+        echo "[`date`] Finished annotate_finemap" | tee -a {log.stdout}
         """
 
 rule find_both_tested_windows:
@@ -144,7 +150,9 @@ rule find_both_tested_windows:
         tested_windows_in_2_rep = "output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",
         tested_windows_merged = "output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.merged.bed"
     threads: 1
-    log: "logs/{experiment_label}.find_both_tested_windows.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.find_both_tested_windows.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.find_both_tested_windows.err",
     resources:
         mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
@@ -154,14 +162,14 @@ rule find_both_tested_windows:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting find_both_tested_windows" 2>&1 | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting find_both_tested_windows" | tee -a {log.stdout}
 
         python {TOOL_DIR}/find_both_tested_windows.py \
             "{input}" \
             {output.tested_windows_in_2_rep} \
             {output.tested_windows_merged} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished find_both_tested_windows" 2>&1 | tee -a {log}
+        echo "[`date`] Finished find_both_tested_windows" | tee -a {log.stdout}
         """

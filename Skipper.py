@@ -16,13 +16,14 @@ locals().update(config)
 WORKDIR = config.get("WORKDIR")
 workdir: config['WORKDIR']
 TMPDIR = config.get("TMPDIR")
-
-# Generate directories to hold log files. 
-if not os.path.exists("logs"): os.makedirs("logs")
+GINI_CUTOFF = config.get("GINI_CUTOFF")
 
 # Set the temporary directory within the working directory by default. 
 if not TMPDIR:
     config['TMPDIR'] = os.path.join(WORKDIR, "tmp")
+
+if not GINI_CUTOFF:
+    config['GINI_CUTOFF'] = 0.95
 
 # Check for proper overdispersion mode. 
 if OVERDISPERSION_MODE not in ["clip","input"]:

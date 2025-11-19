@@ -43,7 +43,9 @@ rule multiqc:
         multiqc_plots = directory("output/multiqc/{experiment_label}/multiqc_plots/"),
         multiqc_report = "output/multiqc/{experiment_label}/multiqc_report.html"
     benchmark: "benchmarks/multiqc/{experiment_label}.multiqc.txt"
-    log: "logs/{experiment_label}.multiqc.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.multiqc.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.multiqc.err",
     conda:
         "envs/multiqc2.yaml"
     resources:
@@ -53,11 +55,11 @@ rule multiqc:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting multiqc" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting multiqc" | tee -a {log.stdout}
 
-        ls {input.trimmed_fastqc} {input.initial_fastqc} {input.star_log} {input.fastp} {input.trimmed} \
-            > output/multiqc/{wildcards.experiment_label}/files.txt 2>&1 | tee -a {log}
+        (ls {input.trimmed_fastqc} {input.initial_fastqc} {input.star_log} {input.fastp} {input.trimmed} \
+            > output/multiqc/{wildcards.experiment_label}/files.txt) >> {log.stdout} 2> {log.stderr}
 
         multiqc \
             --outdir output/multiqc/{wildcards.experiment_label} \
@@ -65,9 +67,9 @@ rule multiqc:
             --export \
             --data-format json \
             --file-list output/multiqc/{wildcards.experiment_label}/files.txt \
-            2>&1 | tee -a {log}
+            >> {log.stdout} 2>> {log.stderr}
 
-        echo "[`date`] Finished multiqc" | tee -a {log}
+        echo "[`date`] Finished multiqc" | tee -a {log.stdout}
         """
 
 # Unique fragment per library
@@ -76,7 +78,9 @@ rule join_unique_fragments:
         expand("output/QC/{replicate_label}.uniq_fragments", replicate_label = replicate_labels)
     output:
         "output/QC/unique_fragments.csv"
-    log: "logs/join_unique_fragments.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/join_unique_fragments.out",
+        stderr = config["WORKDIR"] + "/stderr/join_unique_fragments.err",
     resources:
         mem_mb=2000,
         runtime=25
@@ -84,12 +88,12 @@ rule join_unique_fragments:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting join_unique_fragments" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting join_unique_fragments" | tee -a {log.stdout}
 
-        awk '{{print FILENAME "," $0}}' {input} > {output} 2>&1 | tee -a {log}
+        (awk '{{print FILENAME "," $0}}' {input} > {output}) >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished join_unique_fragments" | tee -a {log}
+        echo "[`date`] Finished join_unique_fragments" | tee -a {log.stdout}
         """
 
 rule quantify_gc_bias:
@@ -99,8 +103,9 @@ rule quantify_gc_bias:
         gc_bias = "output/QC/{experiment_label}.gc_bias.txt"
     conda:
         "envs/metadensity.yaml"
-    log: 
-        "logs/{experiment_label}.quantify_gc_bias.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.quantify_gc_bias.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.quantify_gc_bias.err",
     params:
         sample = lambda w: experiment_to_sample[w.experiment_label]
     resources:
@@ -110,16 +115,16 @@ rule quantify_gc_bias:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting quantify_gc_bias for {wildcards.experiment_label}" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting quantify_gc_bias for {wildcards.experiment_label}" | tee -a {log.stdout}
 
         python {TOOL_DIR}/quantify_gcbias.py \
             {input.table} \
             {params.sample} \
             {output.gc_bias} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished quantify_gc_bias for {wildcards.experiment_label}" | tee -a {log}
+        echo "[`date`] Finished quantify_gc_bias for {wildcards.experiment_label}" | tee -a {log.stdout}
         """
 
 def get_bams(wildcards):
@@ -143,13 +148,21 @@ rule nread_in_finemapped_regions:
     conda:
         "envs/bedbam_tools.yaml"
     params:
-        genome=os.path.join(config['STAR_DIR'], 'chrNameLength.txt')
+        genome=os.path.join(config['STAR_DIR'], 'chrNameLength.tx>> {log.stdout} 2> {log.stderr}t')
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.nread_in_finemapped_regions.out",
+        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.nread_in_finemapped_regions.err",
     resources:
         mem_mb=lambda wildcards, attempt: 32000 * (2 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 5 * (2 ** (attempt - 1)),
     shell:
         """
-        zcat {input.bed} | bedtools sort -g {params.genome} -i - | gzip -c > {output.sorted_bed};
+        set -euo pipefail
+
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting nread_in_finemapped_regions for {wildcards.experiment_label}" | tee -a {log.stdout}
+
+        (zcat {input.bed} | bedtools sort -g {params.genome} -i - | gzip -c > {output.sorted_bed};
         for bam in {input.bam}
         do
             nread_in_peak=$(bedtools coverage \
@@ -161,6 +174,8 @@ rule nread_in_finemapped_regions:
             -s | cut -f 10 | awk '{{sum += $NF}} END {{print sum}}')
             replicate_label=$(basename $bam | cut -d'.' -f1)
             echo -e "$replicate_label\t$nread_in_peak" >> {output.nread_in_finemapped_regions}
-        done
+        done) >> {log.stdout} 2> {log.stderr}
+
+        echo "[`date`] Finished nread_in_finemapped_regions for {wildcards.experiment_label}" | tee -a {log.stdout}
         """
 

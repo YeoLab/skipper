@@ -19,15 +19,17 @@ rule run_star_genome_generate:
         mem_mb = 48000,
         runtime = "2h",
     benchmark: "benchmarks/run_star_genome_generate.txt"
-    log: "logs/run_star_genome_generate.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/run_star_genome_generate.out",
+        stderr = config["WORKDIR"] + "/stderr/run_star_genome_generate.err",
     conda:
         "envs/star.yaml"
     shell:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting star_genome_generate." | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting star_genome_generate." | tee -a {log.stdout}
 
         STAR \
             --runMode genomeGenerate \
@@ -36,9 +38,9 @@ rule run_star_genome_generate:
             --genomeFastaFiles {input.fasta_file} \
             --sjdbGTFfile {input.gff} \
             --sjdbOverhang 99 \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished star_genome_generate." | tee -a {log}
+        echo "[`date`] Finished star_genome_generate." | tee -a {log.stdout}
         """
 
 rule run_initial_fastqc:
@@ -50,7 +52,9 @@ rule run_initial_fastqc:
         directory = directory("output/fastqc/initial/{replicate_label}_fastqc")
     threads: 2
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
-    log: "logs/{replicate_label}.run_initial_fastqc.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.run_initial_fastqc.out",
+        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.run_initial_fastqc.err",
     conda:
         "envs/fastqc.yaml"
     resources:
@@ -60,17 +64,17 @@ rule run_initial_fastqc:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting run_initial_fastqc for {wildcards.replicate_label}" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting run_initial_fastqc for {wildcards.replicate_label}" | tee -a {log.stdout}
 
         zcat {input.fq} \
           | fastqc stdin:{wildcards.replicate_label} \
               --extract \
               --outdir output/fastqc/initial \
               -t {threads} \
-          2>&1 | tee -a {log}
+          >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished run_initial_fastqc for {wildcards.replicate_label}" | tee -a {log}
+        echo "[`date`] Finished run_initial_fastqc for {wildcards.replicate_label}" | tee -a {log.stdout}
         """
         
 rule trim_fastq:
@@ -85,7 +89,9 @@ rule trim_fastq:
         k = skewer_k,
         m = skewer_m
     benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
-    log: "logs/{replicate_label}.trim_fastq.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.trim_fastq.out",
+        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.trim_fastq.err",
     conda:
         "envs/skewer.yaml"
     resources:
@@ -95,8 +101,8 @@ rule trim_fastq:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting trim_fastq for {wildcards.replicate_label}" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting trim_fastq for {wildcards.replicate_label}" | tee -a {log.stdout}
 
         zcat {input.fq} \
           | skewer \
@@ -108,9 +114,9 @@ rule trim_fastq:
               -x {input.adapter} \
               -o output/fastqs/trimmed/{wildcards.replicate_label} \
               -z -r 0.2 -d 0.2 -q 13 -l 20 -k {params.k} -m {params.m} - \
-          2>&1 | tee -a {log}
+          >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished trim_fastq for {wildcards.replicate_label}" | tee -a {log}
+        echo "[`date`] Finished trim_fastq for {wildcards.replicate_label}" | tee -a {log.stdout}
         """
 
 rule extract_umi:
@@ -124,7 +130,9 @@ rule extract_umi:
     params:
         umi_length = config['UMI_SIZE'],
     benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.extract_umi.txt"
-    log: "logs/{replicate_label}.extract_umi.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.extract_umi.out",
+        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.extract_umi.err",
     conda:
         "envs/fastp.yaml"
     resources:
@@ -134,8 +142,8 @@ rule extract_umi:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting extract_umi for {wildcards.replicate_label}" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting extract_umi for {wildcards.replicate_label}" | tee -a {log.stdout}
 
         fastp \
             -i {input.fq} \
@@ -147,9 +155,9 @@ rule extract_umi:
             -j {output.json} \
             -h {output.html} \
             -w {threads} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished extract_umi for {wildcards.replicate_label}" | tee -a {log}
+        echo "[`date`] Finished extract_umi for {wildcards.replicate_label}" | tee -a {log.stdout}
         """
 
 rule run_trimmed_fastqc:
@@ -160,7 +168,9 @@ rule run_trimmed_fastqc:
         zip_file = "output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.zip",
     threads: 2
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.trimmed_fastqc.txt"
-    log: "logs/{replicate_label}.run_trimmed_fastqc.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.run_trimmed_fastqc.out",
+        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.run_trimmed_fastqc.err",
     conda:
         "envs/fastqc.yaml"
     resources:
@@ -169,16 +179,16 @@ rule run_trimmed_fastqc:
     shell:
         r"""
         set -euo pipefail
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting run_trimmed_fastqc for {wildcards.replicate_label}" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting run_trimmed_fastqc for {wildcards.replicate_label}" | tee -a {log.stdout}
 
         fastqc {input} \
             --extract \
             --outdir output/fastqc/processed \
             -t {threads} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished run_trimmed_fastqc for {wildcards.replicate_label}" | tee -a {log}
+        echo "[`date`] Finished run_trimmed_fastqc for {wildcards.replicate_label}" | tee -a {log.stdout}
         """
 
 rule align_reads:
@@ -194,7 +204,9 @@ rule align_reads:
         outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
         rg = "{replicate_label}",
     benchmark: "benchmarks/align/unassigned_experiment.{replicate_label}.align_reads_genome.txt"
-    log: "logs/{replicate_label}.align_reads.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.align_reads.out",
+        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.align_reads.err",
     conda:
         "envs/star.yaml"
     resources:
@@ -204,8 +216,8 @@ rule align_reads:
         exclusive = True  # <-- tag for exclusivity
     shell:
         r"""
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting align_reads for {wildcards.replicate_label}." | tee -a {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting align_reads for {wildcards.replicate_label}." | tee -a {log.stdout}
 
         STAR \
             --alignEndsType EndToEnd \
@@ -231,9 +243,10 @@ rule align_reads:
             --outStd Log \
             --readFilesIn {input.fq} \
             --runMode alignReads \
-            --runThreadN {threads}
+            --runThreadN {threads} \
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished align_reads for {wildcards.replicate_label}." | tee -a {log}
+        echo "[`date`] Finished align_reads for {wildcards.replicate_label}." | tee -a {log.stdout}
         """
 
 rule sort_bam:
@@ -243,7 +256,9 @@ rule sort_bam:
         sort="output/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.sort.bam",
     threads: 4
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
-    log: "logs/{replicate_label}.{ref}.sort_bam.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.{ref}.sort_bam.out",
+        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.{ref}.sort_bam.err",
     conda:
         "envs/bedbam_tools.yaml"
     resources:
@@ -253,17 +268,17 @@ rule sort_bam:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting sort_bam for {wildcards.replicate_label}" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting sort_bam for {wildcards.replicate_label}" | tee -a {log.stdout}
 
         samtools sort \
             -T {wildcards.replicate_label} \
             -@ {threads} \
             -o {output.sort} \
             {input.bam} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished sort_bam for {wildcards.replicate_label}" | tee -a {log}
+        echo "[`date`] Finished sort_bam for {wildcards.replicate_label}" | tee -a {log.stdout}
         """
 
 rule index_bams:
@@ -273,7 +288,9 @@ rule index_bams:
         ibam = "output/bams/{round}/{ref}/{replicate_label}.Aligned.{mid}.bam.bai"
     threads: 2
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
-    log: "logs/{replicate_label}.{round}.{ref}.{mid}.index_bams.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{round}.{ref}.{mid}.{replicate_label}.index_bams.out",
+        stderr = config["WORKDIR"] + "/stderr/{round}.{ref}.{mid}.{replicate_label}.index_bams.err",
     conda:
         "envs/bedbam_tools.yaml"
     resources:
@@ -283,15 +300,15 @@ rule index_bams:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting index_bams for {wildcards.replicate_label}" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting index_bams for {wildcards.replicate_label}" | tee -a {log.stdout}
 
         samtools index \
             -@ {threads} \
             {input.bam} \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished index_bams for {wildcards.replicate_label}" | tee -a {log}
+        echo "[`date`] Finished index_bams for {wildcards.replicate_label}" | tee -a {log.stdout}
         """
 
 rule dedup_umi:
@@ -301,7 +318,9 @@ rule dedup_umi:
     output:
         bam_dedup = "output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
-    log: "logs/{replicate_label}.dedup_umi.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.dedup_umi.out",
+        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.dedup_umi.err",
     conda:
         "envs/umicollapse.yaml"
     resources:
@@ -313,8 +332,8 @@ rule dedup_umi:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting dedup_umi for {wildcards.replicate_label}" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting dedup_umi for {wildcards.replicate_label}" | tee -a {log.stdout}
 
         JAR=$(dirname $(which umicollapse))/../share/umicollapse*/umicollapse.jar
 
@@ -324,9 +343,9 @@ rule dedup_umi:
             -o {output.bam_dedup} \
             --umi-sep : \
             --two-pass \
-            2>&1 | tee -a {log}
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished dedup_umi for {wildcards.replicate_label}" | tee -a {log}
+        echo "[`date`] Finished dedup_umi for {wildcards.replicate_label}" | tee -a {log.stdout}
         """
 
 rule obtain_unique_reads:
@@ -336,8 +355,9 @@ rule obtain_unique_reads:
         "output/QC/{replicate_label}.uniq_fragments"
     benchmark:
         "benchmarks/{replicate_label}.obtain_unique_reads.txt"
-    log: 
-        "logs/{replicate_label}.obtain_unique_reads.log"
+    log:
+        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.obtain_unique_reads.out",
+        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.obtain_unique_reads.err",
     conda:
         "envs/bedbam_tools.yaml"
     resources:
@@ -347,13 +367,13 @@ rule obtain_unique_reads:
         r"""
         set -euo pipefail
 
-        echo "Running on node: $(hostname)" | tee -a {log}
-        echo "[`date`] Starting obtain_unique_reads for {wildcards.replicate_label}" | tee {log}
+        echo "Running on node: $(hostname)" | tee {log.stdout}
+        echo "[`date`] Starting obtain_unique_reads for {wildcards.replicate_label}" | tee -a {log.stdout}
 
-        samtools idxstats {input} \
+        (samtools idxstats {input} \
           | awk -F '\t' '{{s+=$3+$4}} END {{print s}}' \
-          > {output} \
-          2>&1 | tee -a {log}
+          > {output}) \
+        >> {log.stdout} 2> {log.stderr}
 
-        echo "[`date`] Finished obtain_unique_reads for {wildcards.replicate_label}" | tee -a {log}
+        echo "[`date`] Finished obtain_unique_reads for {wildcards.replicate_label}" | tee -a {log.stdout}
         """
