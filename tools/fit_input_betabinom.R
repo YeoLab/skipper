@@ -9,8 +9,8 @@ print(getwd())
 args = commandArgs(trailingOnly=TRUE)
 
 # Create output directories if they don’t already exist.
-dir.create("output/figures/input_distributions/", showWarnings = FALSE, recursive = TRUE)
-dir.create("output/input_model_coef/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/figures/secondary_figures/input_distributions/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/secondary_results/input_model_coef/", showWarnings = FALSE, recursive = TRUE)
 
 # Inputs:
 # args[1] = count data table
@@ -74,7 +74,7 @@ input_betabinom_fit_data = lapply(other_input_replicates, function(other_input_r
       ) 
     
     # Plot observed vs. expected distributions, faceted by GC bin and total read count.
-    pdf(paste0("output/figures/input_distributions/", experiment, ".", given_input_replicate, ".", other_input_replicate, '.input_distribution.pdf'),
+    pdf(paste0("output/figures/secondary_figures/input_distributions/", experiment, ".", given_input_replicate, ".", other_input_replicate, '.input_distribution.pdf'),
         height = 3.5, width = 6)
     print(
       ggplot(distribution_data %>% filter(input_total <= 6) %>% 
@@ -105,4 +105,4 @@ input_betabinom_fit_data = lapply(other_input_replicates, function(other_input_r
 ) %>% bind_rows
 
 # Save results to file.
-write_tsv(input_betabinom_fit_data, paste0("output/input_model_coef/", experiment, ".", given_input_replicate, ".tsv"))
+write_tsv(input_betabinom_fit_data, paste0("output/secondary_results/input_model_coef/", experiment, ".", given_input_replicate, ".tsv"))

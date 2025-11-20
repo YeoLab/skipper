@@ -53,7 +53,7 @@ rule quantify_repeats:
         bam = lambda wildcards: replicate_label_to_bams[wildcards.replicate_label],
         repeats = REPEAT_BED,
     output:
-        counts = "output/counts/repeats/vectors/{replicate_label}.counts"
+        counts = "output/secondary_results/counts/repeats/vectors/{replicate_label}.counts"
     params:
         uninformative = config["UNINFORMATIVE_READ"]
     benchmark: "benchmarks/repeats/unassigned_experiment.{replicate_label}.quantify_repeats.txt"
@@ -89,13 +89,13 @@ rule make_repeat_count_tables:
     input:
         unique_repeats = REPEAT_BED,
         replicate_counts = lambda wildcards: expand(
-            "output/counts/repeats/vectors/{replicate_label}.counts", 
+            "output/secondary_results/counts/repeats/vectors/{replicate_label}.counts", 
             replicate_label = experiment_to_replicate_labels[wildcards.experiment_label]
         ),
     output:
-        name_table = "output/counts/repeats/tables/name/{experiment_label}.tsv.gz",
-        class_table = "output/counts/repeats/tables/class/{experiment_label}.tsv.gz",
-        family_table = "output/counts/repeats/tables/family/{experiment_label}.tsv.gz",
+        name_table = "output/secondary_results/counts/repeats/tables/name/{experiment_label}.tsv.gz",
+        class_table = "output/secondary_results/counts/repeats/tables/class/{experiment_label}.tsv.gz",
+        family_table = "output/secondary_results/counts/repeats/tables/family/{experiment_label}.tsv.gz",
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_repeat_count_table.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/{experiment_label}.make_repeat_count_tables.out",
@@ -198,7 +198,7 @@ rule fit_input_betabinomial_re_model:
     input:
         table = rules.make_repeat_count_tables.output.name_table,
     output:
-        coef = "output/input_model_coef_re/{experiment_label}.{input_replicate_label}.tsv",
+        coef = "output/secondary_results/input_model_coef_re/{experiment_label}.{input_replicate_label}.tsv",
     benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.out",
@@ -227,13 +227,13 @@ rule fit_input_betabinomial_re_model:
 rule call_enriched_re:
     input:
         table = rules.make_repeat_count_tables.output.name_table,
-        replicate = lambda wildcards: "output/counts/repeats/vectors/" + re.sub(r"IP_\d$","IP_2",wildcards.clip_replicate_label) + ".counts",
+        replicate = lambda wildcards: "output/secondary_results/counts/repeats/vectors/" + re.sub(r"IP_\d$","IP_2",wildcards.clip_replicate_label) + ".counts",
         repeats = REPEAT_BED,
-        parameters = lambda wildcards: "output/" + OVERDISPERSION_MODE + "_model_coef_re/{experiment_label}." + overdispersion_replicate_lookup[wildcards.clip_replicate_label] + ".tsv",
+        parameters = lambda wildcards: "output/secondary_results/" + OVERDISPERSION_MODE + "_model_coef_re/{experiment_label}." + overdispersion_replicate_lookup[wildcards.clip_replicate_label] + ".tsv",
     threads: 2
     output:
-        "output/figures/clip_scatter_re/{experiment_label}.{clip_replicate_label}.clip_test_distribution.pdf",
-        "output/enriched_re/{experiment_label}.{clip_replicate_label}.enriched_re.tsv.gz"
+        "output/figures/secondary_figures/clip_scatter_re/{experiment_label}.{clip_replicate_label}.clip_test_distribution.pdf",
+        "output/secondary_results/enriched_re/{experiment_label}.{clip_replicate_label}.enriched_re.tsv.gz"
     benchmark: "benchmarks/call_enriched_re/{experiment_label}.{clip_replicate_label}.call_enriched_re.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/{experiment_label}.{clip_replicate_label}.call_enriched_re.out",
@@ -267,7 +267,7 @@ rule call_enriched_re:
 rule find_reproducible_enriched_re:
     input:
         windows = lambda wildcards: expand(
-            "output/enriched_re/{{experiment_label}}.{clip_replicate_label}.enriched_re.tsv.gz",
+            "output/secondary_results/enriched_re/{{experiment_label}}.{clip_replicate_label}.enriched_re.tsv.gz",
             clip_replicate_label = experiment_to_clip_replicate_labels[wildcards.experiment_label]
         )
     output:
@@ -289,7 +289,7 @@ rule find_reproducible_enriched_re:
         echo "[`date`] Starting find_reproducible_enriched_re for {wildcards.experiment_label}" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/identify_reproducible_re.R \
-            output/enriched_re/ \
+            output/secondary_results/enriched_re/ \
             {wildcards.experiment_label} \
         >> {log.stdout} 2> {log.stderr}
 

@@ -94,8 +94,8 @@ rule consult_encode_reference:
         runtime = "30m"
     benchmark: "benchmarks/consult_encode_reference/skipper.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.consult_encode_reference.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.consult_encode_reference.err",
+        stdout = config["WORKDIR"] + "/stdout/consult_encode_reference.out",
+        stderr = config["WORKDIR"] + "/stderr/consult_encode_reference.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
@@ -132,8 +132,8 @@ rule consult_encode_reference_re:
         runtime = "30m"
     benchmark: "benchmarks/consult_encode_reference_re/skipper.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.consult_encode_reference_re.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.consult_encode_reference_re.err",
+        stdout = config["WORKDIR"] + "/stdout/consult_encode_reference_re.out",
+        stderr = config["WORKDIR"] + "/stderr/consult_encode_reference_re.err",
     conda:
         "envs/skipper_R.yaml"
     shell:

@@ -2,7 +2,7 @@ locals().update(config)
 
 rule get_nt_coverage:
     input:
-        windows = "output/unfiltered_reproducible_enriched_windows/{experiment_label}.unfiltered_reproducible_enriched_windows.tsv.gz",
+        windows = "output/secondary_results/unfiltered_reproducible_enriched_windows/{experiment_label}.unfiltered_reproducible_enriched_windows.tsv.gz",
         clip_bams = lambda wildcards: [
             config['replicate_label_to_bams'][clip_replicate_label]
             for clip_replicate_label in experiment_to_clip_replicate_labels[wildcards.experiment_label]
@@ -143,7 +143,7 @@ rule annotate_finemap:
 rule find_both_tested_windows:
     input:
         lambda wildcards: expand(
-            "output/tested_windows/{{experiment_label}}.{clip_replicate_label}.tested_windows.tsv.gz",
+            "output/secondary_results/tested_windows/{{experiment_label}}.{clip_replicate_label}.tested_windows.tsv.gz",
             clip_replicate_label=experiment_to_clip_replicate_labels[wildcards.experiment_label]
         )
     output:

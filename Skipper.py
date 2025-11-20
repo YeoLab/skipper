@@ -97,9 +97,9 @@ else:
 
 # Map each replicate label to the expected deduplicated BAM file path. 
 if config['protocol']=='ENCODE4':
-    config['replicate_label_to_bams'] = dict(zip(input_replicate_labels + clip_replicate_labels, ["output/bams/dedup/genome/" + replicate_label + ".genome.Aligned.sort.dedup.bam" for replicate_label in input_replicate_labels + clip_replicate_labels] ))
+    config['replicate_label_to_bams'] = dict(zip(input_replicate_labels + clip_replicate_labels, ["output/secondary_results/bams/dedup/genome/" + replicate_label + ".genome.Aligned.sort.dedup.bam" for replicate_label in input_replicate_labels + clip_replicate_labels] ))
 elif config['protocol']=='ENCODE3':
-    config['replicate_label_to_bams'] = dict(zip(input_replicate_labels + clip_replicate_labels, [f"output/bams/dedup/genome_R{INFORMATIVE_READ}/" + replicate_label + f".genome.Aligned.sort.dedup.R{INFORMATIVE_READ}.bam" for replicate_label in input_replicate_labels + clip_replicate_labels] ))
+    config['replicate_label_to_bams'] = dict(zip(input_replicate_labels + clip_replicate_labels, [f"output/secondary_results/bams/dedup/genome_R{INFORMATIVE_READ}/" + replicate_label + f".genome.Aligned.sort.dedup.R{INFORMATIVE_READ}.bam" for replicate_label in input_replicate_labels + clip_replicate_labels] ))
 else:
     raise Exception("protocol does not fit in ENCODE3 or ENCODE4")
 
@@ -182,7 +182,7 @@ def call_enriched_window_output(wildcards):
     outputs = []
     for experiment_label in manifest.Experiment:
         for clip_replicate_label in config['experiment_to_clip_replicate_labels'][experiment_label]:
-            outputs.append(f"output/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_feature_summary.tsv")
+            outputs.append(f"output/secondary_results/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_feature_summary.tsv")
     return outputs
 
 # Add path to the chrom sizes file to config
@@ -256,24 +256,22 @@ rule all:
 ############################## Call all basic outputs #################################
 rule all_basic_output:
     input:
-        expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
-        expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
-        expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
-        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
-        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw", replicate_label = replicate_labels),
-        expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz",
+        expand("output/secondary_results/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
+        expand("output/secondary_results/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
+        expand("output/secondary_results/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/secondary_results/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/secondary_results/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw", replicate_label = replicate_labels),
+        expand("output/secondary_results/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz",
                zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
-        expand("output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf", experiment_label = manifest.Experiment),
-        expand("output/enrichment_reproducibility/{experiment_label}.odds_data.tsv", experiment_label = manifest.Experiment),
+        expand("output/figures/secondary_figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf", experiment_label = manifest.Experiment),
+        expand("output/secondary_results/enrichment_reproducibility/{experiment_label}.odds_data.tsv", experiment_label = manifest.Experiment),
         # lambda wildcards: call_enriched_window_output(wildcards),
         # "output/figures/tsne/skipper.tsne_query.pdf",
         # Quality control
         expand("output/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
         expand("output/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
         expand("output/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment),
-        "output/QC/unique_fragments.csv",
-        expand("output/QC/{experiment_label}.gc_bias.txt", experiment_label = manifest.Experiment),
     output:
         "basic_done.txt"
     resources:
@@ -288,7 +286,7 @@ rule all_basic_output:
 
 rule all_meta_output:
     input:
-        expand("output/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
+        expand("output/secondary_results/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
     output:
         "meta_done.txt"
     resources:
@@ -301,7 +299,7 @@ rule all_meta_output:
 
 rule all_meta_repeat_output:
     input:
-        expand("output/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
+        expand("output/secondary_results/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
     output:
         "meta_repeats_done.txt"
     resources:
@@ -319,7 +317,6 @@ rule all_homer_output:
         expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv", experiment_label = manifest.Experiment),
         expand("output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",experiment_label = manifest.Experiment),
         expand("output/homer/finemapped_results/{experiment_label}/homerResults.html", experiment_label = manifest.Experiment),
-        expand("output/QC/{experiment_label}.nread_in_finemapped_regions.txt", experiment_label=manifest.Experiment),
     output:
         "homer_done.txt"
     resources:
@@ -332,9 +329,9 @@ rule all_homer_output:
 
 rule all_repeat_output:
     input:
-        expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
+        expand("output/secondary_results/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", experiment_label = manifest.Experiment),
-        expand("output/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
+        expand("output/secondary_results/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
         # "output/figures/tsne_re/skipper.tsne_re_query.pdf",
     output:
         "repeat_done.txt"

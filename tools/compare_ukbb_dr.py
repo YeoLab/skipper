@@ -24,7 +24,7 @@ if __name__ == '__main__':
     exp = sys.argv[2]
     finemap_annotation = indir / 'output/finemapping/mapped_sites/' / f'{exp}.finemapped_windows.annotated.tsv'
     finemap = pd.read_csv(finemap_annotation, sep = '\t')
-    tested = list((indir / 'output/tested_windows').glob(f'{exp}*'))
+    tested = list((indir / 'output/secondary_results/tested_windows').glob(f'{exp}*'))
     annotation = pd.read_csv(sys.argv[3],
                             sep = '\t')
     outf = sys.argv[4]

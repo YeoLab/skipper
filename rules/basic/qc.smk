@@ -7,34 +7,34 @@ experiment_to_sample = dict(zip(manifest["Experiment"], manifest["Sample"]))
 rule multiqc:
     input: 
         trimmed_fastqc = lambda wildcards: (
-            [f"output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.zip" 
+            [f"output/QC/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.zip" 
              for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]]
             if config['protocol'] == 'ENCODE4' else
-            [f"output/fastqc/processed/{replicate_label}-trimmed-pair1_fastqc.zip" 
+            [f"output/QC/fastqc/processed/{replicate_label}-trimmed-pair1_fastqc.zip" 
              for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]]
-            + [f"output/fastqc/processed/{replicate_label}-trimmed-pair2_fastqc.zip" 
+            + [f"output/QC/fastqc/processed/{replicate_label}-trimmed-pair2_fastqc.zip" 
                for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]]
         ),
         initial_fastqc = lambda wildcards: (
-            [f"output/fastqc/initial/{replicate_label}_fastqc.zip"
+            [f"output/QC/fastqc/initial/{replicate_label}_fastqc.zip"
              for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]]
             if config['protocol'] == 'ENCODE4' else
-            [f"output/fastqc/initial/{replicate_label}-1_fastqc.zip"
+            [f"output/QC/fastqc/initial/{replicate_label}-1_fastqc.zip"
              for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]]
-            + [f"output/fastqc/initial/{replicate_label}-2_fastqc.zip"
+            + [f"output/QC/fastqc/initial/{replicate_label}-2_fastqc.zip"
                for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]]
         ),
         star_log = lambda wildcards: [
-            f"output/bams/raw/genome/{replicate_label}.genome.Log.final.out"
+            f"output/secondary_results/bams/raw/genome/{replicate_label}.genome.Log.final.out"
             for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]
         ],
         fastp = lambda wildcards: (
-            [f"output/fastp/{replicate_label}.fastp.json"
+            [f"output/QC/fastp/{replicate_label}.fastp.json"
              for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]]
             if config['protocol'] == 'ENCODE4' else []
         ),
         trimmed = lambda wildcards: (
-            [f"output/fastqs/trimmed/{replicate_label}-trimmed.log"
+            [f"output/secondary_results/fastqs/trimmed/{replicate_label}-trimmed.log"
              for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]]
             if config['protocol'] == 'ENCODE4' else []
         )
@@ -70,112 +70,5 @@ rule multiqc:
             >> {log.stdout} 2>> {log.stderr}
 
         echo "[`date`] Finished multiqc" | tee -a {log.stdout}
-        """
-
-# Unique fragment per library
-rule join_unique_fragments:
-    input:
-        expand("output/QC/{replicate_label}.uniq_fragments", replicate_label = replicate_labels)
-    output:
-        "output/QC/unique_fragments.csv"
-    log:
-        stdout = config["WORKDIR"] + "/stdout/join_unique_fragments.out",
-        stderr = config["WORKDIR"] + "/stderr/join_unique_fragments.err",
-    resources:
-        mem_mb=2000,
-        runtime=25
-    shell:
-        r"""
-        set -euo pipefail
-
-        echo "Running on node: $(hostname)" | tee {log.stdout}
-        echo "[`date`] Starting join_unique_fragments" | tee -a {log.stdout}
-
-        (awk '{{print FILENAME "," $0}}' {input} > {output}) >> {log.stdout} 2> {log.stderr}
-
-        echo "[`date`] Finished join_unique_fragments" | tee -a {log.stdout}
-        """
-
-rule quantify_gc_bias:
-    input:
-        table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
-    output:
-        gc_bias = "output/QC/{experiment_label}.gc_bias.txt"
-    conda:
-        "envs/metadensity.yaml"
-    log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.quantify_gc_bias.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.quantify_gc_bias.err",
-    params:
-        sample = lambda w: experiment_to_sample[w.experiment_label]
-    resources:
-        mem_mb=40000,
-        runtime="30m"
-    shell:
-        r"""
-        set -euo pipefail
-
-        echo "Running on node: $(hostname)" | tee {log.stdout}
-        echo "[`date`] Starting quantify_gc_bias for {wildcards.experiment_label}" | tee -a {log.stdout}
-
-        python {TOOL_DIR}/quantify_gcbias.py \
-            {input.table} \
-            {params.sample} \
-            {output.gc_bias} \
-        >> {log.stdout} 2> {log.stderr}
-
-        echo "[`date`] Finished quantify_gc_bias for {wildcards.experiment_label}" | tee -a {log.stdout}
-        """
-
-def get_bams(wildcards):
-    ''' return a list of final bam for all IP and Input replicate given experiment label '''
-    if config['protocol']=='ENCODE':
-        return [f"output/bams/dedup/genome_R{INFORMATIVE_READ}/{replicate_label}.genome.Aligned.sort.dedup.R{INFORMATIVE_READ}.bam"
-        for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]
-        ]
-    else:
-        return [f"output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
-        for replicate_label in experiment_to_replicate_labels[wildcards.experiment_label]
-        ]
-
-rule nread_in_finemapped_regions:
-    input:
-        bam=lambda wildcards: get_bams(wildcards),
-        bed="output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
-    output:
-        sorted_bed="output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.sorted.bed.gz",
-        nread_in_finemapped_regions = "output/QC/{experiment_label}.nread_in_finemapped_regions.txt"
-    conda:
-        "envs/bedbam_tools.yaml"
-    params:
-        genome=os.path.join(config['STAR_DIR'], 'chrNameLength.tx>> {log.stdout} 2> {log.stderr}t')
-    log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.nread_in_finemapped_regions.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.nread_in_finemapped_regions.err",
-    resources:
-        mem_mb=lambda wildcards, attempt: 32000 * (2 ** (attempt - 1)),
-        runtime=lambda wildcards, attempt: 5 * (2 ** (attempt - 1)),
-    shell:
-        """
-        set -euo pipefail
-
-        echo "Running on node: $(hostname)" | tee {log.stdout}
-        echo "[`date`] Starting nread_in_finemapped_regions for {wildcards.experiment_label}" | tee -a {log.stdout}
-
-        (zcat {input.bed} | bedtools sort -g {params.genome} -i - | gzip -c > {output.sorted_bed};
-        for bam in {input.bam}
-        do
-            nread_in_peak=$(bedtools coverage \
-            -a {output.sorted_bed} \
-            -b $bam \
-            -sorted \
-            -counts \
-            -g {params.genome} \
-            -s | cut -f 10 | awk '{{sum += $NF}} END {{print sum}}')
-            replicate_label=$(basename $bam | cut -d'.' -f1)
-            echo -e "$replicate_label\t$nread_in_peak" >> {output.nread_in_finemapped_regions}
-        done) >> {log.stdout} 2> {log.stderr}
-
-        echo "[`date`] Finished nread_in_finemapped_regions for {wildcards.experiment_label}" | tee -a {log.stdout}
         """
 

@@ -101,7 +101,7 @@ discarded_windows <- window_data %>%
   filter(gini >= filter)
 
 # Save the resulting filtered data. 
-write_tsv(discarded_windows, paste0('output/filtered_out_windows/', prefix, '.filtered_out_windows.tsv.gz'))
+write_tsv(discarded_windows, paste0('output/secondary_results/filtered_out_windows/', prefix, '.filtered_out_windows.tsv.gz'))
 
 # Plot reproducible enriched window counts (linear scale).
 pdf(paste0('output/figures/reproducible_enriched_windows/', prefix, '.reproducible_enriched_window_counts.linear.pdf'), height = 1.8, width = 2.2)

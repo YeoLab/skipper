@@ -1,8 +1,8 @@
 library(tidyverse)
 
 # Create output directories for figures and data.
-dir.create("output/figures/unfiltered_reproducible_enriched_windows/", showWarnings = FALSE, recursive = TRUE)
-dir.create("output/unfiltered_reproducible_enriched_windows/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/figures/secondary_figures/unfiltered_reproducible_enriched_windows/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/secondary_results/unfiltered_reproducible_enriched_windows/", showWarnings = FALSE, recursive = TRUE)
 
 # Command-line arguments:
 args = commandArgs(trailingOnly=TRUE)
@@ -38,7 +38,7 @@ if (nrow(enriched_window_data) == 0){
 	colnames(reproducible_enriched_window_data) = columns
 
 	# Save empty table and exit
-	write_tsv(reproducible_enriched_window_data, paste0("output/unfiltered_reproducible_enriched_windows/", prefix, ".unfiltered_reproducible_enriched_windows.tsv.gz"))
+	write_tsv(reproducible_enriched_window_data, paste0("output/secondary_results/unfiltered_reproducible_enriched_windows/", prefix, ".unfiltered_reproducible_enriched_windows.tsv.gz"))
 	quit()
 }
 
@@ -46,7 +46,7 @@ if (nrow(enriched_window_data) == 0){
 if (nrow(enriched_window_data %>% group_by(name) %>% filter(n() > 1)) == 0) {
 	# Save structure-matching empty tibble
 	reproducible_enriched_window_data = enriched_window_data %>% group_by(across(-c(clip_replicate_label,baseline_l2or,input,clip,enrichment_l2or,pvalue,qvalue))) %>% summarize %>% head(0)
-	write_tsv(reproducible_enriched_window_data, paste0("output/unfiltered_reproducible_enriched_windows/", prefix, ".unfiltered_reproducible_enriched_windows.tsv.gz"))
+	write_tsv(reproducible_enriched_window_data, paste0("output/secondary_results/unfiltered_reproducible_enriched_windows/", prefix, ".unfiltered_reproducible_enriched_windows.tsv.gz"))
 	quit()
 }	
 
@@ -69,4 +69,4 @@ reproducible_enriched_window_data = enriched_window_data %>%
 	arrange(desc(enrichment_l2or_mean))                      # rank by strongest enrichment
 
 # Save reproducible enriched window data.
-write_tsv(reproducible_enriched_window_data, paste0("output/unfiltered_reproducible_enriched_windows/", prefix, ".unfiltered_reproducible_enriched_windows.tsv.gz"))
+write_tsv(reproducible_enriched_window_data, paste0("output/secondary_results/unfiltered_reproducible_enriched_windows/", prefix, ".unfiltered_reproducible_enriched_windows.tsv.gz"))

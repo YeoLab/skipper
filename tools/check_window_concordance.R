@@ -3,9 +3,9 @@ library(ggupset)
 library(tidyverse)
 
 # Ensure output directories exist for figures and summary tables (idempotent). 
-dir.create("output/figures/enrichment_concordance/", showWarnings = FALSE, recursive = TRUE)
-dir.create("output/figures/enrichment_reproducibility/", showWarnings = FALSE, recursive = TRUE)
-dir.create("output/enrichment_reproducibility/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/figures/secondary_figures/enrichment_concordance/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/figures/secondary_figures/enrichment_reproducibility/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/secondary_results/enrichment_reproducibility/", showWarnings = FALSE, recursive = TRUE)
 
 # Parse command line arguments: input directory, filename prefix, optional blacklist BED-like TSV. 
 args = commandArgs(trailingOnly=TRUE)
@@ -46,7 +46,7 @@ for(clip_replicate_1 in clip_replicate_labels) {
 			
 			# If a full 2x2 cannot be formed, emit a placeholder figure and continue. 
 			if(nrow(enriched_concordance_data) < 4) {
-				pdf(paste0("output/figures/enrichment_concordance/", prefix, ".enrichment_concordance.", clip_replicate_1, "_", clip_replicate_2, ".pdf"), height = 1, width = 2)
+				pdf(paste0("output/figures/secondary_figures/enrichment_concordance/", prefix, ".enrichment_concordance.", clip_replicate_1, "_", clip_replicate_2, ".pdf"), height = 1, width = 2)
 					print(ggplot() + annotate("text", x = 1, y = 1, label = "Insufficient data") + theme_void())
 				dev.off()
 				next	
@@ -58,7 +58,7 @@ for(clip_replicate_1 in clip_replicate_labels) {
 
 			# Save the Fisher test summary to a TSV file for downstream auditing. 
 			# Note: this overwrites per pair; adjust if per-pair persistence is needed. 
-			output_tsv_path <- paste0("output/enrichment_reproducibility/", prefix, ".odds_data.tsv")
+			output_tsv_path <- paste0("output/secondary_results/enrichment_reproducibility/", prefix, ".odds_data.tsv")
 			write_tsv(odds_data, output_tsv_path)
 
 			# Prepare labels and mosaic-bar geometry for visualization of concordance. 
@@ -68,7 +68,7 @@ for(clip_replicate_1 in clip_replicate_labels) {
 			annotation_y = bar_break_y + 0.5*(1 - bar_break_y) 
 
 			# Draw a compact mosaic bar of enrichment concordance and annotate significance. 
-			pdf(paste0("output/figures/enrichment_concordance/", prefix, ".enrichment_concordance.", clip_replicate_1, "_", clip_replicate_2, ".pdf"), height = 1.8, width = 3)
+			pdf(paste0("output/figures/secondary_figures/enrichment_concordance/", prefix, ".enrichment_concordance.", clip_replicate_1, "_", clip_replicate_2, ".pdf"), height = 1.8, width = 3)
 			print(
 				enriched_mosaic_data %>%
 				ggplot(aes(replicate_1, fraction * 1.95, fill = replicate_2, width = width)) + theme_minimal(base_size = 7) +
@@ -97,11 +97,11 @@ enrichment_reproducibility_data = thresholded_window_data %>%
 	pivot_longer(names_to = "Status", values_to = "# Tested windows", - `# Replicates`)
 
 # Plot log-scaled counts of tested windows by number of supporting replicates, colored by status. 
-pdf(paste0("output/figures/enrichment_reproducibility/", prefix, ".enrichment_reproducibility.pdf"), height = 1.2, width = 2)
+pdf(paste0("output/figures/secondary_figures/enrichment_reproducibility/", prefix, ".enrichment_reproducibility.pdf"), height = 1.2, width = 2)
 ggplot(enrichment_reproducibility_data, aes(`# Replicates`, `# Tested windows`, color = Status)) + theme_bw(base_size=7)+
 	geom_point() + scale_y_log10(limits = c(1, NA)) + scale_color_manual("", values = c("#fec332", "#bdbdbd")) +
 	theme(panel.grid.minor = element_blank()) + scale_x_continuous(breaks = seq(1, length(tested_window_files)))
 dev.off()
 
 # Write the reproducibility summary table for downstream inspection. 
-write_tsv(enrichment_reproducibility_data, paste0("output/enrichment_reproducibility/", prefix, ".enrichment_reproducibility.tsv"))
+write_tsv(enrichment_reproducibility_data, paste0("output/secondary_results/enrichment_reproducibility/", prefix, ".enrichment_reproducibility.tsv"))

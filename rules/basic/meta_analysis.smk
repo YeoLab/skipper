@@ -3,10 +3,10 @@ rule make_genome_mega_table:
     input:
         feature = FEATURE_ANNOTATIONS,
         replicate_counts = lambda wildcards: expand(
-            "output/counts/genome/vectors/{replicate_label}.counts", 
+            "output/secondary_results/counts/genome/vectors/{replicate_label}.counts", 
             replicate_label = replicate_labels),
     output:
-        "output/counts/genome/megatables/megatable.tsv.gz",
+        "output/secondary_results/counts/genome/megatables/megatable.tsv.gz",
     threads: 4
     log:
         stdout = config["WORKDIR"] + "/stdout/make_genome_mega_table.out",
@@ -33,12 +33,12 @@ rule make_repeat_mega_tables:
     input:
         unique_repeats = REPEAT_BED,
         replicate_counts = lambda wildcards: expand(
-            "output/counts/repeats/vectors/{replicate_label}.counts", 
+            "output/secondary_results/counts/repeats/vectors/{replicate_label}.counts", 
             replicate_label = replicate_labels),
     output:
-        name_table = "output/counts/repeats/megatables/name.tsv.gz",
-        class_table = "output/counts/repeats/megatables/class.tsv.gz",
-        family_table = "output/counts/repeats/megatables/family.tsv.gz",
+        name_table = "output/secondary_results/counts/repeats/megatables/name.tsv.gz",
+        class_table = "output/secondary_results/counts/repeats/megatables/class.tsv.gz",
+        family_table = "output/secondary_results/counts/repeats/megatables/family.tsv.gz",
     log:
         stdout = config["WORKDIR"] + "/stdout/make_repeat_mega_tables.out",
         stderr = config["WORKDIR"] + "/stderr/make_repeat_mega_tables.err",
@@ -73,7 +73,7 @@ rule make_repeat_mega_tables:
             | gzip > {output.family_table} 
         ) >> {log.stdout} 2>> {log.stderr}
 
-        {
+        (
         paste <(zcat {input.unique_repeats} \
             | awk -v OFS="\t" 'BEGIN {{print "repeat_name";}} {{print $7}}') \
             {input.replicate_counts} \
@@ -103,36 +103,13 @@ rule make_repeat_mega_tables:
         echo "[`date`] Finished make_repeat_mega_tables" | tee -a {log.stdout}
         """
 
-rule join_aligned_reads:
-    input:
-        expand("output/QC/{replicate_label}.aligned_reads", replicate_label = replicate_labels)
-    output:
-        "output/QC/aligned_reads.csv"
-    log:
-        stdout = config["WORKDIR"] + "/stdout/join_aligned_reads.out",
-        stderr = config["WORKDIR"] + "/stderr/join_aligned_reads.err",
-    resources:
-        mem_mb=2000,
-        runtime="1h"
-    shell:
-        r"""
-        set -euo pipefail
-
-        echo "Running on node: $(hostname)" | tee {log.stdout}
-        echo "[`date`] Starting join_aligned_reads" | tee -a {log.stdout}
-
-        (awk '{{print FILENAME "," $0}}' {input} > {output})  >> {log.stdout} 2> {log.stderr}
-
-        echo "[`date`] Finished join_aligned_reads" | tee -a {log.stdout}
-        """
-
 # summarize per transcript type and family type
 rule summarize_genome_megatable:
     input:
-        "output/counts/genome/megatables/megatable.tsv.gz",
+        "output/secondary_results/counts/genome/megatables/megatable.tsv.gz",
     output:
-        f="output/counts/genome/megatables/feature_type_top.tsv.gz",
-        t="output/counts/genome/megatables/transcript_type_top.tsv.gz",
+        f="output/secondary_results/counts/genome/megatables/feature_type_top.tsv.gz",
+        t="output/secondary_results/counts/genome/megatables/transcript_type_top.tsv.gz",
     log:
         stdout = config["WORKDIR"] + "/stdout/summarize_genome_megatable.out",
         stderr = config["WORKDIR"] + "/stderr/summarize_genome_megatable.err",
@@ -228,7 +205,7 @@ def find_all_tested_windows(experiment_labels, experiment_to_clip_replicate_labe
     tested_windows = []
     for e in experiment_labels:
         for rep in experiment_to_clip_replicate_labels[e]:
-            tested_windows.append(f"output/tested_windows/{e}.{rep}.tested_windows.tsv.gz")
+            tested_windows.append(f"output/secondary_results/tested_windows/{e}.{rep}.tested_windows.tsv.gz")
     return tested_windows
 
 rule join_reproducible_enriched_windows:

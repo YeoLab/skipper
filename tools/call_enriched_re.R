@@ -3,8 +3,8 @@ library(tidyverse)
 library(ggrepel)
 
 # Create output directories if they do not already exist (suppress warnings, create parents as needed).
-dir.create("output/figures/clip_scatter_re/", showWarnings = FALSE, recursive = TRUE)
-dir.create("output/enriched_re/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/figures/secondary_figures/clip_scatter_re/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/secondary_results/enriched_re/", showWarnings = FALSE, recursive = TRUE)
 
 # Parse command-line arguments: input tables and labels, plus output stem.
 args = commandArgs(trailingOnly=TRUE)
@@ -61,7 +61,7 @@ label_data = q_data %>% filter(!grepl("\\)n$", repeat_name), enrichment_l2or > 2
 enrichment_max = q_data$enrichment_l2or %>% abs %>% max
 
 # Produce the scatter plot of enrichment vs total reads (log10 scale), coloring by significance and shaping by element class.
-pdf(paste0('output/figures/clip_scatter_re/', output_stem, '.clip_test_distribution.pdf'),height = 1.8, width = 2.8)
+pdf(paste0('output/figures/secondary_figures/clip_scatter_re/', output_stem, '.clip_test_distribution.pdf'),height = 1.8, width = 2.8)
     q_data %>% replace_na(list(qvalue = 1)) %>% filter(clip + input >= 10) %>%
     ggplot(aes(clip + input, enrichment_l2or, color = ifelse(qvalue < 0.05, "q < 0.05", "NS"), shape = simple)) + 
         geom_hline(yintercept = 0) +
@@ -77,4 +77,4 @@ pdf(paste0('output/figures/clip_scatter_re/', output_stem, '.clip_test_distribut
 dev.off()
 
 # Write out the per-element statistics (with q-values and enrichment) for downstream use.
-write_tsv(q_data %>% select(-above_threshold), paste0("output/enriched_re/", output_stem, ".enriched_re.tsv.gz"))
+write_tsv(q_data %>% select(-above_threshold), paste0("output/secondary_results/enriched_re/", output_stem, ".enriched_re.tsv.gz"))

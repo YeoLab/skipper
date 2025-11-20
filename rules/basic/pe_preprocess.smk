@@ -49,8 +49,8 @@ rule copy_with_umi:
         fq_1 = lambda wildcards: config['replicate_label_to_fastq_1'][wildcards.replicate_label],
         fq_2 = lambda wildcards: config['replicate_label_to_fastq_2'][wildcards.replicate_label],
     output:
-        fq_1 = temp("output/fastqs/copy/{replicate_label}-1.fastq.gz"), 
-        fq_2 = temp("output/fastqs/copy/{replicate_label}-2.fastq.gz"),      
+        fq_1 = temp("output/secondary_results/fastqs/copy/{replicate_label}-1.fastq.gz"), 
+        fq_2 = temp("output/secondary_results/fastqs/copy/{replicate_label}-2.fastq.gz"),      
     threads: 2
     resources:
         runtime="2h",
@@ -85,10 +85,10 @@ rule run_initial_fastqc:
         r1 = rules.copy_with_umi.output.fq_1,
         r2 = rules.copy_with_umi.output.fq_2
     output:
-        report_r1 = "output/fastqc/initial/{replicate_label}-1_fastqc.html",
-        zip_file_r1 = "output/fastqc/initial/{replicate_label}-1_fastqc.zip",
-        report_r2 = "output/fastqc/initial/{replicate_label}-2_fastqc.html",
-        zip_file_r2 = "output/fastqc/initial/{replicate_label}-2_fastqc.zip",
+        report_r1 = "output/QC/fastqc/initial/{replicate_label}-1_fastqc.html",
+        zip_file_r1 = "output/QC/fastqc/initial/{replicate_label}-1_fastqc.zip",
+        report_r2 = "output/QC/fastqc/initial/{replicate_label}-2_fastqc.html",
+        zip_file_r2 = "output/QC/fastqc/initial/{replicate_label}-2_fastqc.zip",
     threads: 2
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
     log:
@@ -100,7 +100,7 @@ rule run_initial_fastqc:
         mem_mb=16000,
         runtime="3h"
     params:
-        outdir="output/fastqc/initial/"
+        outdir="output/QC/fastqc/initial/"
     shell:
         r"""
         set -euo pipefail
@@ -130,9 +130,9 @@ rule trim_fastq_encode:
         adapter_1 = lambda wildcards: config['replicate_label_to_adapter_1'][wildcards.replicate_label],
         adapter_2 = lambda wildcards: config['replicate_label_to_adapter_2'][wildcards.replicate_label],
     output:
-        fq_1_trimmed = temp("output/fastqs/trimmed/{replicate_label}-trimmed-pair1.fastq.gz"), 
-        fq_2_trimmed = temp("output/fastqs/trimmed/{replicate_label}-trimmed-pair2.fastq.gz"), 
-        metrics = "output/fastqs/trimmed/{replicate_label}-trimmed.log"
+        fq_1_trimmed = temp("output/secondary_results/fastqs/trimmed/{replicate_label}-trimmed-pair1.fastq.gz"), 
+        fq_2_trimmed = temp("output/secondary_results/fastqs/trimmed/{replicate_label}-trimmed-pair2.fastq.gz"), 
+        metrics = "output/secondary_results/fastqs/trimmed/{replicate_label}-trimmed.log"
     threads: 8
     resources:
         tmpdir = "/tscc/nfs/home/hsher/scratch/singularity_tmp",
@@ -155,7 +155,7 @@ rule trim_fastq_encode:
             -t {threads} \
             -x {input.adapter_1} \
             -y {input.adapter_2} \
-            -o output/fastqs/trimmed/{wildcards.replicate_label} \
+            -o output/secondary_results/fastqs/trimmed/{wildcards.replicate_label} \
             -z -r 0.2 -d 0.2 -q 13 -l 20 \
             {input.fq_1} {input.fq_2} \
         >> {log.stdout} 2> {log.stderr}
@@ -168,10 +168,10 @@ rule run_trimmed_fastqc:
         r1 = rules.trim_fastq_encode.output.fq_1_trimmed,
         r2 = rules.trim_fastq_encode.output.fq_2_trimmed,
     output:
-        report_r1 = "output/fastqc/processed/{replicate_label}-trimmed-pair1_fastqc.html",
-        zip_file_r1 = "output/fastqc/processed/{replicate_label}-trimmed-pair1_fastqc.zip",
-        report_r2 = "output/fastqc/processed/{replicate_label}-trimmed-pair2_fastqc.html",
-        zip_file_r2 = "output/fastqc/processed/{replicate_label}-trimmed-pair2_fastqc.zip",
+        report_r1 = "output/QC/fastqc/processed/{replicate_label}-trimmed-pair1_fastqc.html",
+        zip_file_r1 = "output/QC/fastqc/processed/{replicate_label}-trimmed-pair1_fastqc.zip",
+        report_r2 = "output/QC/fastqc/processed/{replicate_label}-trimmed-pair2_fastqc.html",
+        zip_file_r2 = "output/QC/fastqc/processed/{replicate_label}-trimmed-pair2_fastqc.zip",
     threads: 2
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.trimmed_fastqc.txt"
     log:
@@ -191,13 +191,13 @@ rule run_trimmed_fastqc:
 
         fastqc {input.r1} \
             --extract \
-            --outdir output/fastqc/processed \
+            --outdir output/QC/fastqc/processed \
             -t {threads} \
         >> {log.stdout} 2> {log.stderr}
 
         fastqc {input.r2} \
             --extract \
-            --outdir output/fastqc/processed \
+            --outdir output/QC/fastqc/processed \
             -t {threads} \
         >> {log.stdout} 2>> {log.stderr}
 
@@ -210,12 +210,12 @@ rule align_reads_encode:
         fq_2 = rules.trim_fastq_encode.output.fq_2_trimmed,
         chrom_sizes = CHROM_SIZES,
     output:
-        ubam = temp("output/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
-        log= "output/bams/raw/genome/{replicate_label}.genome.Log.final.out",
+        ubam = temp("output/secondary_results/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
+        log= "output/secondary_results/bams/raw/genome/{replicate_label}.genome.Log.final.out",
     threads: 8
     params:
         star_sjdb = STAR_DIR,
-        outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
+        outprefix = "output/secondary_results/bams/raw/genome/{replicate_label}.genome.",
         rg = "{replicate_label}"
     benchmark: "benchmarks/align/unassigned_experiment.{replicate_label}.align_reads_genome.txt"
     log:
@@ -265,9 +265,9 @@ rule align_reads_encode:
 
 rule sort_bam:
     input:
-        bam = "output/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.out.bam",
+        bam = "output/secondary_results/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.out.bam",
     output:
-        sort = "output/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.sort.bam",
+        sort = "output/secondary_results/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.sort.bam",
     threads: 2
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
     log:
@@ -297,9 +297,9 @@ rule sort_bam:
 
 rule index_bams:
     input:
-        bam = "output/bams/{round}/{ref}/{replicate_label}.Aligned.{mid}.bam"
+        bam = "output/secondary_results/bams/{round}/{ref}/{replicate_label}.Aligned.{mid}.bam"
     output:
-        ibam = "output/bams/{round}/{ref}/{replicate_label}.Aligned.{mid}.bam.bai"
+        ibam = "output/secondary_results/bams/{round}/{ref}/{replicate_label}.Aligned.{mid}.bam.bai"
     threads: 2
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
     log:
@@ -327,10 +327,10 @@ rule index_bams:
 
 rule dedup_umi:
     input:
-        bam = "output/bams/raw/genome/{replicate_label}.genome.Aligned.sort.bam",
-        ibam = "output/bams/raw/genome/{replicate_label}.genome.Aligned.sort.bam.bai"
+        bam = "output/secondary_results/bams/raw/genome/{replicate_label}.genome.Aligned.sort.bam",
+        ibam = "output/secondary_results/bams/raw/genome/{replicate_label}.genome.Aligned.sort.bam.bai"
     output:
-        bam_dedup = "output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
+        bam_dedup = "output/secondary_results/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/{replicate_label}.dedup_umi.out",
@@ -363,9 +363,9 @@ rule dedup_umi:
 
 rule select_informative_read:
     input:
-        bam_combined = "output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
+        bam_combined = "output/secondary_results/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
     output:
-        bam_informative = "output/bams/dedup/genome_R" + str(INFORMATIVE_READ) + "/{replicate_label}.genome.Aligned.sort.dedup.R" + str(INFORMATIVE_READ) + ".bam"
+        bam_informative = "output/secondary_results/bams/dedup/genome_R" + str(INFORMATIVE_READ) + "/{replicate_label}.genome.Aligned.sort.dedup.R" + str(INFORMATIVE_READ) + ".bam"
     benchmark: "benchmarks/select/unassigned_experiment.{replicate_label}.select_informative_read.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/{replicate_label}.select_informative_read.out",
@@ -393,62 +393,3 @@ rule select_informative_read:
         echo "[`date`] Finished select_informative_read" | tee -a {log.stdout}
         """
 
-rule obtain_unique_reads:
-    input:
-        rules.select_informative_read.output.bam_informative
-    output:
-        temp("output/QC/{replicate_label}.uniq_fragments")
-    benchmark:
-        "benchmarks/{replicate_label}.count_uniq_fragments.txt"
-    log:
-        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.obtain_unique_reads.out",
-        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.obtain_unique_reads.err",
-    conda:
-        "envs/bedbam_tools.yaml"
-    resources:
-        mem_mb=10000,
-        runtime="1h"
-    shell:
-        r"""
-        set -euo pipefail
-
-        echo "Running on node: $(hostname)" | tee {log.stdout}
-        echo "[`date`] Starting obtain_unique_reads" | tee -a {log.stdout}
-
-        samtools idxstats {input} \
-            | awk -F '\t' '{{s+=$3+$4}} END {{print s}}' \
-            > {output} \
-        >> {log.stdout} 2> {log.stderr}
-
-        echo "[`date`] Finished obtain_unique_reads" | tee -a {log.stdout}
-        """
-
-rule obtain_aligned_reads:
-    input:
-        rules.align_reads_encode.output.ubam
-    output:
-        "output/QC/{replicate_label}.aligned_reads"
-    benchmark:
-        "benchmarks/{replicate_label}.count_aligned_reads.txt"
-    log:
-        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.obtain_aligned_reads.out",
-        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.obtain_aligned_reads.err",
-    conda:
-        "envs/bedbam_tools.yaml"
-    resources:
-        mem_mb=8000,
-        runtime="1h"
-    shell:
-        r"""
-        set -euo pipefail
-
-        echo "Running on node: $(hostname)" | tee {log.stdout}
-        echo "[`date`] Starting obtain_aligned_reads" | tee -a {log.stdout}
-
-        samtools idxstats {input} \
-            | awk -F '\t' '{{s+=$3+$4}} END {{print s}}' \
-            > {output} \
-        >> {log.stdout} 2> {log.stderr}
-
-        echo "[`date`] Finished obtain_aligned_reads" | tee -a {log.stdout}
-        """

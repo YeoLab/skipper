@@ -6,8 +6,8 @@ library(ggrepel)
 args = commandArgs(trailingOnly=TRUE)
 
 # Create output directories for figures and model coefficients (if not already present).
-dir.create("output/figures/input_scatter_re/", showWarnings = FALSE, recursive = TRUE)
-dir.create("output/input_model_coef_re/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/figures/secondary_figures/input_scatter_re/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/secondary_results/input_model_coef_re/", showWarnings = FALSE, recursive = TRUE)
 
 # Inputs:
 # args[1] = repeat element (RE) count data
@@ -63,7 +63,7 @@ input_betabinom_re_fit_data = lapply(other_input_replicates, function(other_inpu
     label_data = q_data_null %>% arrange(qvalue) %>% filter(!grepl("\\)n$", repeat_name)) %>% head(4)
 
     # Generate scatter plot of enrichment vs total reads.
-    pdf(paste0('output/figures/input_scatter_re/', experiment, ".", given_input_replicate, ".", other_input_replicate, '.input_null_distribution.pdf'),
+    pdf(paste0('output/figures/secondary_figures/input_scatter_re/', experiment, ".", given_input_replicate, ".", other_input_replicate, '.input_null_distribution.pdf'),
         height = 1.8, width = 2.8)
     print(
         nonzero_re_data %>% inner_join(q_data_null) %>% 
@@ -96,4 +96,4 @@ input_betabinom_re_fit_data = lapply(other_input_replicates, function(other_inpu
 ) %>% bind_rows
 
 # Save all fitted coefficient results to file.
-write_tsv(input_betabinom_re_fit_data, paste0("output/input_model_coef_re/", experiment, ".", given_input_replicate, ".tsv"))
+write_tsv(input_betabinom_re_fit_data, paste0("output/secondary_results/input_model_coef_re/", experiment, ".", given_input_replicate, ".tsv"))

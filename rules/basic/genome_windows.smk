@@ -77,7 +77,7 @@ rule partition_bam_reads:
         bam = lambda wildcards: config['replicate_label_to_bams'][wildcards.replicate_label],
         region_partition = PARTITION,
     output:
-        counts = "output/counts/genome/vectors/{replicate_label}.counts",
+        counts = "output/secondary_results/counts/genome/vectors/{replicate_label}.counts",
     params:
         uninformative = config["UNINFORMATIVE_READ"]
     resources:
@@ -147,11 +147,11 @@ rule make_genome_count_table:
     input:
         partition = PARTITION.replace(".bed", ".nuc"),
         replicate_counts = lambda wildcards: expand(
-            "output/counts/genome/vectors/{replicate_label}.counts",
+            "output/secondary_results/counts/genome/vectors/{replicate_label}.counts",
             replicate_label = experiment_to_replicate_labels[wildcards.experiment_label]
         )
     output:
-        count_table = "output/counts/genome/tables/{experiment_label}.tsv.gz"
+        count_table = "output/secondary_results/counts/genome/tables/{experiment_label}.tsv.gz"
     threads: 4
     resources:
         mem_mb=lambda wildcards, attempt: 1000 * (1.5 ** (attempt - 1)),
@@ -184,7 +184,7 @@ rule fit_input_betabinomial_model:
     input:
         table = rules.make_genome_count_table.output.count_table
     output:
-        coef = "output/input_model_coef/{experiment_label}.{input_replicate_label}.tsv"
+        coef = "output/secondary_results/input_model_coef/{experiment_label}.{input_replicate_label}.tsv"
     threads: 4
     resources:
         mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
@@ -247,40 +247,40 @@ rule call_enriched_windows:
         feature_annotations = ancient(FEATURE_ANNOTATIONS),
         accession_rankings = ancient(ACCESSION_RANKINGS),
         replicate = lambda wildcards: (
-            "output/counts/genome/vectors/" +
+            "output/secondary_results/counts/genome/vectors/" +
             re.sub(r"IP_\d$", "IP_2", wildcards.clip_replicate_label) +
             ".counts"
         ),
         table = rules.make_genome_count_table.output.count_table,
         parameters = lambda wildcards: (
-            "output/" + OVERDISPERSION_MODE + "_model_coef/{experiment_label}." +
+            "output/secondary_results/" + OVERDISPERSION_MODE + "_model_coef/{experiment_label}." +
             overdispersion_replicate_lookup[wildcards.clip_replicate_label] +
             ".tsv"
         )
     output:
-        "output/threshold_scan/{experiment_label}.{clip_replicate_label}.threshold_data.tsv",
-        "output/tested_windows/{experiment_label}.{clip_replicate_label}.tested_windows.tsv.gz",
-        "output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz",
-        "output/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_feature_summary.tsv",
-        "output/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_transcript_summary.tsv",
-        "output/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_gene_summary.tsv",
-        "output/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_fractions_feature_data.tsv",
-        "output/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds_feature_data.tsv",
-        "output/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds_transcript_data.tsv",
-        "output/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds_feature_gc_data.tsv",
-        "output/figures/threshold_scan/{experiment_label}.{clip_replicate_label}.threshold_scan.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_coverage.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_rates.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_counts.linear.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_counts.log10.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_odds.feature.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_odds.all_transcript_types.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_odds.select_transcript_types.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_counts.per_gene_feature.pdf",
-        "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_fractions.feature.pdf",
-        "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature.pdf",
-        "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.all_transcript_types.pdf",
-        "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature_gc.pdf"
+        "output/secondary_results/threshold_scan/{experiment_label}.{clip_replicate_label}.threshold_data.tsv",
+        "output/secondary_results/tested_windows/{experiment_label}.{clip_replicate_label}.tested_windows.tsv.gz",
+        "output/secondary_results/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz",
+        "output/secondary_results/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_feature_summary.tsv",
+        "output/secondary_results/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_transcript_summary.tsv",
+        "output/secondary_results/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_gene_summary.tsv",
+        "output/secondary_results/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_fractions_feature_data.tsv",
+        "output/secondary_results/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds_feature_data.tsv",
+        "output/secondary_results/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds_transcript_data.tsv",
+        "output/secondary_results/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds_feature_gc_data.tsv",
+        "output/figures/secondary_figures/threshold_scan/{experiment_label}.{clip_replicate_label}.threshold_scan.pdf",
+        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_coverage.pdf",
+        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_rates.pdf",
+        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_counts.linear.pdf",
+        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_counts.log10.pdf",
+        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_odds.feature.pdf",
+        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_odds.all_transcript_types.pdf",
+        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_odds.select_transcript_types.pdf",
+        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_counts.per_gene_feature.pdf",
+        "output/figures/secondary_figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_fractions.feature.pdf",
+        "output/figures/secondary_figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature.pdf",
+        "output/figures/secondary_figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.all_transcript_types.pdf",
+        "output/figures/secondary_figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature_gc.pdf"
     threads: 2
     resources:
         mem_mb=lambda wildcards, attempt: 24000 * (1.5 ** (attempt - 1)),
@@ -316,13 +316,13 @@ rule call_enriched_windows:
 rule check_window_concordance:
     input:
         windows = lambda wildcards: expand(
-            "output/tested_windows/{{experiment_label}}.{clip_replicate_label}.tested_windows.tsv.gz",
+            "output/secondary_results/tested_windows/{{experiment_label}}.{clip_replicate_label}.tested_windows.tsv.gz",
             clip_replicate_label = experiment_to_clip_replicate_labels[wildcards.experiment_label]
         )
     output:
-        "output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf",
-        "output/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.tsv",
-        "output/enrichment_reproducibility/{experiment_label}.odds_data.tsv"
+        "output/figures/secondary_figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf",
+        "output/secondary_results/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.tsv",
+        "output/secondary_results/enrichment_reproducibility/{experiment_label}.odds_data.tsv"
     resources:
         mem_mb = 8000,
         runtime = "30m"
@@ -339,7 +339,7 @@ rule check_window_concordance:
         echo "[`date`] Starting check_window_concordance" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/check_window_concordance.R \
-            output/tested_windows \
+            output/secondary_results/tested_windows \
             {wildcards.experiment_label}
         >> {log.stdout} 2> {log.stderr}
 
@@ -349,11 +349,11 @@ rule check_window_concordance:
 rule find_reproducible_enriched_windows:
     input:
         windows = lambda wildcards: expand(
-            "output/enriched_windows/{{experiment_label}}.{clip_replicate_label}.enriched_windows.tsv.gz",
+            "output/secondary_results/enriched_windows/{{experiment_label}}.{clip_replicate_label}.enriched_windows.tsv.gz",
             clip_replicate_label = experiment_to_clip_replicate_labels[wildcards.experiment_label]
         )
     output:
-        reproducible_windows = "output/unfiltered_reproducible_enriched_windows/{experiment_label}.unfiltered_reproducible_enriched_windows.tsv.gz",
+        reproducible_windows = "output/secondary_results/unfiltered_reproducible_enriched_windows/{experiment_label}.unfiltered_reproducible_enriched_windows.tsv.gz",
     resources:
         mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
@@ -373,7 +373,7 @@ rule find_reproducible_enriched_windows:
         echo "[`date`] Starting find_reproducible_enriched_windows" | tee -a {log.stdout}
 
         Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R \
-            output/enriched_windows/ \
+            output/secondary_results/enriched_windows/ \
             {wildcards.experiment_label} \
             {params.blacklist} \
         >> {log.stdout} 2> {log.stderr}
@@ -383,13 +383,13 @@ rule find_reproducible_enriched_windows:
 
 rule filter_reproducible_windows:
     input:
-        unfiltered_enriched_windows = "output/unfiltered_reproducible_enriched_windows/{experiment_label}.unfiltered_reproducible_enriched_windows.tsv.gz",
+        unfiltered_enriched_windows = "output/secondary_results/unfiltered_reproducible_enriched_windows/{experiment_label}.unfiltered_reproducible_enriched_windows.tsv.gz",
         nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
     output:
         reproducible_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
         linear_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.linear.pdf",
         log_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.log10.pdf",
-        filtered_out = "output/filtered_out_windows/{experiment_label}.filtered_out_windows.tsv.gz"
+        filtered_out = "output/secondary_results/filtered_out_windows/{experiment_label}.filtered_out_windows.tsv.gz"
     resources:
         mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),

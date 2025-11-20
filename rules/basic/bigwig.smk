@@ -5,10 +5,10 @@ rule make_unscaled_bigwig:
         chrom_sizes = config["CHROM_SIZES"],
         bam = lambda wildcards: config['replicate_label_to_bams'][wildcards.replicate_label],
     output:
-        bg_plus = temp("output/bedgraphs/unscaled/plus/{replicate_label}.unscaled.plus.bg"),
-        bg_minus = temp("output/bedgraphs/unscaled/minus/{replicate_label}.unscaled.minus.bg"),
-        bw_plus = "output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw",
-        bw_minus = "output/bigwigs/unscaled/minus/{replicate_label}.unscaled.minus.bw",
+        bg_plus = temp("output/secondary_results/bedgraphs/unscaled/plus/{replicate_label}.unscaled.plus.bg"),
+        bg_minus = temp("output/secondary_results/bedgraphs/unscaled/minus/{replicate_label}.unscaled.minus.bg"),
+        bw_plus = "output/secondary_results/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw",
+        bw_minus = "output/secondary_results/bigwigs/unscaled/minus/{replicate_label}.unscaled.minus.bw",
     resources:
         tmpdir = TMPDIR,
         mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
@@ -49,10 +49,10 @@ rule make_scaled_bigwig:
         chrom_sizes = config["CHROM_SIZES"],
         bam = lambda wildcards: config['replicate_label_to_bams'][wildcards.replicate_label],
     output:
-        bg_plus = temp("output/bedgraphs/scaled/plus/{replicate_label}.scaled.plus.bg"),
-        bg_minus = temp("output/bedgraphs/scaled/minus/{replicate_label}.scaled.minus.bg"),
-        bw_plus = "output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw",
-        bw_minus = "output/bigwigs/scaled/minus/{replicate_label}.scaled.minus.bw",
+        bg_plus = temp("output/secondary_results/bedgraphs/scaled/plus/{replicate_label}.scaled.plus.bg"),
+        bg_minus = temp("output/secondary_results/bedgraphs/scaled/minus/{replicate_label}.scaled.minus.bg"),
+        bw_plus = "output/secondary_results/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw",
+        bw_minus = "output/secondary_results/bigwigs/scaled/minus/{replicate_label}.scaled.minus.bw",
     resources:
         tmpdir = TMPDIR,
         mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
@@ -100,10 +100,10 @@ rule make_scaled_bigwig_coverage:
         chrom_sizes = config["CHROM_SIZES"],
         bam = lambda wildcards: config['replicate_label_to_bams'][wildcards.replicate_label],
     output:
-        bg_plus = temp("output/bedgraphs/scaled/plus/{replicate_label}.scaled.cov.plus.bg"),
-        bg_minus = temp("output/bedgraphs/scaled/minus/{replicate_label}.scaled.cov.minus.bg"),
-        bw_plus = "output/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw",
-        bw_minus = "output/bigwigs/scaled/minus/{replicate_label}.scaled.cov.minus.bw",
+        bg_plus = temp("output/secondary_results/bedgraphs/scaled/plus/{replicate_label}.scaled.cov.plus.bg"),
+        bg_minus = temp("output/secondary_results/bedgraphs/scaled/minus/{replicate_label}.scaled.cov.minus.bg"),
+        bw_plus = "output/secondary_results/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw",
+        bw_minus = "output/secondary_results/bigwigs/scaled/minus/{replicate_label}.scaled.cov.minus.bw",
     benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/{replicate_label}.make_scaled_bigwig_coverage.out",
