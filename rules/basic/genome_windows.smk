@@ -215,7 +215,7 @@ rule fit_clip_betabinomial_model:
     input:
         table = rules.make_genome_count_table.output.count_table
     output:
-        coef = "output/clip_model_coef/{experiment_label}.{clip_replicate_label}.tsv"
+        coef = "output/secondary_results/clip_model_coef/{experiment_label}.{clip_replicate_label}.tsv"
     threads: 2
     resources:
         mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
@@ -384,7 +384,7 @@ rule find_reproducible_enriched_windows:
 rule filter_reproducible_windows:
     input:
         unfiltered_enriched_windows = "output/secondary_results/unfiltered_reproducible_enriched_windows/{experiment_label}.unfiltered_reproducible_enriched_windows.tsv.gz",
-        nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
+        nt_coverage = "output/secondary_results/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
     output:
         reproducible_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
         linear_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.linear.pdf",

@@ -23,7 +23,7 @@ if not TMPDIR:
     config['TMPDIR'] = os.path.join(WORKDIR, "tmp")
 
 if not GINI_CUTOFF:
-    config['GINI_CUTOFF'] = 0.95
+    config['GINI_CUTOFF'] = 0.9
 
 # Check for proper overdispersion mode. 
 if OVERDISPERSION_MODE not in ["clip","input"]:
@@ -266,12 +266,12 @@ rule all_basic_output:
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
         expand("output/figures/secondary_figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf", experiment_label = manifest.Experiment),
         expand("output/secondary_results/enrichment_reproducibility/{experiment_label}.odds_data.tsv", experiment_label = manifest.Experiment),
-        # lambda wildcards: call_enriched_window_output(wildcards),
-        # "output/figures/tsne/skipper.tsne_query.pdf",
+        lambda wildcards: call_enriched_window_output(wildcards),
+        "output/figures/tsne/skipper.tsne_query.pdf",
         # Quality control
-        expand("output/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
-        expand("output/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
-        expand("output/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment),
+        expand("output/QC/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
+        expand("output/QC/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
+        expand("output/QC/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment),
     output:
         "basic_done.txt"
     resources:
@@ -313,9 +313,9 @@ rule all_meta_repeat_output:
 
 rule all_homer_output:
     input:
-        expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz", experiment_label = manifest.Experiment),
-        expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv", experiment_label = manifest.Experiment),
-        expand("output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",experiment_label = manifest.Experiment),
+        expand("output/secondary_results/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz", experiment_label = manifest.Experiment),
+        expand("output/secondary_results/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv", experiment_label = manifest.Experiment),
+        expand("output/secondary_results/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",experiment_label = manifest.Experiment),
         expand("output/homer/finemapped_results/{experiment_label}/homerResults.html", experiment_label = manifest.Experiment),
     output:
         "homer_done.txt"
@@ -332,7 +332,7 @@ rule all_repeat_output:
         expand("output/secondary_results/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
         expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", experiment_label = manifest.Experiment),
         expand("output/secondary_results/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
-        # "output/figures/tsne_re/skipper.tsne_re_query.pdf",
+        "output/figures/tsne_re/skipper.tsne_re_query.pdf",
     output:
         "repeat_done.txt"
     resources:
@@ -523,10 +523,10 @@ use rule * from qc
 use rule * from genome
 use rule * from repeat
 use rule * from finemap
+use rule consult_encode_reference_re from analysis
+use rule consult_encode_reference from analysis
 if has_all_required(config, geneset_keys):
     use rule consult_term_reference from analysis
-    use rule consult_encode_reference_re from analysis
-    use rule consult_encode_reference from analysis
 if config["HOMER"] != "":
     use rule sample_background_windows_by_region from analysis
     use rule run_homer from analysis

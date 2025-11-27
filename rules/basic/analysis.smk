@@ -36,7 +36,7 @@ rule sample_background_windows_by_region:
 
 rule run_homer:
     input:
-        finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz",
+        finemapped_windows = "output/secondary_results/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz",
         background = "output/homer/region_matched_background/fixed/{experiment_label}.sampled_fixed_windows.bed.gz",
         genome = GENOME
     output:
@@ -87,7 +87,7 @@ rule consult_encode_reference:
             reference=["encode3_feature_summary", "encode3_eclip_enrichment", "encode3_class_assignment"]
         )
     output:
-        tsne_coordinates = "output/tsne/skipper.tsne_query.tsv",
+        tsne_coordinates = "output/secondary_results/tsne/skipper.tsne_query.tsv",
         tsne_plot = "output/figures/tsne/skipper.tsne_query.pdf"
     resources:
         mem_mb = 1000,
@@ -125,7 +125,7 @@ rule consult_encode_reference_re:
             reference=["encode3_feature_summary", "encode3_eclip_enrichment", "encode3_class_assignment"]
         )
     output:
-        tsne_coordinates = "output/tsne_re/skipper.tsne_re_query.tsv",
+        tsne_coordinates = "output/secondary_results/tsne_re/skipper.tsne_re_query.tsv",
         tsne_plot = "output/figures/tsne_re/skipper.tsne_re_query.pdf"
     resources:
         mem_mb = 1000,

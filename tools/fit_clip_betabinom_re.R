@@ -4,8 +4,8 @@ library(ggrepel)
 
 # Parse CLI args and ensure output directories exist for figures and coefficient tables.
 args = commandArgs(trailingOnly=TRUE)
-dir.create("output/figures/secondary_figures/clip_scatter_re/", showWarnings = FALSE, recursive = TRUE)
-dir.create("output/clip_model_coef_re/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/secondary_figures/figures/secondary_figures/clip_scatter_re/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/secondary_results/clip_model_coef_re/", showWarnings = FALSE, recursive = TRUE)
 
 # Inputs: repeat-element count table, experiment label, and the “given” CLIP replicate to model against others.
 re_data = read_tsv(args[1])
@@ -43,7 +43,7 @@ clip_betabinom_re_fit_data = lapply(other_clip_replicates, function(other_clip_r
         label_data = q_data_null %>% arrange(qvalue) %>% filter(!grepl("\\)n$", repeat_name)) %>% head(4)
 
         # Diagnostic scatter: total counts vs. log2 enrichment, colored by q-value threshold, with the null l2(μ/(1−μ)) reference line.
-        pdf(paste0('output/figures/secondary_figures/clip_scatter_re/', experiment, ".", given_clip_replicate, ".", other_clip_replicate, '.clip_null_distribution.pdf'),height = 1.8, width = 2.8)
+        pdf(paste0('output/secondary_figures/figures/secondary_figures/clip_scatter_re/', experiment, ".", given_clip_replicate, ".", other_clip_replicate, '.clip_null_distribution.pdf'),height = 1.8, width = 2.8)
         print(
             nonzero_re_data %>% inner_join(q_data_null) %>% 
             ggplot(aes(.data[[given_clip_replicate]]+.data[[other_clip_replicate]], log2((given_clip_fraction+.data[[given_clip_replicate]]) / (1 - given_clip_fraction +.data[[other_clip_replicate]])) - log2(given_clip_fraction / (1 - given_clip_fraction)), color = ifelse(qvalue < 0.05, "q < 0.05", "NS"))) + 
@@ -63,4 +63,4 @@ clip_betabinom_re_fit_data = lapply(other_clip_replicates, function(other_clip_r
 ) %>% bind_rows
 
 # Write out the per-pair fitted parameters (mu, rho) and the observed fraction to a TSV for reuse in testing steps.
-write_tsv(clip_betabinom_re_fit_data, paste0("output/clip_model_coef_re/", experiment, ".", given_clip_replicate, ".tsv"))
+write_tsv(clip_betabinom_re_fit_data, paste0("output/secondary_results/clip_model_coef_re/", experiment, ".", given_clip_replicate, ".tsv"))

@@ -12,10 +12,10 @@ rule get_nt_coverage:
             for input_replicate_label in experiment_to_input_replicate_labels[wildcards.experiment_label]
         ],         
     output:
-        nt_census = temp("output/finemapping/nt_coverage/{experiment_label}.nt_census.bed"),
-        nt_input_counts = temp("output/finemapping/nt_coverage/{experiment_label}.nt_coverage.input.counts"),
-        nt_clip_counts = temp("output/finemapping/nt_coverage/{experiment_label}.nt_coverage.clip.counts"),
-        nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
+        nt_census = temp("output/secondary_results/finemapping/nt_coverage/{experiment_label}.nt_census.bed"),
+        nt_input_counts = temp("output/secondary_results/finemapping/nt_coverage/{experiment_label}.nt_coverage.input.counts"),
+        nt_clip_counts = temp("output/secondary_results/finemapping/nt_coverage/{experiment_label}.nt_coverage.clip.counts"),
+        nt_coverage = "output/secondary_results/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
     params:
         chrom_sizes = config["CHROM_SIZES"],
         uninformative = config["UNINFORMATIVE_READ"]
@@ -76,7 +76,7 @@ rule finemap_windows:
     input:
         nt_coverage = rules.get_nt_coverage.output.nt_coverage        
     output:
-        finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
+        finemapped_windows = "output/secondary_results/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     threads: 6
     resources:
         mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
@@ -96,7 +96,7 @@ rule finemap_windows:
 
         Rscript --vanilla {TOOL_DIR}/finemap_enriched_windows.R \
             {input.nt_coverage} \
-            output/finemapping/mapped_sites/ \
+            output/secondary_results/finemapping/mapped_sites/ \
             {wildcards.experiment_label} \
         >> {log.stdout} 2> {log.stderr}
         gzip -t {output.finemapped_windows}
@@ -109,7 +109,7 @@ rule annotate_finemap:
         feature_annotations = FEATURE_ANNOTATIONS,
         ranking = ACCESSION_RANKINGS
     output:
-        "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv"
+        "output/secondary_results/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv"
     threads: 1
     log:
         stdout = config["WORKDIR"] + "/stdout/{experiment_label}.annotate_finemap.out",
@@ -147,8 +147,8 @@ rule find_both_tested_windows:
             clip_replicate_label=experiment_to_clip_replicate_labels[wildcards.experiment_label]
         )
     output:
-        tested_windows_in_2_rep = "output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",
-        tested_windows_merged = "output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.merged.bed"
+        tested_windows_in_2_rep = "output/secondary_results/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",
+        tested_windows_merged = "output/secondary_results/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.merged.bed"
     threads: 1
     log:
         stdout = config["WORKDIR"] + "/stdout/{experiment_label}.find_both_tested_windows.out",

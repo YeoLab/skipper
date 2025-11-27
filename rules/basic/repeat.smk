@@ -168,7 +168,7 @@ rule fit_clip_betabinomial_re_model:
     input:
         table = rules.make_repeat_count_tables.output.name_table,
     output:
-        coef = "output/clip_model_coef_re/{experiment_label}.{clip_replicate_label}.tsv",
+        coef = "output/secondary_results/clip_model_coef_re/{experiment_label}.{clip_replicate_label}.tsv",
     benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.out",

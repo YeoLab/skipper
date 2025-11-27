@@ -5,8 +5,8 @@ library(tidyverse)
 args = commandArgs(trailingOnly=TRUE)
 
 # Ensure output directories exist for figures and coefficient tables.
-dir.create("output/figures/clip_distributions/", showWarnings = FALSE, recursive = TRUE)
-dir.create("output/clip_model_coef/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/secondary_figures/figures/clip_distributions/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/secondary_results/clip_model_coef/", showWarnings = FALSE, recursive = TRUE)
 
 # Input data:
 # args[1] = count table (with CLIP and input counts, GC bins, etc.)
@@ -66,7 +66,7 @@ clip_betabinom_fit_data = lapply(other_clip_replicates, function(other_clip_repl
     )
 
   # Plot empirical vs. fitted distributions for small totals (≤ 6), binned by GC decile.
-  pdf(paste0('output/figures/clip_distributions/', experiment, ".", given_clip_replicate, ".", other_clip_replicate, '.clip_distribution.pdf'),height = 3.5, width = 6)
+  pdf(paste0('output/secondary_figures/figures/clip_distributions/', experiment, ".", given_clip_replicate, ".", other_clip_replicate, '.clip_distribution.pdf'),height = 3.5, width = 6)
   print(
     ggplot(distribution_data %>% filter(clip_total <=6) %>% 
              pivot_longer(values_to="expected",names_to="distribution",-clip_total:-pdf) %>% 
@@ -95,4 +95,4 @@ clip_betabinom_fit_data = lapply(other_clip_replicates, function(other_clip_repl
 ) %>% bind_rows
 
 # Write all fitted coefficients across replicate pairs to file.
-write_tsv(clip_betabinom_fit_data, paste0("output/clip_model_coef/", experiment, ".", given_clip_replicate, ".tsv"))
+write_tsv(clip_betabinom_fit_data, paste0("output/secondary_results/clip_model_coef/", experiment, ".", given_clip_replicate, ".tsv"))

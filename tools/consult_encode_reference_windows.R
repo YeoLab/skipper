@@ -4,7 +4,7 @@ library(Rtsne)
 library(ggrepel)
 
 # Create output directories if missing (idempotent) for tables and figures produced by this script.
-dir.create("output/tsne/", showWarnings = FALSE, recursive = TRUE)
+dir.create("output/secondary_results/tsne/", showWarnings = FALSE, recursive = TRUE)
 dir.create("output/figures/tsne/", showWarnings = FALSE, recursive = TRUE)
 
 # Parse command-line arguments.
@@ -80,4 +80,4 @@ ggplot(tsne_data, aes(tsne_1, tsne_2,color = class)) + theme_bw(base_size = 7) +
 dev.off() 
 
 # Persist the embedding coordinates and class labels for downstream analyses.
-write_tsv(tsne_data, paste0("output/tsne/", prefix, ".tsne_query.tsv"))
+write_tsv(tsne_data, paste0("output/secondary_results/tsne/", prefix, ".tsne_query.tsv"))

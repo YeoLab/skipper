@@ -65,17 +65,15 @@ rule copy_with_umi:
         echo "Running on node: $(hostname)" | tee {log.stdout}
         echo "[`date`] Starting copy_with_umi" | tee -a {log.stdout}
 
-        zcat {input.fq_1} \
+        (zcat {input.fq_1} \
             | awk 'NR % 4 != 1 {{print}} NR % 4 == 1 {{split($1,header,":"); print $1 ":" substr(header[1],2,length(header[1]) - 1) }}' \
             | gzip \
-            > {output.fq_1} \
-            >> {log.stdout} 2> {log.stderr}
+            > {output.fq_1}) >> {log.stdout} 2> {log.stderr}
 
-        zcat {input.fq_2} \
+        (zcat {input.fq_2} \
             | awk 'NR % 4 != 1 {{print}} NR % 4 == 1 {{split($1,header,":"); print $1 ":" substr(header[1],2,length(header[1]) - 1) }}' \
             | gzip \
-            > {output.fq_2} \
-            >> {log.stdout} 2>> {log.stderr}
+            > {output.fq_2}) >> {log.stdout} 2>> {log.stderr}
 
         echo "[`date`] Finished copy_with_umi" | tee -a {log.stdout}
         """
@@ -346,7 +344,7 @@ rule dedup_umi:
         set -euo pipefail
 
         echo "Running on node: $(hostname)" | tee {log.stdout}
-        echo "[`date`] Starting dedup_umi for {wildcards.replicate_label}" | tee -a{log.stdout}
+        echo "[`date`] Starting dedup_umi for {wildcards.replicate_label}" | tee -a {log.stdout}
 
         JAR=$(dirname $(which umicollapse))/../share/umicollapse*/umicollapse.jar
 
@@ -384,10 +382,10 @@ rule select_informative_read:
         echo "Running on node: $(hostname)" | tee {log.stdout}
         echo "[`date`] Starting select_informative_read" | tee -a {log.stdout}
 
-        samtools view \
+        (samtools view \
             -bF {params.flag} \
             {input.bam_combined} \
-            > {output.bam_informative} \
+            > {output.bam_informative}) \
         >> {log.stdout} 2> {log.stderr}
 
         echo "[`date`] Finished select_informative_read" | tee -a {log.stdout}

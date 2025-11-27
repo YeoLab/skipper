@@ -39,9 +39,9 @@ rule multiqc:
             if config['protocol'] == 'ENCODE4' else []
         )
     output:
-        multiqc_results = directory("output/multiqc/{experiment_label}/multiqc_data/"),
-        multiqc_plots = directory("output/multiqc/{experiment_label}/multiqc_plots/"),
-        multiqc_report = "output/multiqc/{experiment_label}/multiqc_report.html"
+        multiqc_results = directory("output/QC/multiqc/{experiment_label}/multiqc_data/"),
+        multiqc_plots = directory("output/QC/multiqc/{experiment_label}/multiqc_plots/"),
+        multiqc_report = "output/QC/multiqc/{experiment_label}/multiqc_report.html"
     benchmark: "benchmarks/multiqc/{experiment_label}.multiqc.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/{experiment_label}.multiqc.out",
@@ -59,14 +59,14 @@ rule multiqc:
         echo "[`date`] Starting multiqc" | tee -a {log.stdout}
 
         (ls {input.trimmed_fastqc} {input.initial_fastqc} {input.star_log} {input.fastp} {input.trimmed} \
-            > output/multiqc/{wildcards.experiment_label}/files.txt) >> {log.stdout} 2> {log.stderr}
+            > output/QC/multiqc/{wildcards.experiment_label}/files.txt) >> {log.stdout} 2> {log.stderr}
 
         multiqc \
-            --outdir output/multiqc/{wildcards.experiment_label} \
+            --outdir output/QC/multiqc/{wildcards.experiment_label} \
             -f \
             --export \
             --data-format json \
-            --file-list output/multiqc/{wildcards.experiment_label}/files.txt \
+            --file-list output/QC/multiqc/{wildcards.experiment_label}/files.txt \
             >> {log.stdout} 2>> {log.stderr}
 
         echo "[`date`] Finished multiqc" | tee -a {log.stdout}
