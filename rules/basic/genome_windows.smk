@@ -391,7 +391,7 @@ rule filter_reproducible_windows:
         log_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.log10.pdf",
         filtered_out = "output/secondary_results/filtered_out_windows/{experiment_label}.filtered_out_windows.tsv.gz"
     resources:
-        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     params:
         filter = config["GINI_CUTOFF"]

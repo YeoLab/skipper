@@ -4,7 +4,7 @@ printshellcmds: true
 notemp: true
 latency: 60
 skip-script-cleanup: true
-retries: 1
+retries: 3
 nolock: true
 default-storage-provider: none
 rerun-triggers: software-env
@@ -20,4 +20,4 @@ default-resources:
   slurm_account: "csd792"
   runtime: 30
   mem_mb: 20000
-  slurm_extra: "--qos=hcg-csd792 --exclude=tscc-1-8,tscc-13-34"
+  slurm_extra: "--qos=hcg-csd792 --exclude=tscc-1-16,tscc-1-6,tscc-1-8"

@@ -1,120 +1,54 @@
-# skipper
-![Skipper cartoon](documents/logo.png)
+# REALLY IMPORTANT NOTE TOO SELF
+I need to make sure that the new skipper module is set up with everything we need in the annotation folder, which will need to NOT have all of the old partitions as we are now using the new, fixed version of partition GFF. 
 
-Skip the peaks and expose RNA-binding in CLIP data
+Could probably be easily accomplished by running this small example for a bunch of different GFF files to get it to generate what I need. 
 
-See published article in Cell Genomics: https://www.cell.com/cell-genomics/fulltext/S2666-979X(23)00085-X
+# YEO-LAB internal example 
+Hello. This is a short example for running skipper as a member of the Yeo-lab partition on TSCC. Before attempting this example, please log onto TSCC and change directories to your scratch director
 
-## Yeo-lab internal users:
-Please see the YEOLAB_INTERNAL.md file for specific instructions on running skipper on the tscc cluster. 
+## Load up the skipper module 
 
-# Set up
-## Installation
+```module load skipper```
 
-1. **Clone the repository**  
-   ```bash
-   git clone https://github.com/YeoLab/skipper.git
-   cd skipper
-   ```
+## Download the example files from github. 
 
-2. **Install Conda (if not already installed)**  
-   The example below shows how to install Miniconda on Linux (64-bit). For detailed instructions on other systems, see the [official installation guide](https://www.anaconda.com/docs/getting-started/miniconda/install).  
+Copy the config file from the skipper module folder to somewhere on your TSCC (e.g. projects or scratch). 
 
-   ```bash
-   curl -L -O "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
-   bash Miniconda3-latest-Linux-x86_64.sh
-   ```
+```cp $SKIPPER_HOME/bin/skipper/example/yeo_lab_internal_example_config.yaml PATH/TO/COPY/yeo_lab_internal_example_config.yaml```
 
-3. **Create a Snakemake environment**  
-   Once Conda is installed, create an environment with Snakemake version `9.11.3` to run Skipper:  
+##  Adjust the yeo loab internal example config file. 
+Change the WOKDIR input in ```example/yeo_lab_internal_example_config.yaml``` from ./ to the path to save the example results to (e.g. /tscc/lustre/ddn/scratch/YOUR_USERNAME/new_skipper_test)
 
-   ```bash
-   conda create -n snakemake9 snakemake=9.11.3
-   ```
+No other changes to the config are necessary. 
 
-   All other required packages and environments will be installed automatically by Snakemake and Conda the first time you run Skipper.
+## Run skipper. 
 
-## Configuring Your Snakemake Profile
-
-Snakemake profiles allow you to supply additional arguments without cluttering the command line.  
-An example profile is provided at:`profiles/example_basic/config.yaml`
-
-This profile is configured for running Skipper on a single-node machine (not recommended for most use cases; see [Running Skipper on HPCs](#Running-Skipper-on-HPCs)). The only required change is to specify a path for saving Conda environments (choose any location on your machine with sufficient storage space).
-
-## Running Skipper on HPCs
-
-Skipper is an end-to-end pipeline for eCLIP analysis, including:
-
-- Preprocessing and trimming
-- Alignment
-- GFF partitioning
-- Enriched window identification
-- Fine-mapping
-- Motif analysis
-
-While Skipper can be run on powerful personal machines, it is primarily designed for **high-performance computing clusters (HPCs)**, where significant speedups are achieved by parallelizing jobs across compute nodes.
-
-### Cluster Executor Setup
-
-To run Skipper on HPCs, you must install a cluster executor plugin.  
-The example below demonstrates installation of the **SLURM** executor (a widely used workload manager).  
-Other executor options are listed in the [Snakemake plugin catalog](https://snakemake.github.io/snakemake-plugin-catalog/index.html).
-
-```bash
-conda activate snakemake9
-conda install snakemake-executor-plugin-slurm=1.4.0
-```
-
-### Adjusting Your Profile
-
-After installing the executor plugin, you must adjust your Snakemake profile.  
-An example profile is provided in:
+Now, simply replace PATH/TO/YOUR/yeo_lab_internal_example_config.yaml with the modified config file you created above and then run the following three commands in TSCC
 
 ```
-profiles/example_slurm/config.yaml
-```
+srun -N 1 -c 1 -t 4:00:00 -p gold -q hcg-csd792 -A csd792 --mem 4G --pty /bin/bash
 
-- **CONDA prefix** Do not forget to change this to a path on your cluster. 
-- **Slurm Account and partition:** You must enter your own account and partition information.
-- **Cluster-specific options:** Some systems require additional details. For example:  
-
-  ```yaml
-  slurm_extra: "--qos=YOUR_QOS"
-  ```
-
-  In general, if something is required in your `srun` or `sbatch` commands, it may also need to be added to `slurm_extra`.
-
-
-## Minimal Example. 
-
-This section details a small example run of skipper on a subsampled dataset. This example assumes that you are working on a linux based system with slurm set up and have already gone through all installation steps above (including adjusting the example profile). 
-
-1. **change into your skipper directory and download the human genome from gencode**  
-   ```bash
-   cd annotations
-   wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/GRCh38.primary_assembly.genome.fa.gz
-   cd ..
-   ```
-2. **Edit config file**
-   Open the config file in `example/Example_config.yaml` using any text editor and change every instance of /path/to/your/skipper with the **absolute** path to the skipper directory you just cloned. Also, change every instance of `/path/to/save/output` with the **absolute** path to whatever location you want to save your skipper outputs too (should be a location with lots of space, such as a scratch directory).
-
-3. **Edit manifest file**
-   Open the config file in `example/Example_config.yaml` using any text editor and change every instance of /path/to/your/skipper with the **absolute** path to the skipper directory you just cloned. 
-
-4. **Run skipper**  
-   ```bash
-   unset SLURM_JOB_ID # required if running on an interactive node, which is reccomended
+unset SLURM_JOB_ID
    
-   snakemake -s Skipper.py --configfile example/Skipper_config.yaml --profile profiles/example_slurm
-   ```
+snakemake -s $SKIPPER_HOME/bin/skipper/Skipper.py --configfile PATH/TO/YOUR/yeo_lab_internal_example_config.yaml --profile $SKIPPER_HOME/bin/skipper/profiles/tscc2_snakemake9
+```
 
-NOTE: The first run of skipper needs to set up all of the necessary conda environments via snakeconda and has to complete several costly steps that only need to be run for the first skipper run (e.g. parsing the GFF and generating the STAR genome index). As such, this initial skipper run will be quite slow, but subsequent runs will be much faster.
-
-NOTE: If difficulties arrise while running this example (or any run of skipper) please see the [Troubleshooting](#Troubleshooting)) section and/or open an issue. 
+# YEO-LAB internal notes on preparing a new run. 
+Running skipper on TSCC with a new eCLIP dataset generally only requires 2 things, a config file and a manifest. Below I have copied several sections from the main readme on making a configfile and manifest, along with a short section on troubleshooting. I have added Yeo-lab internal user specific notes where appropriate.
 
 # Preparing A New Skipper Run (The Config File)
 
 Numerous resources must be entered in the `Skipper_config.yaml` file before the start of any run. These resources are split up into several different categories for ease of use:
+
+**YEOLAB INTERNAL USER NOTE**
+1. Yeo-lab members on TSCC have access to several pre-built annotation resources, including GFF, PARTITION, FEATURE_ANNOTATION, and STAR_DIR files. These are available under:
+```
+$SKIPPER_HOME/bin/skipper/annotations
+```
+Using these whenever possible will lead to significant speedups.
+
+2. The parameters GENOME, ACCESSION_RANKINGS, BLACKLIST, REPEAT_TABLE, REPEAT_BED, GENE_SETS, GENE_SET_REFERENCE, and GENE_SET_DISTANCE can typically remain unchanged from the settings in `yeo_lab_internal_example_config.yaml`.
+3. Most eCLIP parameters (e.g., protocol, UMI_SIZE, GINI_CUTOFF) can remain at their default values from `yeo_lab_internal_example_config.yaml` for the majority of datasets.
 
 ## BASIC INPUTS
 These inputs are required for all runs of skipper. 
@@ -205,35 +139,6 @@ NOTE: Skipper requires at least 2 replicates per sample to identify reproducible
 | CLIP_fastq       | Path to CLIP replicate fastq (multiple files can be entered per cell to be concatenated, seperated by a space)            |
 | CLIP_bam       | (Optional) Enter path to CLIP BAM file            |
 
-# Skipper output 
-
-TODO: NEEDS ADJUSTMENT! 
-
-Skipper's main outputs can be found in the WORKDIR/output folder generated by Skipper. 
-
-Skipper produces many different outputs. The table below details some of the most important outputs that skipper can generate when all advanced inputs are specified. 
-
-| Output      | Description |
-| ----------- | ----------- |
-| reproducible_enriched_windows | Table containing information/statistics of all significantly enriched windows found in all replicates |
-| reproducible_enriched_re | The same as above but for repetitive regions |
-| QC/multiqc/*/multiqc_report.html | Summary files that describe and visualize several quality control metrics from the initial STAR alginment of your fastq files. Very useful for confirming the integrity of your data and for observing total library size |
-| homer/finemapped_results/YOUR_SAMPLE/homerResults.html |  A file that provides statistics and visuals for the top enriched binding motifs  |
-| figures/reproducible_enriched_windows/*.linear.pdf | Visualization of RNA region preferences for windows called by at least two replicates   |
-| figures/gene_sets        | Visualization of top enriched GO terms relative to ENCODE reproducible enriched windows   |
-| figures/tsne/skipper.tsne_query.pdf       | t-SNE visualization of binding preferences releative to ENCODE RBPs   |
-
-Skipper also creates many additional outputs and intermediate files that, while not important for basic use cases, may be useful for users
-| Output      | Description |
-| ----------- | ----------- |
-| finemapping |
-| bams |
-| secondary_results/bigwigs | Bigwig files showing coverage of IP (signal) and IN (background) reads. These files can be used to observe some of the reproducible enriched windows found by skipper with a genome browser tool such as [IGV](https://igv.org/)|
-
-WORK IN PROGRESS: Designing a wiki describing all outputs. 
-
-TO CONSIDER: The gene_sets folder which contains the acutal tsv files might not be needed... it is kind of like the tsne where people only care about the plots. 
-
 # Troubleshooting
 
 1. Log files.
@@ -247,8 +152,9 @@ If you observe that many of your jobs are dying without any explanation (e.g. mo
   ```yaml
   slurm_extra: "--exclude=YOUR_NODE"
   ```
-
 This is also the common cause of many timeout errors, as Skipper generally provides significantly more than enough time for all rules. 
+**YEOLAB INTERNAL USER NOTE**
+This will requiring copying and editing the profile found in $SKIPPER_HOME/bin/skipper/profiles/ and then directing skipper to your new edited profile. 
 
 3. Monitoring pipeline. 
 `squeue -u $USER -o "%.18i %.10P %.20j %.10u %.2t %.10M %.6D %.20R %.40k"` will show currently active jobs (helpful to see if certain rules are getting stuck.)

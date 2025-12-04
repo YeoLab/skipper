@@ -55,9 +55,29 @@ p_data = processed_count_data %>% group_by(clip, input, gc_bin, baseline_l2or) %
 p_clip = with(p_data, sum(clip) / sum(clip + input))
 
 # Scan total-read thresholds to maximize number of FDR-significant windows at 20% FDR. 
-threshold_max = p_data %>% mutate(total_counts = input + clip) %>% arrange(desc(total_counts)) %>% head(100) %>% tail(1) %>% pull(total_counts)
-threshold_data = tibble(threshold = seq(2, threshold_max), n_enriched = sapply(seq(2, threshold_max), function(i) sum((p_data %>% filter(input + clip >= i) %>% pull(pvalue) %>% p.adjust(.,"fdr")) < 0.2)) )
-write_tsv(threshold_data, paste0("output/secondary_results/threshold_scan/", output_stem, ".threshold_data.tsv"))
+p_data <- p_data %>%
+  mutate(total_counts = input + clip)
+
+thresholds <- 2:500
+
+threshold_data <- tibble(
+  threshold  = thresholds,
+  n_enriched = vapply(
+    thresholds,
+    function(th) {
+      idx <- p_data$total_counts >= th
+      if (!any(idx)) return(0L)
+      padj_th <- p.adjust(p_data$pvalue[idx], method = "fdr")
+      sum(padj_th < 0.2)
+    },
+    integer(1)
+  )
+)
+
+write_tsv(
+  threshold_data,
+  paste0("output/secondary_results/threshold_scan/", output_stem, ".threshold_data.tsv")
+)
 
 # Choose the threshold with the maximum number of discoveries. 
 optimized_threshold = threshold_data %>% arrange(n_enriched %>% desc) %>% head(1) %>% pull(threshold)
@@ -68,6 +88,8 @@ ggplot(threshold_data %>% mutate(replicate = clip_replicate_label), aes(threshol
 	geom_line() + xlab("Total read threshold") + ylab("# of hits (q < 20%)") + scale_x_log10()+
 	geom_vline(xintercept=optimized_threshold, color = "#f86808") + theme(aspect.ratio = 1) + facet_wrap(~replicate) 
 dev.off()
+
+p_data$total_counts = NULL
 
 # Compute q-values using the optimized threshold and carry an indicator for filtering/outputs. 
 q_data = p_data %>% group_by(above_threshold = input + clip >= optimized_threshold) %>% 

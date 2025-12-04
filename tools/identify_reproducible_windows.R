@@ -25,6 +25,13 @@ enriched_window_data = enriched_window_files %>%
     Filter(function(x) nrow(x) > 0, .) %>%
     bind_rows(.id = "clip_replicate_label") 
 
+# Force numeric types. 
+enriched_window_data <- enriched_window_data %>%
+  mutate(across(
+    c(baseline_l2or, input, clip, enrichment_l2or, pvalue, qvalue),
+    ~ suppressWarnings(as.numeric(.))
+  ))
+
 # Handle case: no enriched windows across all replicates.
 if (nrow(enriched_window_data) == 0){
 	# Construct an empty dataframe with expected columns
@@ -50,9 +57,13 @@ if (nrow(enriched_window_data %>% group_by(name) %>% filter(n() > 1)) == 0) {
 	quit()
 }	
 
+# Prevents an annoying bug. 
+stopifnot(is.numeric(enriched_window_data$qvalue))
+           
 # Aggregate reproducible enriched windows across replicates.
 reproducible_enriched_window_data = enriched_window_data %>%
-	group_by(across(-c(clip_replicate_label,baseline_l2or,input,clip,enrichment_l2or,pvalue,qvalue))) %>%
+	group_by(chr,start,end,name,score,strand,gc,gc_bin,feature_id,feature_bin,chrom,feature_type_top,feature_types,
+            gene_name, gene_id, transcript_ids, gene_type_top, transcript_type_top, gene_types, transcript_types) %>%
 	summarize(
 		input_sum = sum(input),                               # total input reads
 		clip_sum = sum(clip),                                 # total CLIP reads
