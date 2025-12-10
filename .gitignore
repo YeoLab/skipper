@@ -4,7 +4,6 @@ archive/
 profiles/Keegan_custom_DO_NOT_COMMIT/
 .snakemake
 __pycache__
-example/fastqs
 annotations/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta
 annotations/gencode.v38_star_ref/
 tmp/

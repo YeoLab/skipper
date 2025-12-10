@@ -26,10 +26,10 @@ Please see the YEOLAB_INTERNAL.md file for specific instructions on running skip
    ```
 
 3. **Create a Snakemake environment**  
-   Once Conda is installed, create an environment with Snakemake version `9.11.3` to run Skipper:  
+   Once Conda is installed, create an environment with Snakemake version `9.12.0` to run Skipper:  
 
    ```bash
-   conda create -n snakemake9 snakemake=9.11.3
+   conda create -n snakemake9 snakemake=9.12.0
    ```
 
    All other required packages and environments will be installed automatically by Snakemake and Conda the first time you run Skipper.
@@ -96,7 +96,7 @@ This section details a small example run of skipper on a subsampled dataset. Thi
    cd ..
    ```
 2. **Edit config file**
-   Open the config file in `example/Example_config.yaml` using any text editor and change every instance of /path/to/your/skipper with the **absolute** path to the skipper directory you just cloned. Also, change every instance of `/path/to/save/output` with the **absolute** path to whatever location you want to save your skipper outputs too (should be a location with lots of space, such as a scratch directory).
+   Open the config file in `example/Example_config.yaml` using any text editor and change every instance of /path/to/your/skipper to the **absolute** path to the skipper directory you just cloned. Also, change every instance of `/path/to/save/output` with the **absolute** path to whatever location you want to save your skipper outputs too (should be a location with lots of space, such as a scratch directory).
 
 3. **Edit manifest file**
    Open the config file in `example/Example_config.yaml` using any text editor and change every instance of /path/to/your/skipper with the **absolute** path to the skipper directory you just cloned. 
