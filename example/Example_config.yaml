@@ -19,7 +19,7 @@ FEATURE_ANNOTATIONS: /path/to/save/output/annotations/gencode.v38.tiled_partitio
 STAR_DIR: /path/to/save/output/annotations/gencode.v38_star_ref
 
 # eCLIP Parameters
-protocol: ENCODE4 # ENCODE4 for single end, ENCODE3 for paired end. ###!!!### Capitolize this for consistency. 
+protocol: ENCODE4 # ENCODE4 for single end, ENCODE3 for paired end.
 UMI_SIZE: 10
 INFORMATIVE_READ: 1
 OVERDISPERSION_MODE: input   # input or clip, input is reccomended

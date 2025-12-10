@@ -206,7 +206,7 @@ rule align_reads_encode:
     input:
         fq_1 = rules.trim_fastq_encode.output.fq_1_trimmed,
         fq_2 = rules.trim_fastq_encode.output.fq_2_trimmed,
-        chrom_sizes = CHROM_SIZES,
+        chrom_sizes = ancient(CHROM_SIZES),
     output:
         ubam = temp("output/secondary_results/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
         log= "output/secondary_results/bams/raw/genome/{replicate_label}.genome.Log.final.out",

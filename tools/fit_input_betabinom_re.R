@@ -17,6 +17,35 @@ re_data = read_tsv(args[1])
 experiment = args[2]
 given_input_replicate = args[3]
 
+### Dummy table output if no repeat elements exist.
+if (length(re_data$repeat_name) < 1) {
+    
+    # Identify all other input replicates (needed to determine row count).
+    other_input_replicates = setdiff(
+        grep("IN_[0-9]*$", names(re_data), value = TRUE),
+        given_input_replicate
+    )
+
+    # Create a dummy tibble with NA numeric values.
+    dummy_out = tibble(
+        mu = NA_real_,
+        rho = NA_real_,
+        given_input_fraction = NA_real_,
+        given_replicate = given_input_replicate,
+        other_replicate = other_input_replicates,
+        experiment = experiment
+    )
+
+    # Write it out and exit early.
+    write_tsv(
+        dummy_out,
+        paste0("output/secondary_results/input_model_coef_re/", experiment, ".", given_input_replicate, ".tsv")
+    )
+
+    # Stop evaluation of the rest of the script.
+    quit()
+}
+
 # Identify all other input replicates (columns named IN_<number>, excluding the given one).
 other_input_replicates = setdiff(grep("IN_[0-9]*$",names(re_data), value=TRUE), given_input_replicate)
 

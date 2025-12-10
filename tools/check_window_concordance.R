@@ -44,11 +44,23 @@ for(clip_replicate_1 in clip_replicate_labels) {
 				mutate(replicate_1 = factor(replicate_1, levels = c("Not enriched", "Enriched"))) %>%
 				mutate(replicate_2 = factor(replicate_2, levels = c("Enriched", "Not enriched")))
 			
-			# If a full 2x2 cannot be formed, emit a placeholder figure and continue. 
+			# If a full 2x2 cannot be formed, emit a placeholder figur and table and continue. 
 			if(nrow(enriched_concordance_data) < 4) {
 				pdf(paste0("output/figures/secondary_figures/enrichment_concordance/", prefix, ".enrichment_concordance.", clip_replicate_1, "_", clip_replicate_2, ".pdf"), height = 1, width = 2)
 					print(ggplot() + annotate("text", x = 1, y = 1, label = "Insufficient data") + theme_void())
 				dev.off()
+
+                # Create a dummy odds_data table with the same structure as a real broom::tidy(fisher.test()) output.
+                dummy_ft <- fisher.test(matrix(c(1, 1, 1, 1), nrow = 2))
+                odds_data <- broom::tidy(dummy_ft) %>%
+                    mutate(across(where(is.numeric), ~ NA_real_))
+            
+                # Save the dummy Fisher test summary to a TSV file for downstream auditing.
+                output_tsv_path <- paste0(
+                    "output/secondary_results/enrichment_reproducibility/",
+                    prefix, ".odds_data.tsv"
+                )
+                write_tsv(odds_data, output_tsv_path)
 				next	
 			}
 			

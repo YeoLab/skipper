@@ -106,7 +106,7 @@ rule finemap_windows:
 rule annotate_finemap:
     input:
         finemapped = rules.finemap_windows.output.finemapped_windows,
-        feature_annotations = FEATURE_ANNOTATIONS,
+        feature_annotations = ancient(FEATURE_ANNOTATIONS),
         ranking = ACCESSION_RANKINGS
     output:
         "output/secondary_results/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv"

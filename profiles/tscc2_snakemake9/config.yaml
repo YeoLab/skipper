@@ -1,13 +1,12 @@
 verbose: false
-quiet: reason
 printshellcmds: true
 notemp: true
 latency: 60
 skip-script-cleanup: true
-retries: 3
+retries: 2
 nolock: true
 default-storage-provider: none
-rerun-triggers: software-env
+rerun-triggers: mtime
 keep-going: true
 use-conda: true
 conda-prefix: "/tscc/nfs/home/kflanagan/snakeconda"
@@ -20,4 +19,4 @@ default-resources:
   slurm_account: "csd792"
   runtime: 30
   mem_mb: 20000
-  slurm_extra: "--qos=hcg-csd792 --exclude=tscc-1-16,tscc-1-6,tscc-1-8"
+  slurm_extra: "--qos=hcg-csd792 --exclude=tscc-1-18"

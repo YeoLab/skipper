@@ -209,11 +209,11 @@ meta_keys = ["META_ANALYSIS"]
 # Auto assign keys to None (avoids DAG error in snakemake).
 for k in ml_keys + repeat_keys + geneset_keys + homer_keys + meta_keys:
     if k not in config or k == False:
-        config[k] = ""
+        config[k] = "DO/NOT/RUN"
 
 # A function that checks if all ml keys are present. 
 def has_all_required(cfg, keys):
-    return all(cfg.get(k) not in [None, ""] for k in keys)
+    return all(cfg.get(k) not in [None, "DO/NOT/RUN"] for k in keys)
 
 # If all ml configs are provided, include the ml rules.
 if has_all_required(config, ml_keys):
@@ -418,93 +418,89 @@ rule all_ctk:
 
 ############################## Define modules #################################
 
-# Switch to basic
+
 module se_preprocess:
     snakefile:
         "rules/basic/se_preprocess.smk"
     config:
         config
 
-# Switch to basic
+
 module pe_preprocess:
     snakefile:
         "rules/basic/pe_preprocess.smk"
     config:
         config
 
-# Switch to basic. 
+
 module qc:
     snakefile:
         "rules/basic/qc.smk"
     config: config
 
-# switch to basic
+
 module genome:
     snakefile:
         "rules/basic/genome_windows.smk"
     config: config
 
-# switch to basic
+
 module repeat:
     snakefile:
         "rules/basic/repeat.smk"
     config: config
 
-# switch to basic
+
 module finemap:
     snakefile:
         "rules/basic/finemap.smk"
     config: config
 
-# switch to basic
+
 module analysis:
     snakefile:
         "rules/basic/analysis.smk"
     config: config
 
-# switch to basic
+
 module meta_analysis:
     snakefile:
         "rules/basic/meta_analysis.smk"
     config:
         config
 
-# Switch to basic
+
 module bigwig:
     snakefile:
         "rules/basic/bigwig.smk"
     config:
         config
 
-# Switch to ml
 module prep_ml:
     snakefile:
         "rules/ml/prep_ml.smk"
     config:
         config
 
-# Switch to ml
 module rbpnet:
     snakefile:
         "rules/ml/train_rbpnet.smk"
     config:
         config
 
-# switch to ml
 module benchmark:
     snakefile:
         "rules/ml/benchmark_ml.smk"
     config:
         config
 
-# switch to ml
+
 module variants_rbpnet:
     snakefile:
         "rules/ml/variants_rbpnet.smk"
     config:
         config
 
-# switch to mcross
 module ctk_mcross:
     snakefile:
         "rules/mcross/ctk_mcross.smk"

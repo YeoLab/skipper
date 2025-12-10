@@ -1,7 +1,7 @@
 locals().update(config)
 rule make_genome_mega_table:
     input:
-        feature = FEATURE_ANNOTATIONS,
+        feature = ancient(FEATURE_ANNOTATIONS),
         replicate_counts = lambda wildcards: expand(
             "output/secondary_results/counts/genome/vectors/{replicate_label}.counts", 
             replicate_label = replicate_labels),

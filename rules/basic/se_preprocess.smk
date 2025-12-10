@@ -1,3 +1,4 @@
+import os
 locals().update(config) 
 if config.get('AGGRESSIVE_TRIM', False):
     skewer_k = 1
@@ -6,42 +7,46 @@ else:
     skewer_k = 2
     skewer_m = 'tail'
 
-rule run_star_genome_generate:
-    input:
-        gff = "output/gff/filtered.gff3",
-        fasta_file = ancient(GENOME),
-    output:
-        chrom_sizes = CHROM_SIZES,
-    params:
-        star_dir = STAR_DIR
-    threads: 8
-    resources:
-        mem_mb = 48000,
-        runtime = "2h",
-    benchmark: "benchmarks/run_star_genome_generate.txt"
-    log:
-        stdout = config["WORKDIR"] + "/stdout/run_star_genome_generate.out",
-        stderr = config["WORKDIR"] + "/stderr/run_star_genome_generate.err",
-    conda:
-        "envs/star.yaml"
-    shell:
-        r"""
-        set -euo pipefail
+# Check to see if path already exists to ensure snakemake does not rebuild costly annotation files. 
+star_exists = os.path.exists(CHROM_SIZES)
 
-        echo "Running on node: $(hostname)" | tee {log.stdout}
-        echo "[`date`] Starting star_genome_generate." | tee -a {log.stdout}
-
-        STAR \
-            --runMode genomeGenerate \
-            --runThreadN {threads} \
-            --genomeDir {params.star_dir} \
-            --genomeFastaFiles {input.fasta_file} \
-            --sjdbGTFfile {input.gff} \
-            --sjdbOverhang 99 \
-        >> {log.stdout} 2> {log.stderr}
-
-        echo "[`date`] Finished star_genome_generate." | tee -a {log.stdout}
-        """
+if not star_exists:
+    rule run_star_genome_generate:
+        input:
+            gff = "output/gff/filtered.gff3",
+            fasta_file = ancient(GENOME),
+        output:
+            chrom_sizes = CHROM_SIZES,
+        params:
+            star_dir = STAR_DIR
+        threads: 8
+        resources:
+            mem_mb = 48000,
+            runtime = "2h",
+        benchmark: "benchmarks/run_star_genome_generate.txt"
+        log:
+            stdout = config["WORKDIR"] + "/stdout/run_star_genome_generate.out",
+            stderr = config["WORKDIR"] + "/stderr/run_star_genome_generate.err",
+        conda:
+            "envs/star.yaml"
+        shell:
+            r"""
+            set -euo pipefail
+    
+            echo "Running on node: $(hostname)" | tee {log.stdout}
+            echo "[`date`] Starting star_genome_generate." | tee -a {log.stdout}
+    
+            STAR \
+                --runMode genomeGenerate \
+                --runThreadN {threads} \
+                --genomeDir {params.star_dir} \
+                --genomeFastaFiles {input.fasta_file} \
+                --sjdbGTFfile {input.gff} \
+                --sjdbOverhang 99 \
+            >> {log.stdout} 2> {log.stderr}
+    
+            echo "[`date`] Finished star_genome_generate." | tee -a {log.stdout}
+            """
 
 rule run_initial_fastqc:
     input:
@@ -194,7 +199,7 @@ rule run_trimmed_fastqc:
 rule align_reads:
     input:
         fq = rules.extract_umi.output.fq_umi,
-        chrom_sizes = CHROM_SIZES,
+        chrom_sizes = ancient(CHROM_SIZES),
     output:
         ubam = temp("output/secondary_results/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
         log_file = "output/secondary_results/bams/raw/genome/{replicate_label}.genome.Log.final.out",

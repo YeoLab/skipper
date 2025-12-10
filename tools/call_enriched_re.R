@@ -15,6 +15,50 @@ input_replicate_label = args[4]  # Column name for the input replicate to evalua
 clip_replicate_label = args[5]   # Column name for the CLIP replicate to evaluate.
 output_stem = args[6]            # Basename used for plot and result outputs.
 
+### Handle the case where re_data is empty by writing a dummy table and sentinel plot, then quitting.
+if (length(re_data$repeat_name) < 1) {
+    # Construct a dummy q_data-like table with the expected columns.
+    dummy_q_data = tibble::tibble(
+        chr            = NA_character_,
+        start          = NA_real_,      # Use numeric NA for generality.
+        end            = NA_real_,
+        name           = NA_character_,
+        score          = NA_real_,
+        strand         = NA_character_,
+        repeat_name    = NA_character_,
+        repeat_class   = NA_character_,
+        repeat_family  = NA_character_,
+        gc             = NA_real_,
+        gc_bin         = NA_character_,
+        baseline_l2or  = NA_real_,
+        clip           = NA_real_,
+        input          = NA_real_,
+        enrichment_l2or = NA_real_,
+        pvalue         = NA_real_,
+        simple         = NA_character_,
+        qvalue         = NA_real_
+    )
+
+    # Write dummy enriched_re table for downstream steps.
+    readr::write_tsv(
+        dummy_q_data,
+        paste0("output/secondary_results/enriched_re/", output_stem, ".enriched_re.tsv.gz")
+    )
+
+    # Create a sentinel plot indicating no data were available.
+    pdf(
+        paste0("output/figures/secondary_figures/clip_scatter_re/", output_stem, ".clip_test_distribution.pdf"),
+        height = 1.8,
+        width  = 2.8
+    )
+    par(mar = c(0,0,0,0))      # Critical fix: remove default margins.
+    plot.new()
+    text(0.5, 0.5, "No repeat-element data available for this sample.")
+    dev.off()
+
+    quit()
+}
+
 # Define helper link functions that use base-2 logs for convenience in l2or calculations.
 logisticb2 = function(x) 1 / (1 + 2**-x)  # Inverse-logit on base-2 scale returning probability in (0,1).
 logitb2 = function(x) log2(x / (1 - x))   # Logit on base-2 scale mapping probability to real line.

@@ -1,81 +1,87 @@
 locals().update(config)
 
-rule filter_gff:
-    input:
-        gff = ancient(GFF),
-        rankings = ancient(ACCESSION_RANKINGS),
-    output:
-        gff_filt = "output/gff/filtered.gff3",
-        rankings_filt = "output/gff/filtered_ranks.txt",
-    params:
-        source = config["GFF_SOURCE"]
-    threads: 1
-    resources:
-        mem_mb = 32000,
-        runtime = "1h"
-    benchmark: "benchmarks/filter_gff.txt"
-    log:
-        stdout = config["WORKDIR"] + "/stdout/filter_gff.out",
-        stderr = config["WORKDIR"] + "/stderr/filter_gff.err",
-    conda:
-        "envs/skipper_R.yaml"
-    shell:
-        r"""
-        set -euo pipefail
+# Check to see if path already exists to ensure snakemake does not rebuild costly annotation files. 
+feature_exists = os.path.exists(FEATURE_ANNOTATIONS)
+partition_exists = os.path.exists(PARTITION)
+partition_nuc_exists = os.path.exists(PARTITION.replace(".bed", ".nuc"))
 
-        echo "Running on node: $(hostname)" | tee {log.stdout}
-        echo "[`date`] Starting filter_gff" | tee -a {log.stdout}
-
-        Rscript --vanilla {TOOL_DIR}/filter_gff.R \
-            {params.source} \
-            {input.gff} \
-            {input.rankings} \
-            {output.gff_filt} \
-            {output.rankings_filt} \
-        >> {log.stdout} 2> {log.stderr}
-
-        echo "[`date`] Finished filter_gff" | tee -a {log.stdout}
-        """
-
-rule parse_gff:
-    input:
-        gff_filt = "output/gff/filtered.gff3",
-        rankings = ancient(ACCESSION_RANKINGS),
-    output:
-        partition = PARTITION,
-        feature_annotations = FEATURE_ANNOTATIONS,
-    threads: 1
-    resources:
-        mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
-        runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
-    benchmark: "benchmarks/parse_gff.txt"
-    log:
-        stdout = config["WORKDIR"] + "/stdout/parse_gff.out",
-        stderr = config["WORKDIR"] + "/stderr/parse_gff.err",
-    conda:
-        "envs/skipper_R.yaml"
-    shell:
-        r"""
-        set -euo pipefail
-
-        echo "Running on node: $(hostname)" | tee {log.stdout}
-        echo "[`date`] Starting parse_gff" | tee -a {log.stdout}
-
-        Rscript --vanilla {TOOL_DIR}/parse_gff.R \
-            {input.gff_filt} \
-            {input.rankings} \
-            {output.partition} \
-            {output.feature_annotations} \
-        >> {log.stdout} 2> {log.stderr}
-
-        echo "[`date`] Finished parse_gff" | tee -a {log.stdout}
-        """
+if (not feature_exists) or (not partition_exists):
+    rule filter_gff:
+        input:
+            gff = ancient(GFF),
+            rankings = ancient(ACCESSION_RANKINGS),
+        output:
+            gff_filt = "output/gff/filtered.gff3",
+            rankings_filt = "output/gff/filtered_ranks.txt",
+        params:
+            source = config["GFF_SOURCE"]
+        threads: 1
+        resources:
+            mem_mb = 32000,
+            runtime = "1h"
+        benchmark: "benchmarks/filter_gff.txt"
+        log:
+            stdout = config["WORKDIR"] + "/stdout/filter_gff.out",
+            stderr = config["WORKDIR"] + "/stderr/filter_gff.err",
+        conda:
+            "envs/skipper_R.yaml"
+        shell:
+            r"""
+            set -euo pipefail
+    
+            echo "Running on node: $(hostname)" | tee {log.stdout}
+            echo "[`date`] Starting filter_gff" | tee -a {log.stdout}
+    
+            Rscript --vanilla {TOOL_DIR}/filter_gff.R \
+                {params.source} \
+                {input.gff} \
+                {input.rankings} \
+                {output.gff_filt} \
+                {output.rankings_filt} \
+            >> {log.stdout} 2> {log.stderr}
+    
+            echo "[`date`] Finished filter_gff" | tee -a {log.stdout}
+            """
+    
+    rule parse_gff:
+        input:
+            gff_filt = "output/gff/filtered.gff3",
+            rankings = ancient(ACCESSION_RANKINGS),
+        output:
+            partition = PARTITION,
+            feature_annotations = FEATURE_ANNOTATIONS,
+        threads: 1
+        resources:
+            mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
+            runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
+        benchmark: "benchmarks/parse_gff.txt"
+        log:
+            stdout = config["WORKDIR"] + "/stdout/parse_gff.out",
+            stderr = config["WORKDIR"] + "/stderr/parse_gff.err",
+        conda:
+            "envs/skipper_R.yaml"
+        shell:
+            r"""
+            set -euo pipefail
+    
+            echo "Running on node: $(hostname)" | tee {log.stdout}
+            echo "[`date`] Starting parse_gff" | tee -a {log.stdout}
+    
+            Rscript --vanilla {TOOL_DIR}/parse_gff.R \
+                {input.gff_filt} \
+                {input.rankings} \
+                {output.partition} \
+                {output.feature_annotations} \
+            >> {log.stdout} 2> {log.stderr}
+    
+            echo "[`date`] Finished parse_gff" | tee -a {log.stdout}
+            """
 
 rule partition_bam_reads:
     input:
         chrom_sizes = config["CHROM_SIZES"],
         bam = lambda wildcards: config['replicate_label_to_bams'][wildcards.replicate_label],
-        region_partition = PARTITION,
+        region_partition = ancient(PARTITION),
     output:
         counts = "output/secondary_results/counts/genome/vectors/{replicate_label}.counts",
     params:
@@ -111,41 +117,42 @@ rule partition_bam_reads:
         echo "[`date`] Finished partition_bam_reads" | tee -a {log.stdout}
         """
 
-rule calc_partition_nuc:
-    input:
-        partition = PARTITION,
-        genome = GENOME
-    output:
-        nuc = PARTITION.replace(".bed", ".nuc")
-    resources:
-        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
-        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
-    benchmark: "benchmarks/partition_nuc.txt"
-    log:
-        stdout = config["WORKDIR"] + "/stdout/calc_partition_nuc.out",
-        stderr = config["WORKDIR"] + "/stderr/calc_partition_nuc.err",
-    conda:
-        "envs/bedbam_tools.yaml"
-    shell:
-        r"""
-        set -euo pipefail
-
-        echo "Running on node: $(hostname)" | tee {log.stdout}
-        echo "[`date`] Starting calc_partition_nuc" | tee -a {log.stdout}
-
-        bedtools nuc -s \
-            -fi {input.genome} \
-            -bed {input.partition} \
-            | gzip -c \
-            > {output.nuc} \
-        2> {log.stderr}
-
-        echo "[`date`] Finished calc_partition_nuc" | tee -a {log.stdout}
-        """
+if not partition_nuc_exists:
+    rule calc_partition_nuc:
+        input:
+            partition = ancient(PARTITION),
+            genome = GENOME
+        output:
+            nuc = PARTITION.replace(".bed", ".nuc")
+        resources:
+            mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+            runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
+        benchmark: "benchmarks/partition_nuc.txt"
+        log:
+            stdout = config["WORKDIR"] + "/stdout/calc_partition_nuc.out",
+            stderr = config["WORKDIR"] + "/stderr/calc_partition_nuc.err",
+        conda:
+            "envs/bedbam_tools.yaml"
+        shell:
+            r"""
+            set -euo pipefail
+    
+            echo "Running on node: $(hostname)" | tee {log.stdout}
+            echo "[`date`] Starting calc_partition_nuc" | tee -a {log.stdout}
+    
+            bedtools nuc -s \
+                -fi {input.genome} \
+                -bed {input.partition} \
+                | gzip -c \
+                > {output.nuc} \
+            2> {log.stderr}
+    
+            echo "[`date`] Finished calc_partition_nuc" | tee -a {log.stdout}
+            """
 
 rule make_genome_count_table:
     input:
-        partition = PARTITION.replace(".bed", ".nuc"),
+        partition = ancient(PARTITION.replace(".bed", ".nuc")),
         replicate_counts = lambda wildcards: expand(
             "output/secondary_results/counts/genome/vectors/{replicate_label}.counts",
             replicate_label = experiment_to_replicate_labels[wildcards.experiment_label]
@@ -258,29 +265,11 @@ rule call_enriched_windows:
             ".tsv"
         )
     output:
-        "output/secondary_results/threshold_scan/{experiment_label}.{clip_replicate_label}.threshold_data.tsv",
         "output/secondary_results/tested_windows/{experiment_label}.{clip_replicate_label}.tested_windows.tsv.gz",
         "output/secondary_results/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz",
         "output/secondary_results/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_feature_summary.tsv",
         "output/secondary_results/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_transcript_summary.tsv",
         "output/secondary_results/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_gene_summary.tsv",
-        "output/secondary_results/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_fractions_feature_data.tsv",
-        "output/secondary_results/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds_feature_data.tsv",
-        "output/secondary_results/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds_transcript_data.tsv",
-        "output/secondary_results/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds_feature_gc_data.tsv",
-        "output/figures/secondary_figures/threshold_scan/{experiment_label}.{clip_replicate_label}.threshold_scan.pdf",
-        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_coverage.pdf",
-        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_rates.pdf",
-        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_counts.linear.pdf",
-        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_counts.log10.pdf",
-        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_odds.feature.pdf",
-        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_odds.all_transcript_types.pdf",
-        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_odds.select_transcript_types.pdf",
-        "output/figures/secondary_figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_counts.per_gene_feature.pdf",
-        "output/figures/secondary_figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_fractions.feature.pdf",
-        "output/figures/secondary_figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature.pdf",
-        "output/figures/secondary_figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.all_transcript_types.pdf",
-        "output/figures/secondary_figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature_gc.pdf"
     threads: 2
     resources:
         mem_mb=lambda wildcards, attempt: 24000 * (1.5 ** (attempt - 1)),
