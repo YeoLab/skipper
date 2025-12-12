@@ -13,4 +13,3 @@ dependencies:
   - libstdcxx=15.1.0=h8f9b012_5
   - libstdcxx-ng=15.1.0=h4852527_5
   - skewer=0.2.2=hc9558a2_3
-prefix: /tscc/nfs/home/kflanagan/miniconda3/envs/skewer

@@ -9,7 +9,7 @@ default-storage-provider: none
 rerun-triggers: mtime
 keep-going: true
 use-conda: true
-conda-prefix: "/tscc/nfs/home/kflanagan/snakeconda"
+conda-prefix: "/tscc/nfs/home/$USER/snakeconda/envs/"
 conda-frontend: conda
 rerun-incomplete: true
 jobs: 30

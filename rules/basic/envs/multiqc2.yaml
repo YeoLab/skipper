@@ -202,4 +202,3 @@ dependencies:
   - zlib-ng=2.2.5=hde8ca8f_0
   - zstandard=0.25.0=py313h54dd161_0
   - zstd=1.5.7=hb8e6e7a_2
-prefix: /tscc/nfs/home/kflanagan/miniconda3/envs/multiqc

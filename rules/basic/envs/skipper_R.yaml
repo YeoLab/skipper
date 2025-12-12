@@ -276,4 +276,3 @@ dependencies:
   - yaml=0.2.5=h280c20c_3
   - yq=3.4.3=pyhe01879c_2
   - zstd=1.5.7=hb8e6e7a_2
-prefix: /tscc/nfs/home/kflanagan/miniconda3/envs/granges_test

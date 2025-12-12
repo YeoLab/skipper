@@ -41,4 +41,3 @@ dependencies:
   - wheel=0.43.0=py312h06a4308_0
   - xz=5.4.6=h5eee18b_1
   - zlib=1.2.13=h5eee18b_1
-prefix: /tscc/nfs/home/hsher/miniconda3/envs/pum2model

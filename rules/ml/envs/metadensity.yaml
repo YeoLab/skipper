@@ -21,4 +21,3 @@ dependencies:
   - scikit-learn
   - seaborn
   - pybedtools
-prefix: /home/hsher/miniconda3/envs/metadensity

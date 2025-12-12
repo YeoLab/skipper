@@ -1,5 +1,6 @@
 # to annotate finemapped regions back to window's annotations
 import pandas as pd
+import deepdish as dd
 from pybedtools import BedTool
 import sys
 

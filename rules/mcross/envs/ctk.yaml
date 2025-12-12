@@ -353,4 +353,3 @@ dependencies:
   - zlib=1.2.12=h5eee18b_3
   - zstandard=0.19.0=py310h5eee18b_0
   - zstd=1.5.2=ha4553b6_0
-prefix: /tscc/nfs/home/hsher/miniconda3/envs/ctk

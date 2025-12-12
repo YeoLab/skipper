@@ -13,4 +13,3 @@ dependencies:
   - libgcc=15.1.0=h767d61c_5
   - libgomp=15.1.0=h767d61c_5
   - libstdcxx=15.1.0=h8f9b012_5
-prefix: /tscc/nfs/home/kflanagan/miniconda3/envs/fastp

@@ -30,4 +30,3 @@ dependencies:
   - openssl=3.5.3=h26f9b46_1
   - samtools=1.22.1=h96c455f_0
   - zstd=1.5.7=hb8e6e7a_2
-prefix: /tscc/nfs/home/kflanagan/miniconda3/envs/samtools

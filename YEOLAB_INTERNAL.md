@@ -55,7 +55,7 @@ Numerous resources must be entered in the `Skipper_config.yaml` file before the 
 1. Yeo-lab members on TSCC have access to several pre-built annotation resources, including GFF, PARTITION, FEATURE_ANNOTATION, and STAR_DIR files. These are available in `/tscc/projects/ps-yeolab4/software/skipper/1.100.0/bin/skipper/annotations`
 
    
-    Using these whenever possible will lead to significant speedups.
+    Using these whenever possible will lead to significant speedups. **DO NOT USE ANY ANNOTATION FILES FROM OLDER SKIPPER RUNS!!!!** these files were generated before the implementation of the GFF file filtration (removes problematic transcripts) and can lead to erroneous results. 
 
 3. The parameters GENOME, ACCESSION_RANKINGS, BLACKLIST, REPEAT_TABLE, REPEAT_BED, GENE_SETS, GENE_SET_REFERENCE, and GENE_SET_DISTANCE can typically remain unchanged from the settings in `yeo_lab_internal_example_config.yaml`.
 4. Most eCLIP parameters (e.g., protocol, UMI_SIZE, GINI_CUTOFF) can remain at their default values from `yeo_lab_internal_example_config.yaml` for the majority of datasets.
@@ -70,7 +70,7 @@ These inputs are required for all runs of skipper.
 | WORKDIR   | Path to save outputs to |
 | TMPDIR    | Path to directory to save temporary files too (if left blank, will default to a /tmp directory inside of WORKDIR) |
 | MANIFEST  | Path to a manifest file containing information on which samples to run (Please see the "making a manifest" section) |
-| TOOL_DIR  | Path to the tools directory from this repository        |
+| TOOL_DIR  | Path to the tools directory from this repository |
 
 ### Required Annotation Files
 Each of the files in this section must already exist on your machine. Instructions for where to find/download these files for your species/cell type of interest are included in the descriptions. 

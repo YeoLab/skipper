@@ -30,4 +30,3 @@ dependencies:
   - openssl=3.5.3=h26f9b46_1
   - star=2.7.11b=h5ca1c30_7
   - zstd=1.5.7=hb8e6e7a_2
-prefix: /tscc/nfs/home/kflanagan/miniconda3/envs/star
