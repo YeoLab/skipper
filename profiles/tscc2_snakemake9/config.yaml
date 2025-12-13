@@ -9,15 +9,20 @@ default-storage-provider: none
 rerun-triggers: mtime
 keep-going: true
 use-conda: true
-conda-prefix: "/tscc/nfs/home/$USER/snakeconda/envs/"
+conda-prefix: "/tscc/nfs/home/$USER/scratch/snakeconda/"
 conda-frontend: conda
 rerun-incomplete: true
 jobs: 30
 executor: slurm
 default-resources:
-  slurm_partition: "gold"
+  slurm_partition: "condo"
+# slurm_partition: "gold"  # to use our nodes
   slurm_account: "csd792"
   runtime: 30
   mem_mb: 20000
-  slurm_extra: "--qos=hcg-csd792"
+  slurm_extra: "--qos=condo"
+# slurm_extra: "--qos=hcg-csd792"  # to use our nodes
+use-envmodules: true
+show-failed-logs: true
+slurm-logdir: "slurm_logs"
 # add --exclude=NODE (e.g. tscc-1-18) to slurm extra to remove problematic nodes. 
