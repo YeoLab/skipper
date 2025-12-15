@@ -126,15 +126,20 @@ rule annotate_finemap:
         echo "Running on node: $(hostname)" | tee {log.stdout}
         echo "[`date`] Starting annotate_finemap" | tee -a {log.stdout}
 
+        PY="$CONDA_PREFIX/bin/python"
+
+        echo "Using python: $($PY -c 'import sys; print(sys.executable)')" | tee -a {log.stdout}
+        echo "PATH=$PATH" | tee -a {log.stdout}
+
         if [ -s {input.finemapped} ]; then
-            python {TOOL_DIR}/annotate_finemapped_regions.py \
+            "$PY" {TOOL_DIR}/annotate_finemapped_regions.py \
                 {input.finemapped} \
                 {input.ranking} \
                 {input.feature_annotations} \
                 {output} \
             >> {log.stdout} 2> {log.stderr}
         else
-            touch {output} >> {log.stdout} 2>> {log.stderr}
+            : > {output}  # Create empty output file.
         fi
 
         echo "[`date`] Finished annotate_finemap" | tee -a {log.stdout}
@@ -165,7 +170,12 @@ rule find_both_tested_windows:
         echo "Running on node: $(hostname)" | tee {log.stdout}
         echo "[`date`] Starting find_both_tested_windows" | tee -a {log.stdout}
 
-        python {TOOL_DIR}/find_both_tested_windows.py \
+        PY="$CONDA_PREFIX/bin/python"
+
+        echo "Using python: $($PY -c 'import sys; print(sys.executable)')" | tee -a {log.stdout}
+        echo "PATH=$PATH" | tee -a {log.stdout}
+
+        "$PY" {TOOL_DIR}/find_both_tested_windows.py \
             "{input}" \
             {output.tested_windows_in_2_rep} \
             {output.tested_windows_merged} \

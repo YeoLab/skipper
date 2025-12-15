@@ -10,7 +10,6 @@ if __name__ == '__main__':
     finemapped_sites_df = finemapped_sites.to_dataframe()
     
     ranking = pd.read_csv(sys.argv[2], sep = '\t')
-
     # read annotation
     window = pd.read_csv(sys.argv[3],
                         sep = '\t')
