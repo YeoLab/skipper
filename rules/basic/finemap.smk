@@ -119,6 +119,8 @@ rule annotate_finemap:
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     conda:
         "envs/metadensity.yaml"
+    envmodules:
+        "finemap/1.100.0"
     shell:
         r"""
         set -euo pipefail
@@ -163,6 +165,8 @@ rule find_both_tested_windows:
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     conda:
         "envs/metadensity.yaml"
+    envmodules:
+        "finemap/1.100.0"
     shell:
         r"""
         set -euo pipefail

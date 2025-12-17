@@ -1,13 +1,21 @@
-verbose: true
-notemp: false
-latency: 60
+verbose: false
 printshellcmds: true
-cores: 8
+notemp: false 
+latency: 60
 skip-script-cleanup: true
-nolock: true
-keep-going: true
---singularity-prefix: /tscc/projects/ps-yeolab4/software/skipper/1.99.0/bin/.singularity/
-use-singularity: true
-singularity-args: "--bind /tscc"
 retries: 3
-resources: mem_mb=16000
+nolock: true
+default-storage-provider: none
+rerun-triggers: mtime
+keep-going: true
+use-conda: true
+conda-prefix: "/tscc/nfs/home/$USER/scratch/snakeconda/"
+conda-frontend: conda
+rerun-incomplete: true
+jobs: 8
+executor: local
+default-resources:
+  runtime: 30
+  mem_mb: 20000
+use-envmodules: true
+show-failed-logs: true
