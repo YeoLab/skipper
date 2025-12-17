@@ -90,8 +90,8 @@ rule consult_encode_reference:
         tsne_coordinates = "output/secondary_results/tsne/skipper.tsne_query.tsv",
         tsne_plot = "output/figures/tsne/skipper.tsne_query.pdf"
     resources:
-        mem_mb = 1000,
-        runtime = "30m"
+        mem_mb=lambda wildcards, attempt: 4000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/consult_encode_reference/skipper.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/consult_encode_reference.out",
@@ -128,8 +128,8 @@ rule consult_encode_reference_re:
         tsne_coordinates = "output/secondary_results/tsne_re/skipper.tsne_re_query.tsv",
         tsne_plot = "output/figures/tsne_re/skipper.tsne_re_query.pdf"
     resources:
-        mem_mb = 1000,
-        runtime = "30m"
+        mem_mb=lambda wildcards, attempt: 4000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/consult_encode_reference_re/skipper.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/consult_encode_reference_re.out",
@@ -163,8 +163,8 @@ rule consult_term_reference:
         gene_set_reference = config["GENE_SET_REFERENCE"],
         gene_set_distance = config["GENE_SET_DISTANCE"]
     resources:
-        mem_mb = 1000,
-        runtime = "30m"
+        mem_mb=lambda wildcards, attempt: 4000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/{experiment_label}.consult_term_reference.out",
