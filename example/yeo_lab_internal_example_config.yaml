@@ -8,7 +8,7 @@ TOOL_DIR: /tscc/projects/ps-yeolab4/software/skipper/1.100.0/bin/skipper/tools
 # Required Annotation Files
 GFF_SOURCE: "gencode" # One of either "gencode" or "ensembl". 
 GFF: /tscc/projects/ps-yeolab4/software/skipper/1.100.0/bin/skipper/annotations/gencode.v38.annotation.gff3.gz
-GENOME: /tscc/projects/ps-yeolab4/software/skipper/1.100.0/bin/skipper/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta ###!!!### REPLACE WITH CORE TSCC PATH
+GENOME: /tscc/projects/ps-yeolab4/software/skipper/1.100.0/bin/skipper/annotations/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta ###!!!### REPLACE WITH CORE TSCC PATH
 ACCESSION_RANKINGS: /tscc/projects/ps-yeolab4/software/skipper/1.100.0/bin/skipper/annotations/accession_type_ranking.txt
 BLACKLIST: /tscc/projects/ps-yeolab4/software/skipper/1.100.0/bin/skipper/annotations/encode3_eclip_blacklist.bed # set to None for no blacklist
 

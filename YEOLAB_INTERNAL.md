@@ -1,6 +1,10 @@
 # YEO-LAB internal example 
 Hello. This is a short example for running skipper as a member of the Yeo-lab partition on TSCC. Before attempting this example, please log onto TSCC and change directories to your scratch director
 
+## Load up an interactive node.
+
+```srun -N 1 -c 1 -t 4:00:00 -p gold -q hcg-csd792 -A csd792 --mem 4G --pty /bin/bash```
+
 ## Create a folder in scratch to save the output.
 After logging onto TSCC, simply run the command below (Replacing YOUR_USERNAME with your TSCC username) to create a folder to save the output of the 
 
@@ -33,8 +37,6 @@ No other changes to the config are necessary.
 Now, simply replace YOUR_USERNAME in the command below again and run the following commands. 
 
 ```
-srun -N 1 -c 1 -t 4:00:00 -p gold -q hcg-csd792 -A csd792 --mem 4G --pty /bin/bash
-
 unset SLURM_JOB_ID
    
 snakemake -s $SKIPPER_HOME/bin/skipper/Skipper.py --configfile /tscc/lustre/ddn/scratch/YOUR_USERNAME/skipper100_test/yeo_lab_internal_example_config.yaml --profile $SKIPPER_HOME/bin/skipper/profiles/tscc2_snakemake9
