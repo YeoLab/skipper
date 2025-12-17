@@ -44,3 +44,4 @@ transcribed_unprocessed_pseudogene	42	PSEUDO
 unitary_pseudogene	43	PSEUDO
 processed_pseudogene	44	PSEUDO
 unprocessed_pseudogene	45	PSEUDO
+protein_coding_CDS_not_defined	46	PSEUDO

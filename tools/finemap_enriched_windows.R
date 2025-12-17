@@ -1,23 +1,30 @@
+# Load tidyverse for data manipulation and I/O helpers (readr, dplyr, tibble, etc.). 
 library(tidyverse)
-set.seed(5)
+set.seed(5) # Global seed for reproducibility of any stochastic steps in this script. 
 
+# Parse command-line arguments: 
+# args[1] = path to counts TSV with fixed column order, args[2] = output directory, args[3] = output stem. 
 args = commandArgs(trailingOnly=TRUE)
 
+# Read sliding-window count data with explicit column names and types to avoid guessing issues. 
 count_data = read_tsv(args[1], col_names = c("chr","start","end","name","score","strand","window_n","input","clip"), col_types = c("ciiciciii"))
 output_directory = args[2]
 output_stem = args[3]
-window_size = 75
+window_size = 75 # Smoothing and peak selection window size (nt). 
 
+# Ensure the output directory exists. 
 dir.create(output_directory, showWarnings = FALSE, recursive = TRUE)
 
+# If there is no data, emit an empty file and stop early. 
 if(nrow(count_data) == 0) {
         file.create(paste0(output_directory, "/", output_stem, ".finemapped_windows.bed.gz"))
         quit()
 }
 
-# memory issues on joining in certain R versions
+# Note: some R versions have memory issues on large joins; computations below avoid unnecessary joins where possible. 
 
-# aggregate <window_size> nt sliding windows to smooth out coverage
+# Aggregate <window_size> nt sliding windows to smooth coverage by convolving counts and averaging positions. 
+# The convolution with a length-window_size boxcar computes running sums, then clip/input are rounded to integers. 
 smoothed_data = count_data %>% group_by(window_n,strand,chr) %>% 
         do(tibble(
                 pos = as.integer(round(convolve(.$end, rep(1,window_size), type = "filter") / window_size)), 
@@ -26,13 +33,14 @@ smoothed_data = count_data %>% group_by(window_n,strand,chr) %>%
         ) %>% 
         mutate(clip_sum = round(clip_sum), input_sum = round(input_sum))
 
-# function to find local maxima
-# https://stackoverflow.com/questions/6836409/finding-local-maxima-and-minima
+# Helper to find indices of local maxima in a vector using sign changes in the first derivative. 
+# Returns positions of increasing-to-decreasing transitions, with edge handling for ties at the start. 
+# Source reference: https://stackoverflow.com/questions/6836409/finding-local-maxima-and-minima. 
 localMaxima = function(x) {
   if(length(x) == 1) {
     return(1)
   }
-  # Use -Inf instead if x is numeric (non-integer)
+  # Use -Inf alternative when x is numeric; here an integer sentinel is used for speed. 
   y = diff(c(-.Machine$integer.max, x)) > 0L
   rle(y)$lengths
   y = cumsum(rle(y)$lengths)
@@ -43,9 +51,11 @@ localMaxima = function(x) {
   y
 }
 
-# pick the most enriched <window_size nt> window per enriched feature and retain other local maxima above the median enrichment
-# mark overlapping windows as claimed
-set.seed(0)
+# Select finemapped candidate windows within each (chr, strand, window_n) track. 
+# 1) Compute a heuristic enrichment score per smoothed position. 
+# 2) Identify the top position, break ties randomly, and mark a ±window_size claim region. 
+# 3) Keep local maxima above the median enrichment to seed iterative selection. 
+set.seed(0) # Seed for tie-breaking when multiple positions share the maximum. 
 candidate_sites = smoothed_data %>% 
         mutate(window_n = window_n, pos = pos,enrichment_heuristic =log2((clip_sum+20) / (input_sum+20))) %>% 
         group_by(window_n,strand,chr) %>% 
@@ -58,7 +68,7 @@ candidate_sites = smoothed_data %>%
         mutate(local_maximum = row_number() %in% localMaxima(enrichment_heuristic) | finemapped) %>%
         filter(enrichment_heuristic > enrichment_median, local_maximum) 
 
-# while nonoverlapping local maxima remain, pick additional <window_size> nt windows in order of enrichment level
+# Iteratively add additional non-overlapping local maxima, ranking by descending enrichment and claiming a ±window_size region each round. 
 round = 1
 finemapped_data = candidate_sites %>% filter(finemapped)
 while(nrow(filter(candidate_sites, !claimed)) > 0) {
@@ -72,6 +82,7 @@ while(nrow(filter(candidate_sites, !claimed)) > 0) {
         finemapped_data = bind_rows(finemapped_data, filter(candidate_sites, finemapped))
 }
 
+# Convert ranked finemapped positions into fixed-width BED windows, attach counts and a simple CDF of ranks, and write sorted output. 
 finemapped_data %>% mutate(cdf = 1 - (rank - 1) / max(rank)) %>% ungroup %>% filter(finemapped) %>%
         transmute(
                 chr, 

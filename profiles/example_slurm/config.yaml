@@ -1,0 +1,20 @@
+verbose: false
+quiet: reason
+printshellcmds: false
+notemp: true
+latency: 60
+skip-script-cleanup: true
+retries: 3
+nolock: true
+keep-going: true
+use-conda: true
+conda-prefix: "PATH/TO/SAVE/CONDA_ENVS"
+conda-frontend: conda
+rerun-incomplete: true
+jobs: 30
+executor: slurm
+default-resources:
+  slurm_partition: "YOUR_PARTITION"
+  slurm_account: "YOUR_ACCOUNT"
+  runtime: 30
+  mem_mb: 20000

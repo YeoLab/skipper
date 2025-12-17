@@ -1,0 +1,16 @@
+verbose: true
+notemp: true
+latency: 60
+printshellcmds: true
+skip-script-cleanup: true
+nolock: true
+keep-going: true
+use-singularity: true
+singularity-args: "--bind /tscc "
+singularity-prefix: /tscc/projects/ps-yeolab4/software/skipper/1.99.0/bin/.singularity
+use-conda: true
+conda-prefix: "/tscc/nfs/home/hsher/snakeconda"
+conda-frontend: conda
+jobs: 30
+cluster: "sbatch -t {resources.runtime} -p gold -q hcg-csd792 -A csd792 --mem {resources.mem_mb} --tasks-per-node {threads} -J {rule}"
+cluster-cancel: "scancel"

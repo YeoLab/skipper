@@ -5,113 +5,191 @@ Skip the peaks and expose RNA-binding in CLIP data
 
 See published article in Cell Genomics: https://www.cell.com/cell-genomics/fulltext/S2666-979X(23)00085-X
 
-<h2>Prerequisites</h2>
-Skipper requires several executables and packages:
+## Yeo-lab internal users:
+Please see the YEOLAB_INTERNAL.md file for specific instructions on running skipper on the tscc cluster. 
 
-| Tool      | Link |
-| ----------- | ----------- |
-| R           | https://www.r-project.org/       |
-| Python   | https://www.python.org/downloads/        |
-| Conda/Mamba   | https://conda.io/projects/conda/en/latest/user-guide/install/index.html        |
-| Snakemake   | https://snakemake.readthedocs.io/en/stable/getting_started/installation.html        |
-| UMICollapse   | https://github.com/Daniel-Liu-c0deb0t/UMICollapse        |
-| Skewer   | https://github.com/relipmoc/skewer        |
-| Fastp    | https://github.com/OpenGene/fastp        |
-| bedtools     | https://github.com/arq5x/bedtools2        |
-| STAR   | https://github.com/alexdobin/STAR        |
-| Java   | https://jdk.java.net/20/        |
-| samtools | http://www.htslib.org/download/        |
-| FastQC | https://www.bioinformatics.babraham.ac.uk/projects/fastqc/ |
-| HOMER | http://homer.ucsd.edu/homer/introduction/install.html |
+# Set up
+## Installation
 
-For example, below are some commands for installing Miniconda.
+1. **Clone the repository**  
+   ```bash
+   git clone https://github.com/YeoLab/skipper.git
+   cd skipper
+   ```
 
-`curl -L -O "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"`
+2. **Install Conda (if not already installed)**  
+   The example below shows how to install Miniconda on Linux (64-bit). For detailed instructions on other systems, see the [official installation guide](https://www.anaconda.com/docs/getting-started/miniconda/install).  
 
-`bash Miniconda3-latest-Linux-x86_64.sh`
+   ```bash
+   curl -L -O "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
+   bash Miniconda3-latest-Linux-x86_64.sh
+   ```
 
-Skipper requires several python and R packages. In order to install the precise versions used in the manuscript, we have provided skipper_env.yaml to install the used versions of R and corresponding packages from source.
+3. **Create a Snakemake environment**  
+   Once Conda is installed, create an environment with Snakemake version `9.12.0` to run Skipper:  
 
-<h3>Option 1: Manual installation (Linux-amd64)</h3>
+   ```bash
+   conda create -n snakemake9 snakemake=9.12.0
+   ```
 
-Use conda to create a snakemake environment for installing required packages:
+   All other required packages and environments will be installed automatically by Snakemake and Conda the first time you run Skipper.
 
-`conda env create -f installation/skipper_env.yaml`
+## Configuring Your Snakemake Profile
 
-Use the install_umicollapse.sh script to complete installation of UMICollapse v1.0.0 in the installation folder. Expect the whole process to take around 30 seconds. 
+Snakemake profiles allow you to supply additional arguments without cluttering the command line.  
+An example profile is provided at:`profiles/example_basic/config.yaml`
 
-`cd installation && ./install_umicollapse.sh`
+This profile is configured for running Skipper on a single-node machine (not recommended for most use cases; see [Running Skipper on HPCs](#Running-Skipper-on-HPCs)). The only required change is to specify a path for saving Conda environments (choose any location on your machine with sufficient storage space).
 
-Alternatively, at least as of this writing, Skipper is compatible with the newest version of R and its packages. The required R packages can be installed for an existing R installation as follows:
+## Running Skipper on HPCs
 
-`install.packages(c("tidyverse", "VGAM", "viridis", "ggrepel", "RColorBrewer", "Rtsne", "ggupset", "ggdendro", "cowplot"))`
+Skipper is an end-to-end pipeline for eCLIP analysis, including:
 
-`if (!require("BiocManager", quietly = TRUE))`
-    `install.packages("BiocManager")`
-`BiocManager::install(c("GenomicRanges","fgsea","rtracklayer"))`
+- Preprocessing and trimming
+- Alignment
+- GFF partitioning
+- Enriched window identification
+- Fine-mapping
+- Motif analysis
 
-Paths to locally installed versions can be supplied in the config file, described below.
+While Skipper can be run on powerful personal machines, it is primarily designed for **high-performance computing clusters (HPCs)**, where significant speedups are achieved by parallelizing jobs across compute nodes.
 
-<h3>Option 2: Singularity installation (Linux-amd64)</h3>
+### Cluster Executor Setup
 
-`conda create -n snakemake snakemake==7.32.3 star==2.7.10b`
+To run Skipper on HPCs, you must install a cluster executor plugin.  
+The example below demonstrates installation of the **SLURM** executor (a widely used workload manager).  
+Other executor options are listed in the [Snakemake plugin catalog](https://snakemake.github.io/snakemake-plugin-catalog/index.html).
 
-Singularity setup: https://docs.sylabs.io/guides/3.11/admin-guide/installation.html
+```bash
+conda activate snakemake9
+conda install snakemake-executor-plugin-slurm=1.4.0
+```
 
-<h2>Preparing to run Skipper</h2>
-Skipper uses a Snakemake workflow. The `Skipper.py` file contains the rules necessary to process CLIP data from fastqs. Skipper also supports running on BAMs - note that Skipper's analysis of repetitive elements will assume that non-uniquely mapping reads are contained within the BAM files.
+### Adjusting Your Profile
 
-Providing an absolute path to the GitHub repository `REPO_PATH` will help Snakemake find resources regardless of the directory where Skipper is run.
+After installing the executor plugin, you must adjust your Snakemake profile.  
+An example profile is provided in:
 
-Internal to the Yeo lab, setting the `REPO_PATH` to `/projects/ps-yeolab3/eboyle/encode/pipeline/github/yeo` will save time on preprocessing annotation files (check the annotation folder for HepG2, K562, or HEK293T. More annotations are available at `/projects/ps-yeolab4/software/skipper/1.0.0/bin/skipper/annotations/`).
+```
+profiles/example_slurm/config.yaml
+```
 
-Numerous resources must be entered in the `Skipper_config.py` file:
+- **CONDA prefix** Do not forget to change this to a path on your cluster. 
+- **Slurm Account and partition:** You must enter your own account and partition information.
+- **Cluster-specific options:** Some systems require additional details. For example:  
+
+  ```yaml
+  slurm_extra: "--qos=YOUR_QOS"
+  ```
+
+  In general, if something is required in your `srun` or `sbatch` commands, it may also need to be added to `slurm_extra`.
+
+
+## Minimal Example. 
+
+This section details a small example run of skipper on a subsampled dataset. This example assumes that you are working on a linux based system with slurm set up and have already gone through all installation steps above (including adjusting the example profile). 
+
+1. **change into your skipper directory and download the human genome from gencode**  
+   ```bash
+   cd annotations
+   wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/GRCh38.primary_assembly.genome.fa.gz
+   cd ..
+   ```
+2. **Edit config file**
+   Open the config file in `example/Example_config.yaml` using any text editor and change every instance of /path/to/your/skipper to the **absolute** path to the skipper directory you just cloned. Also, change every instance of `/path/to/save/output` with the **absolute** path to whatever location you want to save your skipper outputs too (should be a location with lots of space, such as a scratch directory).
+
+3. **Edit manifest file**
+   Open the config file in `example/Example_config.yaml` using any text editor and change every instance of /path/to/your/skipper with the **absolute** path to the skipper directory you just cloned. 
+
+4. **Run skipper**  
+   ```bash
+   unset SLURM_JOB_ID # required if running on an interactive node, which is reccomended
+   
+   snakemake -s Skipper.py --configfile example/Skipper_config.yaml --profile profiles/example_slurm
+   ```
+
+NOTE: The first run of skipper needs to set up all of the necessary conda environments via snakeconda and has to complete several costly steps that only need to be run for the first skipper run (e.g. parsing the GFF and generating the STAR genome index). As such, this initial skipper run will be quite slow, but subsequent runs will be much faster.
+
+NOTE: If difficulties arrise while running this example (or any run of skipper) please see the [Troubleshooting](#Troubleshooting)) section and/or open an issue. 
+
+# Preparing A New Skipper Run (The Config File)
+
+Numerous resources must be entered in the `Skipper_config.yaml` file before the start of any run. These resources are split up into several different categories for ease of use:
+
+## BASIC INPUTS
+These inputs are required for all runs of skipper. 
+
+### Required work/organizational files. 
 
 | Resource      | Description |
 | ----------- | ----------- |
-| MANIFEST            | Information on samples to run                                                        |
-| GENOME              | Samtools- and STAR-indexed fasta of genome for the sample of interest                |
-| STAR_DIR            | Path to STAR reference for aligning sequencing reads                |
+| WORKDIR             | Path to save outputs to |
+| TMPDIR    | Path to directory to save temporary files too (if left blank, will default to a /tmp directory inside of WORKDIR)       |
+| MANIFEST            | Path to a manifest file containing information on which samples to run (Please see the "making a manifest" section)                                                      |
+| TOOL_DIR    | Path to the tools directory from this repository        |
 
+### Required Annotation Files
+Each of the files in this section must already exist on your machine. Instructions for where to find/download these files for your species/cell type of interest are included in the descriptions. 
 
-Other paths to help Skipper run must be entered: 
-
-| Path    | Description |
+| Resource      | Description |
 | ----------- | ----------- |
-| EXE_DIR     | For convenience to point to stable locally installed software: it is added to PATH when Skipper runs |
-| TOOL_DIR    | Directory for the tools located in the GitHub        |
+| GFF_source          | A short string specifying if the data came from either gencode or ensembl (options: "gencode", "ensembl") |
+| GFF                 | Gzipped gene annotation to partition the transcriptome and count reads (must be from [gencode](https://www.gencodegenes.org/) or [ensembl](https://useast.ensembl.org/index.html)). |
+| GENOME              | Fasta for the genome of interest (also available from gencode and ensembl) |
+| ACCESSION_RANKINGS  | A ranking of gene and transcript types present in the GFF to facilitate the transcriptome partitioning  |
+| BLACKLIST           | Removes windows from reproducible enriched window files. Start and end coordinates must match tiled windows exactly.  Set to None for no blacklisting    |
 
-
-Information about the CLIP library to be analyzed is also required:
-
-| Setting      | Description |
-| ----------- | ----------- |
-| UMI_SIZE            | Bases to trim for deduplication (10 for current eCLIP)       |
-| INFORMATIVE_READ    | Which read (1 or 2) reflects the crosslink site (for Paired End runs)        |
-| OVERDISPERSION_MODE | Overdispersion can be estimated from multiple input replicates ("input") or multiple CLIP replicates ("clip"): "input" is recommended |
-
-
-<h2>Customizable input for Skipper</h2>
-Skipper accepts customizable files for several steps, which are also entered in the `Skipper_config.py` file: 
+### Auto Generated Annotation Files.
+These files can be automatically generated by Skipper. HOWEVER, it is still necessary to specify paths to these files even if they do not yet exist so that skipper knows where to save them. If these files have already been generated from other skipper runs, then specifying pre-made files will lead to significant speed-ups. 
 
 | Input      | Description |
 | ----------- | ----------- |
-| GFF                 | Gzipped gene annotation to partition the transcriptome and count reads.                       |
-| PARTITION*           | Gzipped BED file of windows to test (can be generated from GFF file)                          |
-| FEATURE_ANNOTATIONS* | Gzipped TSV file with the following columns: chrom,start,end,name,score,strand,feature_id,feature_bin,feature_type_top,feature_types,gene_name,gene_id, transcript_ids,gene_type_top,transcript_type_top,gene_types,transcript_types (can be generated from GFF file) |
-| BLACKLIST           | Removes windows from reproducible enriched window files. Start and end coordinates must match tiled windows exactly.      |
-| ACCESSION_RANKINGS  | A ranking of gene and transcript types present in the GFF to facilitate the transcriptome partitioning  |
-| REPEAT_TABLE        | Coordinates of repetitive elements, available from UCSC Genome Browser               |
-| REPEAT_BED*          | Gzipped sorted, nonoverlapping, tab-delimited annotations of repetitive elements: chr,start,end,label,score,strand,name,class,family,proportion_gc  |
+| PARTITION           | Gzipped BED file of windows to test (generated from GFF file) |
+| FEATURE_ANNOTATIONS | Gzipped TSV file with the following columns: chrom,start,end,name,score,strand,feature_id,feature_bin,feature_type_top,feature_types,gene_name,gene_id, transcript_ids,gene_type_top,transcript_type_top,gene_types,transcript_types (generated from GFF file) |
+|STAR_DIR | Directory created by STAR genomeGenerate (generated from the GFF file) |
+
+
+### eCLIP Parameters. 
+Each of these parameters should be edited to reflect the parameters of the specific eCLIP protocol used. 
+
+| Setting      | Description |
+| ----------- | ----------- |
+| PROTOCOL            | ENCODE4 for single end, ENCODE3 for paired end |
+| UMI_SIZE            | Bases to trim for deduplication (10 for current eCLIP) |
+| INFORMATIVE_READ    | Which read (1 or 2) reflects the crosslink site (for Paired End runs) |
+| OVERDISPERSION_MODE | Overdispersion can be estimated from multiple input replicates ("input") or multiple CLIP replicates ("clip"): "input" is recommended |
+| GINI_CUTOFF: 0.9    | A filter used to remove windows with incredibly narrow peaks (skyscrapers). These skyscrapers are usually the result of PCR errors or other sequencing artifacts, and should thus be filtered out of the final result. To use a more strict filter, decrease this cutoff (e.g. 0.8). To use a more lenient filter, increase this cutoff (e.g. 0.95). To use no filter at all, just set this cutoff to any value above 1.|
+
+## ADVANCED INPUTS
+These inputs are required only if you wish to perform some of the many additional analyses available through Skipper. Removing these commands from the config file will cause Skipper to skip over these analyses.  
+
+### Motif analysis
+| Input      | Description |
+| ----------- | ----------- |
+| HOMER           | A boolean (True or False) specifying if you would like to run motif analysis with [Homer](http://homer.ucsd.edu/homer/motif/)|
+
+### Meta analysis (work in progress)
+| Input      | Description |
+| ----------- | ----------- |
+| META_ANALYSIS           | A boolean (True or False) specifying if you would like to run a meta analsis|
+
+### Repeat analysis
+| Input      | Description |
+| ----------- | ----------- |
+| REPEAT_TABLE | Coordinates of repetitive elements, available from [UCSC Table Browser](https://genome.ucsc.edu/cgi-bin/hgTables) |
+| REPEAT_BED | Gzipped sorted, nonoverlapping, tab-delimited annotations of repetitive elements: chr,start,end,label,score,strand,name,class,family,proportion_gc (auto generated from repeat table) |
+
+### Gene set enrichment analysis
+| Input      | Description |
+| ----------- | ----------- |
 | GENE_SETS           | GMT files of gene sets for gene set enrichment calculation |
 | GENE_SET_REFERENCE  | TSV of gene set name, number of windows belonging to term, and fraction of windows that lie in gene set genes |
 | GENE_SET_DISTANCE   | RDS of a matrix containing jaccard index scores for all pairs of gene sets in GMT file |
 
-*Skipper can generate these files from other input, or you can make your own versions with the appropriate columns.
+# Making a manifest
+The manifest file is csv a file used to direct skipper towards the raw input files for analysis. Please see the table below for a description of all required and optional columns for the table. See the example/Example_manifest.csv file for exact formatting.
 
-Want to make your own partition from RNA-seq of a sample? Run the tools/subset_gff.py script on RNA-seq quantifications from Salmon. We used a 1 TPM cutoff. Enter the resulting file for the GFF. This makes the window annotations more accurate but we haven’t carefully examined how important it is for the cell sample to match.
-
-<h2>Making a manifest</h2>
+NOTE: Skipper requires at least 2 replicates per sample to identify reproducible windows. 
 
 | Column      | Description |
 | ----------- | ----------- |
@@ -120,63 +198,53 @@ Want to make your own partition from RNA-seq of a sample? Run the tools/subset_g
 | Cells            | A place to record information on the cell sample used: this is not currently used in analysis  |
 | Input_replicate  | Replicate # for the same Sample. The same Input replicate (fastq and number) can be used for multiple CLIP replicates |
 | Input_adapter    | Fasta of adapter sequences for Input replicate                                                     |
-| Input_fastq      | Path to Input replicate fastq (multiple files can be entered per cell to be concatenated            |
+| Input_fastq      | Path to Input replicate fastq (multiple files can be entered per cell to be concatenated, seperated by a space)            |
 | Input_bam       | (Optional) Enter path to Input BAM file            |
 | CLIP_replicate   | Replicate # for the same Sample. Distinct CLIP replicates are required |
 | CLIP_adapter     | Fasta of adapter sequences for CLIP replicate                                                     |
-| CLIP_fastq       | Path to CLIP replicate fastq (multiple files can be entered per cell to be concatenated            |
+| CLIP_fastq       | Path to CLIP replicate fastq (multiple files can be entered per cell to be concatenated, seperated by a space)            |
 | CLIP_bam       | (Optional) Enter path to CLIP BAM file            |
 
-Skipper requires multiple CLIP replicates of the same sample to call reproducible windows. Enter multiple replicates with the same experiment and sample columns on separate lines, incrementing the replicate number for each replicate. The same input replicate can be used in multiple experiments and repeated for the same sample if you estimate overdispersion from CLIP replicates. If the same replicate is used for multiple comparisons, the sample and replicate columns must be consistent.
+# Skipper output 
 
-See the example manifest in the example folder for the exact formatting and to test running Skipper by downloading the example dataset: https://zenodo.org/records/10636793.
+Skipper's main outputs can be found in the WORKDIR/output folder generated by Skipper. 
 
-<h2>Running Skipper</h2>
+Skipper produces many different outputs. The table below details some of the most important outputs that skipper can generate when all advanced inputs are specified. 
 
-Skipper can be run like any other Snakemake workflow. 
-
-Create a new directory to store output, copy the Snakemake and config files, and make all edits necessary to the config file. In the `all` rule of the `Skipper.py` file, comment out output that you do not wish to inspect.
-
-Remember to load the Snakemake environment before running
-
-`conda activate snakemake`
-
-Use the dry run function to confirm that Snakemake can parse all the information:
-
-`snakemake -ns Skipper.py -j 1`
-
-Once Snakemake has confirmed DAG creation, if applicable, submit the jobs using high performance computing infrastructure options suit you:
-
-<h3>Option 1: Manually installed packages</h3>
-
-`snakemake -kps Skipper.py -w 15 -j 30`
-
-`snakemake -kps Skipper.py -w 15 -j 30 --cluster "sbatch -t {params.run_time} -e {params.error_file} -o {params.out_file} -p condo -q condo -A csd792 --tasks-per-node {threads} --job-name {params.job_name} --mem {params.memory}"`
-
-<h3>Option 2: Singularity</h3>
-
-`snakemake -kps Skipper.py -w 15 -j 30 --use-singularity --singularity-args "--bind /tscc"`
-
-`snakemake -kps Skipper.py -w 15 -j 30 --use-singularity --singularity-args "--bind /tscc" --cluster "sbatch -t {params.run_time} -e {params.error_file} -o {params.out_file} -p condo -q condo -A csd792 --tasks-per-node {threads} --job-name {params.job_name} --mem {params.memory}"`
-
-Did Skipper terminate? Sometimes jobs fail - inspect any error output and rerun the same command if there is no apparent explanation such as uninstalled dependencies or a misformatted input file. Snakemake will try to pick up where it left off.
-
-<h2>Skipper output</h2>
-
-Skipper produces numerous output files. The `output/figures` directory contains figures summarizing the data.
 | Output      | Description |
 | ----------- | ----------- |
-| all_reads       | Visualization of RNA region preferences based on total reads instead of called windows |
-| threshold_scan  | Visualization of selection of minimum read coverage for statistical testing  |
-| input_distributions | Visualization of betabinomial fits to aggregate data |
-| enriched_windows | QC of called enriched windows  |
-| enrichment_concordance  | Mosaic plot of agreement between called enriched windows between replicates |
-| enrichment_reproducibility  | Number of total and enriched windows as a function of the number of replicates included  |
-| reproducible_enriched_windows | Visualization of RNA region preferences for windows called by at least two replicates   |
-| gene_sets        | Visualization of top enriched GO terms relative to ENCODE reproducible enriched windows   |
-| clip_scatter_re  | Visualization of enriched repetitive elements   |
-| tsne       | t-SNE visualization of binding preferences releative to ENCODE RBPs   |
+| reproducible_enriched_windows | Table containing information/statistics of all significantly enriched windows found in all replicates |
+| reproducible_enriched_re | The same as above but for repetitive regions |
+| QC/multiqc/*/multiqc_report.html | Summary files that describe and visualize several quality control metrics from the initial STAR alginment of your fastq files. Very useful for confirming the integrity of your data and for observing total library size |
+| homer/finemapped_results/YOUR_SAMPLE/homerResults.html |  A file that provides statistics and visuals for the top enriched binding motifs  |
+| figures/reproducible_enriched_windows/*.linear.pdf | Visualization of RNA region preferences for windows called by at least two replicates   |
+| figures/gene_sets        | Visualization of top enriched GO terms relative to ENCODE reproducible enriched windows   |
+| figures/tsne/skipper.tsne_query.pdf       | t-SNE visualization of binding preferences releative to ENCODE RBPs   |
 
-Key outputs: Annotated reproducible enriched windows can be accessed at `output/reproducible_enriched_windows/` and Homer motif output is at `output/homer/`
+Skipper also creates many additional outputs and intermediate files that, while not important for basic use cases, may be useful for users
+| Output      | Description |
+| ----------- | ----------- |
+| finemapping |
+| bams |
+| secondary_results/bigwigs | Bigwig files showing coverage of IP (signal) and IN (background) reads. These files can be used to observe some of the reproducible enriched windows found by skipper with a genome browser tool such as [IGV](https://igv.org/)|
 
-Example CLIP fastqs and processed data are available at GEO and SRA: `https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE213867`
+WORK IN PROGRESS: Design a wiki describing all outputs. 
+
+# Troubleshooting
+
+1. Log files.
+Skipper generates 3 types of log files. The first 2 types can be found within the `stderr/` and `stdout/` folders of your WORKDIR. These log files generally should contain all the information needed for debugging. 
+
+However, in some cases additional information from snakemake may be necessary, in which cases users are encouraged to investigate the log files in `WORKDIR/.snakemake/slurm_logs`. These log files are organized by rules and contain additional information on the snakemake run.
+
+2. Jobs dying with no explanation.
+If you observe that many of your jobs are dying without any explanation (e.g. mostly blank files in WORKDIR/stderr, unhelpful error messages in WORKDIR/.snakemake/slurm_logs such as "Killed"), and these jobs are occuring on the same node according to WORKDIR/stdout, then it is likely that this is the result of problematic nodes on your cluster. I would reccomend taking whichever nodes were used for the failed jobs and excluding them from the analysis by adding the following lines to the slurm extra command within your profile like so:
+
+  ```yaml
+  slurm_extra: "--exclude=YOUR_NODE"
+  ```
+
+This is also the common cause of many timeout errors, as Skipper generally provides significantly more than enough time for all rules. 
+
+3. Monitoring pipeline. 
+`squeue -u $USER -o "%.18i %.10P %.20j %.10u %.2t %.10M %.6D %.20R %.80k"` will show currently active jobs (helpful to see if certain rules are getting stuck.)

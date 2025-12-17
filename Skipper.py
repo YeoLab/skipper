@@ -1,3 +1,6 @@
+ ############################## SETUP #################################
+
+# Import packages. 
 import pandas as pd
 from functools import reduce
 import re
@@ -5,28 +8,47 @@ import os
 import sys
 import glob
 from time import sleep
+from pathlib import Path
+import warnings 
 
-# example command
-# snakemake -kps Skipper.py -w 25 -j 30 --cluster "qsub -e {params.error_file} -o {params.out_file} -l walltime={params.run_time} -l nodes=1:ppn={threads} -q home-yeo" 
+# Load config file. 
+locals().update(config)
+WORKDIR = config.get("WORKDIR")
+workdir: config['WORKDIR']
+TMPDIR = config.get("TMPDIR")
+GINI_CUTOFF = config.get("GINI_CUTOFF")
 
-include: "Skipper_config.py"
+# Set the temporary directory within the working directory by default. 
+if not TMPDIR:
+    config['TMPDIR'] = os.path.join(WORKDIR, "tmp")
 
-if not os.path.exists("stderr"): os.makedirs("stderr")
-if not os.path.exists("stdout"): os.makedirs("stdout")
+if not GINI_CUTOFF:
+    config['GINI_CUTOFF'] = 0.9
 
+# Check for proper overdispersion mode. 
 if OVERDISPERSION_MODE not in ["clip","input"]:
     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")
 
+# Read and cleanup manifest.
 manifest = pd.read_csv(MANIFEST, comment = "#", index_col = False).dropna(subset=['Experiment','Sample'])
 manifest["CLIP_replicate"] = pd.to_numeric(manifest.CLIP_replicate, downcast="integer")
 manifest["Input_replicate"] = pd.to_numeric(manifest.Input_replicate, downcast="integer")
-manifest["Input_fastq"] = [name.strip() for name in manifest["Input_fastq"]]
-manifest["CLIP_fastq"] = [name.strip() for name in manifest["CLIP_fastq"]]
-manifest["Input_adapter"] = [name.strip() for name in manifest["Input_adapter"]]
-manifest["CLIP_adapter"] = [name.strip() for name in manifest["CLIP_adapter"]]
-if min(manifest.groupby("Experiment")["CLIP_fastq"].agg(lambda x: len(set(x)))) < 2:
-    sys.stderr.write("WARNING: NONZERO EXPERIMENTS HAVE ONLY ONE CLIP REPLICATE.\nPIPELINE MUST HALT AFTER GENERATING RAW COUNTS\nThis usually means your manifest is incorrectly formatted\n")
-    sleep(5)
+
+# Remove whitespace. 
+for col in manifest.columns[manifest.columns.str.contains('_fastq') | manifest.columns.str.contains('_adapter')]:
+    manifest[col] = manifest[col].str.strip()
+
+# Check that input values are valid.  
+try:
+    if min(manifest.groupby("Experiment")["CLIP_fastq"].agg(lambda x: len(set(x)))) < 2:
+        sys.stderr.write("WARNING: NONZERO EXPERIMENTS HAVE ONLY ONE CLIP REPLICATE.\nPIPELINE MUST HALT AFTER GENERATING RAW COUNTS\nThis usually means your manifest is incorrectly formatted\n")
+        print(manifest.groupby("Experiment")["CLIP_fastq"].agg(lambda x: len(set(x))))
+        sleep(5)
+except:
+    if min(manifest.groupby("Experiment")["CLIP_fastq_1"].agg(lambda x: len(set(x)))) < 2:
+        sys.stderr.write("WARNING: NONZERO EXPERIMENTS HAVE ONLY ONE CLIP REPLICATE.\nPIPELINE MUST HALT AFTER GENERATING RAW COUNTS\nThis usually means your manifest is incorrectly formatted\n")
+        print(manifest.groupby("Experiment")["CLIP_fastq_1"].agg(lambda x: len(set(x))))
+        sleep(5)
 
 if max(manifest.groupby("Sample")["Input_replicate"].agg(lambda x: min(x))) > 1:
     raise Exception("Input replicates for samples in manifest do not increment from 1 as expected")
@@ -34,819 +56,480 @@ if max(manifest.groupby("Sample")["Input_replicate"].agg(lambda x: min(x))) > 1:
 if max(manifest.groupby("Sample")["CLIP_replicate"].agg(lambda x: min(x))) > 1:
     raise Exception("CLIP replicates for samples in manifest do not increment from 1 as expected")
 
+# create label for IN and CLIP: 
+# Sample = DEK_HepG2_4020, replicate_label: DEK_HepG2_4020_IN_1 and DEK_HepG2_4020_IP_1
 manifest["Input_replicate_label"] = [(str(sample) + "_IN_" + str(replicate)).replace(" ","")  for replicate, sample in zip(manifest.Input_replicate.tolist(),manifest.Sample.tolist())]
 manifest["CLIP_replicate_label"] = [(str(sample) + "_IP_" + str(replicate)).replace(" ","") for replicate, sample in zip(manifest.CLIP_replicate.tolist(),manifest.Sample.tolist())]
 
-input_replicates = manifest.loc[:,manifest.columns.isin(["Input_replicate_label","Input_fastq","Input_bam","Input_adapter"])].drop_duplicates()
-clip_replicates = manifest.loc[:,manifest.columns.isin(["CLIP_replicate_label","CLIP_fastq","CLIP_bam","CLIP_adapter"])].drop_duplicates()
+# Extract only the relevant columns for Input and CLIP replicates (labels, fastq files, bam files, adapters).
+# Drop duplicate rows to ensure each replicate is uniquely defined.
+input_replicates = manifest.loc[:,manifest.columns.isin(["Input_replicate_label","Input_fastq","Input_fastq_1", "Input_fastq_2","Input_bam","Input_adapter","Input_adapter_1","Input_adapter_2"])].drop_duplicates()
+clip_replicates = manifest.loc[:,manifest.columns.isin(["CLIP_replicate_label","CLIP_fastq","CLIP_fastq_1","CLIP_fastq_2","CLIP_bam","CLIP_adapter","CLIP_adapter_1","CLIP_adapter_2"])].drop_duplicates()
 
+# Check consistency: ensure that each replicate label corresponds to exactly one set of files.
 if len(input_replicates) != len(input_replicates[["Input_replicate_label"]].drop_duplicates()) or \
     len(clip_replicates) != len(clip_replicates[["CLIP_replicate_label"]].drop_duplicates()):
     raise Exception("Manifest files are not consistent across replicates")
 
+# Collect replicate labels into lists, combine them, and store in config for downstream use.
 input_replicate_labels = input_replicates.Input_replicate_label.tolist()
 clip_replicate_labels = clip_replicates.CLIP_replicate_label.tolist()
 replicate_labels = pd.Series(input_replicate_labels + clip_replicate_labels)
+config['replicate_labels']= replicate_labels
 
-if all(bam in manifest.columns.tolist() for bam in ["Input_bam", "CLIP_bam"]):
-    replicate_label_to_bams = dict(zip(input_replicate_labels + clip_replicate_labels, input_replicates.Input_bam.tolist() + clip_replicates.CLIP_bam.tolist()))    
+# Map each replicate label to its corresponding FASTQ file(s) and adapter sequence(s), depending on the protocol version. 
+if "Input_fastq" in manifest.columns and config['protocol']=='ENCODE4':
+    config['replicate_label_to_fastqs'] = dict(zip(input_replicate_labels + clip_replicate_labels,
+                                                   input_replicates.Input_fastq.tolist() + clip_replicates.CLIP_fastq.tolist()))
+    config['replicate_label_to_adapter'] = dict(zip(input_replicate_labels + clip_replicate_labels,
+                                                    input_replicates.Input_adapter.tolist() + clip_replicates.CLIP_adapter.tolist()))
+elif config['protocol']=='ENCODE3':
+    config['replicate_label_to_fastq_1'] = dict(zip(input_replicate_labels + clip_replicate_labels,
+                                                    input_replicates.Input_fastq_1.tolist() + clip_replicates.CLIP_fastq_1.tolist()))
+    config['replicate_label_to_fastq_2'] = dict(zip(input_replicate_labels + clip_replicate_labels,
+                                                    input_replicates.Input_fastq_2.tolist() + clip_replicates.CLIP_fastq_2.tolist()))
+    config['replicate_label_to_adapter_1'] = dict(zip(input_replicate_labels + clip_replicate_labels,
+                                                      input_replicates.Input_adapter_1.tolist() + clip_replicates.CLIP_adapter_1.tolist()))
+    config['replicate_label_to_adapter_2'] = dict(zip(input_replicate_labels + clip_replicate_labels,
+                                                      input_replicates.Input_adapter_2.tolist() + clip_replicates.CLIP_adapter_2.tolist()))
 else:
-    replicate_label_to_bams = dict(zip(input_replicate_labels + clip_replicate_labels, ["output/bams/dedup/genome/" + replicate_label + ".genome.Aligned.sort.dedup.bam" for replicate_label in input_replicate_labels + clip_replicate_labels] ))
+    raise Exception("protocol does not fit in ENCODE3 or ENCODE4")
 
-experiment_labels = pd.Series(manifest.Experiment.drop_duplicates().tolist())
+# Map each replicate label to the expected deduplicated BAM file path. 
+if config['protocol']=='ENCODE4':
+    config['replicate_label_to_bams'] = dict(zip(input_replicate_labels + clip_replicate_labels, ["output/secondary_results/bams/dedup/genome/" + replicate_label + ".genome.Aligned.sort.dedup.bam" for replicate_label in input_replicate_labels + clip_replicate_labels] ))
+elif config['protocol']=='ENCODE3':
+    config['replicate_label_to_bams'] = dict(zip(input_replicate_labels + clip_replicate_labels, [f"output/secondary_results/bams/dedup/genome_R{INFORMATIVE_READ}/" + replicate_label + f".genome.Aligned.sort.dedup.R{INFORMATIVE_READ}.bam" for replicate_label in input_replicate_labels + clip_replicate_labels] ))
+else:
+    raise Exception("protocol does not fit in ENCODE3 or ENCODE4")
+
+# Extract out experiment label information. 
+config['experiment_labels'] = pd.Series(manifest.Experiment.drop_duplicates().tolist())
 experiment_data = manifest.groupby("Experiment").agg({"CLIP_replicate_label": list, "Input_replicate_label" : list})
 
-if "Input_fastq" in manifest.columns:
-    replicate_label_to_fastqs = dict(zip(input_replicate_labels + clip_replicate_labels, input_replicates.Input_fastq.tolist() + clip_replicates.CLIP_fastq.tolist()))
-    replicate_label_to_adapter = dict(zip(input_replicate_labels + clip_replicate_labels, input_replicates.Input_adapter.tolist() + clip_replicates.CLIP_adapter.tolist()))
+# Build dictionaries that link replicates together for modeling and analysis:
+# Fpr determining which replicates to use when estimating variance.
+config['overdispersion_replicate_lookup'] = dict(zip(manifest.CLIP_replicate_label.tolist(),
+                                                     manifest.Input_replicate_label.tolist() if OVERDISPERSION_MODE == "input"
+                                                     else manifest.CLIP_replicate_label.tolist()))
 
-overdispersion_replicate_lookup = dict(zip(manifest.CLIP_replicate_label.tolist(), manifest.Input_replicate_label.tolist() if OVERDISPERSION_MODE == "input" else manifest.CLIP_replicate_label.tolist()))
-clip_to_input_replicate_label = dict(zip(manifest.CLIP_replicate_label.tolist(), manifest.Input_replicate_label.tolist()))
-experiment_to_replicate_labels = dict(zip(experiment_data.index.tolist(), [reduce(lambda agg, x: agg if x in agg else agg + [x], inputs, []) + clips for inputs, clips in zip(experiment_data.Input_replicate_label, experiment_data.CLIP_replicate_label)]))
-experiment_to_clip_replicate_labels = dict(zip(experiment_data.index.tolist(), experiment_data.CLIP_replicate_label))
+# For mapping each CLIP replicate label to its corresponding Input replicate label.
+config['clip_to_input_replicate_label'] = dict(zip(manifest.CLIP_replicate_label.tolist(),
+                                                   manifest.Input_replicate_label.tolist()))
 
+# For each experiment, collect the set of unique Input replicate labels  and then append the CLIP replicates.
+config['experiment_to_replicate_labels'] = dict(zip(experiment_data.index.tolist(),
+                                                    [reduce(lambda agg, x: agg if x in agg else agg + [x], inputs, []) + clips for inputs,
+                                                     clips in zip(experiment_data.Input_replicate_label, experiment_data.CLIP_replicate_label)]))
+
+# For each experiment, map directly to its CLIP replicate labels only.
+config['experiment_to_clip_replicate_labels'] = dict(zip(experiment_data.index.tolist(), experiment_data.CLIP_replicate_label))
+
+# A nested dictionary mapping each experiment to -> input replicate to -> the *other* input replicates from the same experiment.
 experiment_to_input_replicate_labels = {}
 for experiment_label, label_list in zip(experiment_data.index, experiment_data.Input_replicate_label):
+    # Initialize dictionary for this experiment
     experiment_to_input_replicate_labels[experiment_label] = {}
     for entry in label_list:
         replicates = set()
+        # Collect all other entries except the current one
         for other_entry in label_list:
             if other_entry != entry:
                 replicates.add(other_entry)
+        # Map the current entry → list of its partner replicates
         experiment_to_input_replicate_labels[experiment_label].update({entry : list(replicates)})
 
-if os.path.exists("installation/UMICollapse-1.0.0/umicollapse.jar") and os.path.exists("installation/UMICollapse-1.0.0/lib/htsjdk-2.19.0.jar") and os.path.exists("installation/UMICollapse-1.0.0/lib/snappy-java-1.1.7.3.jar"):
-    umicollapse_path = 'installation/UMICollapse-1.0.0'
+# Save mapping into config for downstream steps
+config['experiment_to_input_replicate_labels']=experiment_to_input_replicate_labels
+
+# Add the manifest to the config file
+config['manifest'] = manifest
+
+# Collect benchmark-related outputs based on optional external mapping files.
+benchmark_outputs = []
+
+# For RBNS
+if 'RBNS_MAPPING' in config:
+    config['RBNS_mapping_df'] = pd.read_csv(config['RBNS_MAPPING'])
+    print(config['RBNS_mapping_df'])
+    experiments_to_banchmark = set(config['manifest']['Experiment']).intersection(set(config['RBNS_mapping_df']['Experiment']))
+    benchmark_outputs+=[f"output/ml/benchmark/homer/RBNS/{experiment_label}.pearson_auprc.csv"
+                        for experiment_label in list(experiments_to_banchmark)]
 else:
-    umicollapse_path = '/UMICollapse'
-    
-    
+    pass
+
+# FOR SELEX
+if 'SELEX_MAPPING' in config:
+    config['SELEX_mapping_df'] = pd.read_csv(config['SELEX_MAPPING'])
+    experiments_to_banchmark = set(config['manifest']['Experiment']).intersection(set(config['SELEX_mapping_df']['Experiment']))
+    benchmark_outputs+=[f"output/ml/benchmark/homer/SELEX/{experiment_label}.pearson_auprc.csv"
+                        for experiment_label in list(experiments_to_banchmark)]
+else:
+    pass
+
+# Record the path of the config file that was passed to the command line (allows workflow to keep track of config file).
+if '--configfile' in sys.argv:
+    i = sys.argv.index('--configfile')
+elif '--configfiles' in sys.argv:
+    i = sys.argv.index('--configfiles')
+config['CONFIG_PATH']=sys.argv[i+1]
+
+# Make all config entries available as local variables for convenience.
+locals().update(config)
+
+# Create helper function for defining outputs of the call_enriched window rule
+def call_enriched_window_output(wildcards):
+    outputs = []
+    for experiment_label in manifest.Experiment:
+        for clip_replicate_label in config['experiment_to_clip_replicate_labels'][experiment_label]:
+            outputs.append(f"output/secondary_results/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_feature_summary.tsv")
+    return outputs
+
+# Add path to the chrom sizes file to config
+config["CHROM_SIZES"] = config["STAR_DIR"] + "/chrNameLength.txt"
+config["UNINFORMATIVE_READ"] = str(3 - config["INFORMATIVE_READ"])
+
+############################## Define which parts of skipper to run #################################
+
+# Always include the basic.
+all_inputs = ["basic_done.txt"]
+
+# Look through all ml related keys. 
+ml_keys = ["HEADER", "RENAME", "ROULETTE_DIR", "GNOMAD_DIR", "CLINVAR_VCF", "VEP_CACHEDIR",
+           "VEP_CACHE_VERSION", "SINGLETON_REFERENCE", "OE_RATIO_REFERENCE", "GNOMAD_CONSTRAINT"]
+
+repeat_keys = ["REPEAT_TABLE", "REPEAT_BED"]
+
+geneset_keys = ["GENE_SETS", "GENE_SET_REFERENCE", "GENE_SET_DISTANCE"]
+
+homer_keys = ["HOMER"]
+
+meta_keys = ["META_ANALYSIS"]
+
+# Auto assign keys to None (avoids DAG error in snakemake).
+for k in ml_keys + repeat_keys + geneset_keys + homer_keys + meta_keys:
+    if k not in config or k == False:
+        config[k] = "DO/NOT/RUN"
+
+# A function that checks if all ml keys are present. 
+def has_all_required(cfg, keys):
+    return all(cfg.get(k) not in [None, "DO/NOT/RUN"] for k in keys)
+
+# If all ml configs are provided, include the ml rules.
+if has_all_required(config, ml_keys):
+    all_inputs += [
+        "ml_variants_done.txt",
+        "ml_benchmark_done.txt",
+        "mcross_done.txt",
+    ]
+
+if has_all_required(config, repeat_keys):
+    all_inputs += [
+        "repeat_done.txt",
+    ]
+
+if has_all_required(config, geneset_keys):
+    all_inputs += [
+        "geneset_done.txt",
+    ]
+
+if config["HOMER"] or has_all_required(config, ml_keys):
+    all_inputs += [
+        "homer_done.txt",
+    ]
+
+if config["META_ANALYSIS"] != "":
+    all_inputs += [
+        "meta_done.txt",
+    ]
+
+if config["META_ANALYSIS"] != "" and has_all_required(config, repeat_keys):
+    all_inputs += [
+        "meta_repeats_done.txt",
+    ]
+
+# Run rule all. 
 rule all:
     input:
-        expand("output/fastqc/initial/{replicate_label}_fastqc.html", replicate_label = replicate_labels), 
-        expand("output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html", replicate_label = replicate_labels), 
-        expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
-        expand("output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
-        expand("output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
-        expand("output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
-        expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
-        expand("output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz", zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
+        all_inputs
+    
+############################## Call all basic outputs #################################
+rule all_basic_output:
+    input:
+        expand("output/secondary_results/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
+        expand("output/secondary_results/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
+        expand("output/secondary_results/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/secondary_results/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
+        expand("output/secondary_results/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw", replicate_label = replicate_labels),
+        expand("output/secondary_results/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz",
+               zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
-        expand("output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf", experiment_label = manifest.Experiment),
-        expand("output/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
-        expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", experiment_label = manifest.Experiment),
-        expand("output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz", experiment_label = manifest.Experiment),
-        expand("output/homer/finemapped_results/{experiment_label}/homerResults.html", experiment_label = manifest.Experiment),
-        expand("output/gene_sets/{experiment_label}.enriched_terms.tsv.gz", experiment_label = manifest.Experiment),
+        expand("output/figures/secondary_figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf", experiment_label = manifest.Experiment),
+        expand("output/secondary_results/enrichment_reproducibility/{experiment_label}.odds_data.tsv", experiment_label = manifest.Experiment),
+        lambda wildcards: call_enriched_window_output(wildcards),
         "output/figures/tsne/skipper.tsne_query.pdf",
+        # Quality control
+        expand("output/QC/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
+        expand("output/QC/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
+        expand("output/QC/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment),
     output:
-        "land_ho.txt"
-    threads: 1
-    params:
-        error_file = "stderr/all.err",
-        out_file = "stdout/all.out",
-        run_time = "00:04:00",
-        memory = "200",
-        job_name = "all"
+        "basic_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
     shell:
-        "echo $(date)  > {output};"
-        "echo created by Evan Boyle and the Yeo lab >> {output}"
+        """
+        touch {output}
+        """
 
-rule parse_gff:
-    input:
-        gff = ancient(GFF),
-        rankings = ancient(ACCESSION_RANKINGS),
-    output:
-        partition = PARTITION,
-        feature_annotations = FEATURE_ANNOTATIONS,
-    threads: 4
-    params:
-        error_file = "stderr/parse_gff.err",
-        out_file = "stdout/parse_gff.out",
-        run_time = "3:00:00",
-        job_name = "parse_gff"
-    benchmark: "benchmarks/parse_gff.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:        
-        "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
+############################## Call specific optional outputs #################################
 
-
-rule run_initial_fastqc:
+rule all_meta_output:
     input:
-        fq = lambda wildcards: replicate_label_to_fastqs[wildcards.replicate_label].split(" "),
+        expand("output/secondary_results/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
     output:
-        report = "output/fastqc/initial/{replicate_label}_fastqc.html",
-        zip_file = "output/fastqc/initial/{replicate_label}_fastqc.zip",
-        directory = directory("output/fastqc/initial/{replicate_label}_fastqc")
-    threads: 1
-    params:
-        error_file = "stderr/{replicate_label}.fastqc_initial.err",
-        out_file = "stdout/{replicate_label}.fastqc_initial.out",
-        run_time = "4:30:00",
-        memory = "20000",
-        job_name = "run_initial_fastqc"
-    benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
-    container:
-        "docker://howardxu520/skipper:fastqc_0.12.1"
-    shell:        
-        "zcat {input.fq} | fastqc stdin:{wildcards.replicate_label} --extract --outdir output/fastqc/initial -t {threads}"
-        
-rule trim_fastq:
-    input:
-        fq = lambda wildcards: replicate_label_to_fastqs[wildcards.replicate_label].split(" "),
-        adapter = lambda wildcards: replicate_label_to_adapter[wildcards.replicate_label],
-    output:
-        fq_trimmed = temp("output/fastqs/trimmed/{replicate_label}-trimmed.fastq.gz"),
-        metrics = "output/fastqs/trimmed/{replicate_label}-trimmed.log"
-    threads: 8
-    params:
-        run_time = "4:00:00",
-        memory = "15000",
-        error_file = "stderr/{replicate_label}.trim.err",
-        out_file = "stdout/{replicate_label}.trim.out",
-        job_name = "trim_fastq"
-    benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
-    container:
-        "docker://howardxu520/skipper:skewer_0.2.2"
+        "meta_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
     shell:
-        "zcat {input.fq} | skewer "
-          "-t {threads} "
-          "-x {input.adapter} "
-          "-o output/fastqs/trimmed/{wildcards.replicate_label} "
-          "-z -r 0.2 -d 0.2 -q 13 -l 20 -"
+        """
+        touch {output}
+        """
 
-rule extract_umi:
+rule all_meta_repeat_output:
     input:
-        fq = "output/fastqs/trimmed/{replicate_label}-trimmed.fastq.gz",
+        expand("output/secondary_results/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
     output:
-        fq_umi = "output/fastqs/umi/{replicate_label}.trimmed.umi.fq.gz",
-        json = "output/fastp/{replicate_label}.fastp.json",
-        html = "output/fastp/{replicate_label}.fastp.html",
-    threads: 8
-    params:
-        error_file = "stderr/{replicate_label}.extract_umi.err",
-        out_file = "stdout/{replicate_label}.extract_umi.out",
-        run_time = "45:00",
-        memory = "5000",
-        job_name = "extract_umi",
-        umi_length = UMI_SIZE,
-    benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.extract_umi.txt"
-    container:
-        "docker://howardxu520/skipper:fastp_0.23.4"
-    shell:      
-        "fastp "
-            "-i {input.fq} "
-            "-o {output.fq_umi} "
-            "-A "
-            "-U "
-            "--umi_len={params.umi_length} "
-            "--umi_loc=read1 "
-            "-j output/fastp/{wildcards.replicate_label}.fastp.json "
-            "-h output/fastp/{wildcards.replicate_label}.fastp.html "
-            "-w {threads}"
+        "meta_repeats_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
+    shell:
+        """
+        touch {output}
+        """
 
 
-rule run_trimmed_fastqc:
+rule all_homer_output:
     input:
-        "output/fastqs/umi/{replicate_label}.trimmed.umi.fq.gz",
+        expand("output/secondary_results/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz", experiment_label = manifest.Experiment),
+        expand("output/secondary_results/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv", experiment_label = manifest.Experiment),
+        expand("output/secondary_results/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.bed",experiment_label = manifest.Experiment),
+        expand("output/homer/finemapped_results/{experiment_label}/homerResults.html", experiment_label = manifest.Experiment),
     output:
-        report = "output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.html",
-        zip_file = "output/fastqc/processed/{replicate_label}.trimmed.umi_fastqc.zip",
-    threads: 1
-    params:
-        outdir="output/fastqc/processed/",
-        run_time = "02:30:00",
-        memory = "4000",
-        error_file = "stderr/{replicate_label}.run_trimmed_fastqc.err",
-        out_file = "stdout/{replicate_label}.run_trimmed_fastqc.out",
-        job_name = "run_trimmed_fastqc"
-    benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.trimmed_fastqc.txt"
-    container:
-        "docker://howardxu520/skipper:fastqc_0.12.1"
+        "homer_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
     shell:
-        "fastqc {input} --extract --outdir output/fastqc/processed -t {threads}"
-        
-rule align_reads:
-    input:
-        fq= "output/fastqs/umi/{replicate_label}.trimmed.umi.fq.gz",
-    output:
-        ubam = temp("output/bams/raw/genome/{replicate_label}.genome.Aligned.out.bam"),
-        # unmapped= "output/bams/raw/genome/{replicate_label}.genome.Unmapped.out.mate1",
-        log= "output/bams/raw/genome/{replicate_label}.genome.Log.final.out",
-    threads: 8
-    params:
-        error_file = "stderr/{replicate_label}.align_reads_genome.err",
-        out_file = "stdout/{replicate_label}.align_reads_genome.out",
-        run_time = "02:00:00",
-        memory = "40000",
-        job_name = "align_reads",
-        star_sjdb = STAR_DIR,
-        outprefix = "output/bams/raw/genome/{replicate_label}.genome.",
-        rg = "{replicate_label}"
-    benchmark: "benchmarks/align/unassigned_experiment.{replicate_label}.align_reads_genome.txt"
-    container:
-        "docker://howardxu520/skipper:star_2.7.10b"
-    shell:        
-        "STAR "
-            "--alignEndsType EndToEnd "
-            "--genomeDir {params.star_sjdb} "
-            "--genomeLoad NoSharedMemory "
-            "--outBAMcompression 10 "
-            "--outFileNamePrefix {params.outprefix} "
-            "--winAnchorMultimapNmax 100 "
-            "--outFilterMultimapNmax 100 "
-            "--outFilterMultimapScoreRange 1 "
-            "--outSAMmultNmax 1 "
-            "--outMultimapperOrder Random "
-            "--outFilterScoreMin 10 "
-            "--outFilterType BySJout "
-            "--limitOutSJcollapsed 5000000 "
-            "--outReadsUnmapped None "
-            "--outSAMattrRGline ID:{wildcards.replicate_label} "
-            "--outSAMattributes All "
-            "--outSAMmode Full "
-            "--outSAMtype BAM Unsorted "
-            "--outSAMunmapped Within "
-            "--readFilesCommand zcat "
-            "--outStd Log "
-            "--readFilesIn {input.fq} "
-            "--runMode alignReads "
-            "--runThreadN {threads}"
-        
-rule sort_bam:
-    input:
-        bam="output/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.out.bam",
-    output:
-        sort = "output/bams/raw/{ref}/{replicate_label}.{ref}.Aligned.sort.bam",
-    threads: 2
-    params:
-        error_file = "stderr/{ref}_{replicate_label}.sort_bam.err",
-        out_file = "stdout/{ref}_{replicate_label}.sort_bam.out",
-        run_time = "00:30:00",
-        memory = "10000",
-        job_name = "sortbam",
-    benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
-    container:
-        "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
-    shell:
-        "samtools sort -T {wildcards.replicate_label} -@ {threads} -o {output.sort} {input.bam};"
-        
+        """
+        touch {output}
+        """
 
-rule index_bams:
+rule all_repeat_output:
     input:
-        bam = "output/bams/{round}/{ref}/{replicate_label}.Aligned.{mid}.bam"
+        expand("output/secondary_results/counts/repeats/vectors/{replicate_label}.counts", replicate_label = replicate_labels),
+        expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", experiment_label = manifest.Experiment),
+        expand("output/secondary_results/counts/repeats/tables/family/{experiment_label}.tsv.gz", experiment_label = manifest.Experiment),
+        "output/figures/tsne_re/skipper.tsne_re_query.pdf",
     output:
-        ibam = "output/bams/{round}/{ref}/{replicate_label}.Aligned.{mid}.bam.bai"
-    threads: 2
-    params:
-        error_file = "stderr/{round}_{ref}_{mid}_{replicate_label}.index_bams.err",
-        out_file = "stdout/{round}_{ref}_{mid}_{replicate_label}.index_bams.out",
-        run_time = "10:00",
-        memory = "1000",
-        job_name = "index_bam"
-    benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
-    container:
-        "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
+        "repeat_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
     shell:
-        "samtools index -@ {threads} {input.bam};"
+        """
+        touch {output}
+        """
 
-rule dedup_umi:
+rule all_geneset_output:
     input:
-        bam="output/bams/raw/genome/{replicate_label}.genome.Aligned.sort.bam",
-        ibam = "output/bams/raw/genome/{replicate_label}.genome.Aligned.sort.bam.bai"
+        expand("output/gene_sets/{experiment_label}.enriched_terms.tsv.gz", experiment_label = manifest.Experiment),
     output:
-        bam_dedup="output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
-    params:
-        error_file = "stderr/{replicate_label}.dedup_umi.err",
-        out_file = "stdout/{replicate_label}.dedup_umi.out",
-        run_time = "1:00:00",
-        memory = "10000",
-        job_name = "dedup_bam",
-        prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
-    benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
-    container:
-        "docker://howardxu520/skipper:umicollapse_1.0.0"
+        "geneset_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
     shell:
-        "java -server -Xms8G -Xmx8G -Xss20M -jar {umicollapse_path}/umicollapse.jar bam "
-            "-i {input.bam} -o {output.bam_dedup} --umi-sep : --two-pass"
+        """
+        touch {output}
+        """
 
-rule make_unscaled_bigwig:
+# Calls upon ouputs needed for machine learning. 
+rule all_ml_variants_output:
     input:
-        CHROM_SIZES,
-        bam = lambda wildcards: replicate_label_to_bams[wildcards.replicate_label],
+        expand("output/ml/rbpnet_model/{experiment_label}/valid/test_data_metric.csv",
+               experiment_label = manifest.Experiment),
+        expand("output/ml/rbpnet_model/{experiment_label}/motif_done",
+               experiment_label = manifest.Experiment),
+        expand("output/variants/gnomAD_roulette/{experiment_label}.total.csv",
+               experiment_label = manifest.Experiment),
+        expand("output/variants/clinvar/{experiment_label}.vep.tsv",
+            experiment_label = manifest.Experiment),
+        expand("output/variant_analysis/{experiment_label}.clinvar_variants.csv",
+               experiment_label = manifest.Experiment),
     output:
-        bg_plus = temp("output/bedgraphs/unscaled/plus/{replicate_label}.unscaled.plus.bg"),
-        bg_minus = temp("output/bedgraphs/unscaled/minus/{replicate_label}.unscaled.minus.bg"),
-        bw_plus = "output/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw",
-        bw_minus = "output/bigwigs/unscaled/minus/{replicate_label}.unscaled.minus.bw",
-    params:
-        error_file = "stderr/{replicate_label}.make_bigwig.err",
-        out_file = "stdout/{replicate_label}.make_bigwig.out",
-        run_time = "40:00",
-        memory = "1000",
-        job_name = "make_bigwig"
-    benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
-    container:
-        "docker://howardxu520/skipper:bigwig_1.0"
+        "ml_variants_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
     shell:
-        "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
-        "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
-        "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
-        "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
+        """
+        touch {output}
+        """
 
-rule make_scaled_bigwig:
+# Calls upon outputs needed for benchmarking. 
+rule all_ml_benchmark_outputs:
     input:
-        CHROM_SIZES,
-        bam = lambda wildcards: replicate_label_to_bams[wildcards.replicate_label],
+        benchmark_outputs,
+        expand("output/ml/benchmark/homer/{data_types}_mcross/{experiment_label}.pearson_auprc.csv",
+                data_types = ['CITS'],
+               experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i]),
+        expand("output/ml/rbpnet_model_original/{experiment_label}/valid/test_data_metric.csv",
+               experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i]),
+        expand("output/ml/nt_lora/{experiment_label}/{model_name}/d_log_odds_corr.csv",
+               experiment_label = [i for i in manifest.Experiment.tolist()],
+                model_name = ['nucleotide-transformer-500m-human-ref']),
     output:
-        bg_plus = temp("output/bedgraphs/scaled/plus/{replicate_label}.scaled.plus.bg"),
-        bg_minus = temp("output/bedgraphs/scaled/minus/{replicate_label}.scaled.minus.bg"),
-        bw_plus = "output/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw",
-        bw_minus = "output/bigwigs/scaled/minus/{replicate_label}.scaled.minus.bw",
-    params:
-        error_file = "stderr/{replicate_label}.make_bigwig.err",
-        out_file = "stdout/{replicate_label}.make_bigwig.out",
-        run_time = "40:00",
-        memory = "1000",
-        job_name = "make_bigwig"
-    benchmark: "benchmarks/bigwigs/unassigned_experiment.{replicate_label}.make_bigwig.txt"
-    container:
-        "docker://howardxu520/skipper:bigwig_1.0"
+        "ml_benchmark_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
     shell:
-        "factor=$(samtools idxstats {input.bam} | cut -f 3 | paste -sd+ | bc | xargs -I {{}} echo 'scale=6; 10^6 / {{}}' | bc);"
-        "bedtools genomecov -scale $factor -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
-        "bedtools genomecov -scale $factor -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
-        "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
-        "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
+        """
+        touch {output}
+        """
 
-rule uniq_repeats:
+# Calls upon outputs needed for mcross. 
+rule all_ctk:
     input:
-        repeatmasker = ancient(REPEAT_TABLE),
-        genome = ancient(GENOME)
+        expand("output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.homer", experiment_label = manifest.Experiment),
+        expand("output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.homer",experiment_label = manifest.Experiment, data_types=['CITS']),
     output:
-        sorted_bed = temp("repeats.sort.temp.bed.gz"),
-        unique_repeats = REPEAT_BED
-    params:
-        error_file = "stderr/calc_partition_nuc.err",
-        out_file = "stdout/calc_partition_nuc.out",
-        run_time = "1:00:00",
-        memory = "8000",
-        job_name = "uniq_repeats_nuc"
-    benchmark: "benchmarks/uniq_repeats.txt"
-    container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
+        "mcross_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
     shell:
-        "zcat {REPEAT_TABLE} | awk -v OFS=\"\\t\" '{{print $6,$7,$8,$11 \":\" name_count[$11]++, $2, $10,$11,$12,$13}} "
-            "$13 == \"L1\" || $13 == \"Alu\" {{$11 = $11 \"_AS\"; $12 = $12 \"_AS\"; $13 = $13 \"_AS\"; "
-            "if($10 == \"+\") {{$10 = \"-\"}} else {{$10 = \"+\"}}; print $6,$7,$8,$11 \":\" name_count[$11]++, $2, $10,$11,$12,$13}}' | "
-            "tail -n +2 | bedtools sort -i - | gzip > {output.sorted_bed}; "
-        "bedtools coverage -s -d -a {output.sorted_bed} -b {output.sorted_bed}  | awk -v OFS=\"\\t\" "
-            "'$NF >1 {{print $1,$2+$(NF-1)-1,$2+$(NF-1),$4,$5,$6}}' | "
-            "bedtools sort -i - | "
-            "bedtools merge -c 4,5,6 -o distinct -s -i - | "
-            "bedtools subtract -s -a {output.sorted_bed} -b - | "
-            "bedtools nuc -s -fi {input.genome} -bed -  | awk -v OFS=\"\\t\" 'NR > 1 {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$11}}' | "
-            "gzip -c > {output.unique_repeats}"
+        """
+        touch {output}
+        """
+
+############################## Define modules #################################
 
 
-rule quantify_repeats:
-    input:
-        CHROM_SIZES,
-        bam = lambda wildcards: replicate_label_to_bams[wildcards.replicate_label],
-        repeats = REPEAT_BED
-    output:
-        counts = "output/counts/repeats/vectors/{replicate_label}.counts"
-    params:
-        error_file = "stderr/{replicate_label}.quantify_repeats.err",
-        out_file = "stdout/{replicate_label}.quantify_repeats.out",
-        run_time = "15:00",
-        memory = "20000",
-        job_name = "dedup_bam",
-        prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
-    benchmark: "benchmarks/repeats/unassigned_experiment.{replicate_label}.quantify_repeats.txt"
-    container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
-    shell:
-        "bedtools bamtobed -i {input.bam} | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
-            "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
-            "bedtools shift -p 1 -m -1 -g {CHROM_SIZES} -i - | "
-            "bedtools sort -i - | "
-            "bedtools coverage -s -counts -a {input.repeats} -b - | "
-            "awk 'BEGIN {{print \"{wildcards.replicate_label}\"}} {{print $NF}}' > {output.counts}"
+module se_preprocess:
+    snakefile:
+        "rules/basic/se_preprocess.smk"
+    config:
+        config
 
-rule make_repeat_count_tables:
-    input:
-        unique_repeats = REPEAT_BED,
-        replicate_counts = lambda wildcards: expand("output/counts/repeats/vectors/{replicate_label}.counts", replicate_label = experiment_to_replicate_labels[wildcards.experiment_label]),
-    output:
-        name_table = "output/counts/repeats/tables/name/{experiment_label}.tsv.gz",
-        class_table = "output/counts/repeats/tables/class/{experiment_label}.tsv.gz",
-        family_table = "output/counts/repeats/tables/family/{experiment_label}.tsv.gz",
-    params:
-        error_file = "stderr/{experiment_label}.make_repeat_count_tables.err",
-        out_file = "stdout/{experiment_label}.make_repeat_count_tables.out",
-        run_time = "00:15:00",
-        cores = "1",
-        memory = "200",
-        job_name = "make_repeat_count_tables"
-    benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_repeat_count_table.txt"
-    shell:
-        "echo \"repeat_name\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.name_table};"
-        "echo \"repeat_class\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.class_table};"
-        "echo \"repeat_family\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.family_table};"
-        "paste <(zcat {input.unique_repeats} | awk -v OFS=\"\\t\" 'BEGIN {{print \"repeat_name\";}} {{print $7}}') {input.replicate_counts} | "
-            "awk -v OFS=\"\\t\" 'NR > 1 {{for(i = 2; i <= NF; i++) {{tabulation[$1][i] += $i}} }} END {{for(name in tabulation) {{ printf name; for(i = 2; i <= NF; i++) {{printf \"\\t\" tabulation[name][i]}} print \"\";}} }}' | sort -k 1,1 | gzip >> {output.name_table};"
-        "paste <(zcat {input.unique_repeats} | awk -v OFS=\"\\t\" 'BEGIN {{print \"repeat_class\";}} {{print $8}}') {input.replicate_counts} | "
-            "awk -v OFS=\"\\t\" 'NR > 1 {{for(i = 2; i <= NF; i++) {{tabulation[$1][i] += $i}} }} END {{for(name in tabulation) {{ printf name; for(i = 2; i <= NF; i++) {{printf \"\\t\" tabulation[name][i]}} print \"\";}} }}' | sort -k 1,1 | gzip >> {output.class_table};"
-        "paste <(zcat {input.unique_repeats} | awk -v OFS=\"\\t\" 'BEGIN {{print \"repeat_family\";}} {{print $9}}') {input.replicate_counts} | "
-            "awk -v OFS=\"\\t\" 'NR > 1 {{for(i = 2; i <= NF; i++) {{tabulation[$1][i] += $i}} }} END {{for(name in tabulation) {{ printf name; for(i = 2; i <= NF; i++) {{printf \"\\t\" tabulation[name][i]}} print \"\";}} }}' | sort -k 1,1 | gzip >> {output.family_table};"
 
-rule fit_clip_betabinomial_re_model:
-    input:
-        table = "output/counts/repeats/tables/name/{experiment_label}.tsv.gz",
-    output:
-        coef = "output/clip_model_coef_re/{experiment_label}.{clip_replicate_label}.tsv",
-        # plot = lambda wildcards: expand("output/figures/clip_distributions/{{experiment_label}}.{{clip_replicate_label}}.{other_label}.clip_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
-    params:
-        error_file = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.err",
-        out_file = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.out",
-        run_time = "20:00",
-        memory = "10000",
-        job_name = "fit_clip_betabinomial_re_model"
-    benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
+module pe_preprocess:
+    snakefile:
+        "rules/basic/pe_preprocess.smk"
+    config:
+        config
 
-rule fit_input_betabinomial_re_model:
-    input:
-        table = "output/counts/repeats/tables/name/{experiment_label}.tsv.gz",
-    output:
-        coef = "output/input_model_coef_re/{experiment_label}.{input_replicate_label}.tsv",
-        # plot = lambda wildcards: expand("output/figures/input_distributions/{{experiment_label}}.{{input_replicate_label}}.{other_label}.input_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
-    params:
-        error_file = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.err",
-        out_file = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.out",
-        run_time = "20:00",
-        memory = "10000",
-        job_name = "fit_input_betabinomial_re_model"
-    benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
-rule call_enriched_re:
-    input:
-        table = "output/counts/repeats/tables/name/{experiment_label}.tsv.gz",
-        replicate = lambda wildcards: "output/counts/repeats/vectors/" + re.sub("IP_\d$","IP_2",wildcards.clip_replicate_label) + ".counts",
-        repeats = REPEAT_BED,
-        parameters = lambda wildcards: "output/" + OVERDISPERSION_MODE + "_model_coef_re/{experiment_label}." + overdispersion_replicate_lookup[wildcards.clip_replicate_label] + ".tsv",
-    output:
-        "output/figures/clip_scatter_re/{experiment_label}.{clip_replicate_label}.clip_test_distribution.pdf",
-        "output/enriched_re/{experiment_label}.{clip_replicate_label}.enriched_re.tsv.gz"
-    params:
-        input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label],
-        error_file = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_re.err",
-        out_file = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_re.out",
-        run_time = "00:15:00",
-        memory = "3000",
-        job_name = "call_enriched_re"
-    benchmark: "benchmarks/call_enriched_re/{experiment_label}.{clip_replicate_label}.call_enriched_re.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/call_enriched_re.R {input.table} {input.repeats} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
+module qc:
+    snakefile:
+        "rules/basic/qc.smk"
+    config: config
 
-rule find_reproducible_enriched_re:
-    input:
-        windows = lambda wildcards: expand("output/enriched_re/{{experiment_label}}.{clip_replicate_label}.enriched_re.tsv.gz", clip_replicate_label = experiment_to_clip_replicate_labels[wildcards.experiment_label])
-    output:
-        reproducible_windows = "output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz",
-    params:
-        error_file = "stderr/{experiment_label}.find_reproducible_enriched_re.err",
-        out_file = "stdout/{experiment_label}.find_reproducible_enriched_re.out",
-        run_time = "5:00",
-        memory = "1000",
-        job_name = "find_reproducible_enriched_re"
-    benchmark: "benchmarks/find_reproducible_enriched_re/{experiment_label}.all_replicates.reproducible.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/identify_reproducible_re.R output/enriched_re/ {wildcards.experiment_label}"
-        
-rule partition_bam_reads:
-    input:
-        CHROM_SIZES,
-        bam = lambda wildcards: replicate_label_to_bams[wildcards.replicate_label],
-        region_partition = PARTITION,
-    output:
-        counts = "output/counts/genome/vectors/{replicate_label}.counts",
-    params:
-        error_file = "stderr/{replicate_label}.partition_bam_reads.err",
-        out_file = "stdout/{replicate_label}.partition_bam_reads.out",
-        run_time = "20:00",
-        cores = "1",
-        memory = "10000",
-        job_name = "partition_bam_reads"
-    benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
-    container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
-    shell:
-        "bedtools bamtobed -i {input.bam} | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
-        "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
-        "bedtools shift -p 1 -m -1 -g {CHROM_SIZES} -i - | "
-        "bedtools sort -i - | "
-        "bedtools coverage -counts -s -a {input.region_partition} -b - | cut -f 7 | "
-        "awk 'BEGIN {{print \"{wildcards.replicate_label}\"}} {{print}}' > {output.counts};"
-        
-rule calc_partition_nuc:
-    input:
-        partition = PARTITION,
-        genome = GENOME
-    output:
-        nuc = PARTITION.replace(".bed", ".nuc")
-    params:
-        error_file = "stderr/calc_partition_nuc.err",
-        out_file = "stdout/calc_partition_nuc.out",
-        run_time = "00:10:00",
-        memory = "1000",
-        job_name = "calc_partition_nuc"
-    benchmark: "benchmarks/partition_nuc.txt"
-    container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
-    shell:
-        "bedtools nuc -s -fi {input.genome} -bed {input.partition} | gzip -c > {output.nuc}"
 
-rule make_genome_count_table:
-    input:
-        partition = rules.calc_partition_nuc.output.nuc,
-        replicate_counts = lambda wildcards: expand("output/counts/genome/vectors/{replicate_label}.counts", replicate_label = experiment_to_replicate_labels[wildcards.experiment_label]),
-    output:
-        count_table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
-    params:
-        error_file = "stderr/{experiment_label}.make_count_table.err",
-        out_file = "stdout/{experiment_label}.make_count_table.out",
-        run_time = "00:05:00",
-        cores = "1",
-        memory = "200",
-        job_name = "make_genome_count_table"
-    benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_genome_count_table.txt"
-    container:
-        "docker://howardxu520/skipper:bedtools_2.31.0"
-    shell:
-        "paste <(zcat {input.partition} | awk -v OFS=\"\\t\" 'BEGIN {{print \"chr\\tstart\\tend\\tname\\tscore\\tstrand\\tgc\"}} NR > 1 {{print $1,$2,$3,$4,$5,$6,$8}}' ) {input.replicate_counts} | gzip -c > {output.count_table};"
+module genome:
+    snakefile:
+        "rules/basic/genome_windows.smk"
+    config: config
 
-rule fit_input_betabinomial_model:
-    input:
-        table = "output/counts/genome/tables/{experiment_label}.tsv.gz"
-    output:
-        coef = "output/input_model_coef/{experiment_label}.{input_replicate_label}.tsv",
-        # plot = lambda wildcards: expand("output/figures/input_distributions/{{experiment_label}}.{{input_replicate_label}}.{other_label}.input_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
-    params:
-        error_file = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinom.err",
-        out_file = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinom.out",
-        run_time = "1:00:00",
-        memory = "10000",
-        job_name = "fit_input_betabinomial_model"
-    benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
-rule fit_clip_betabinomial_model:
-    input:
-        table = "output/counts/genome/tables/{experiment_label}.tsv.gz"
-    output:
-        coef = "output/clip_model_coef/{experiment_label}.{clip_replicate_label}.tsv",
-        # plot = lambda wildcards: expand("output/figures/clip_distributions/{{experiment_label}}.{{clip_replicate_label}}.{other_label}.clip_distribution.pdf", other_label = experiment_to_input_replicate_labels[wildcards.experiment_label][wildcards.Input_replicate_label])
-    params:
-        error_file = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.err",
-        out_file = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.out",
-        run_time = "1:00:00",
-        memory = "1000",
-        job_name = "fit_clip_betabinomial_model"
-    benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
+module repeat:
+    snakefile:
+        "rules/basic/repeat.smk"
+    config: config
 
-rule call_enriched_windows:
-    input:
-        feature_annotations = ancient(FEATURE_ANNOTATIONS),
-        accession_rankings = ancient(ACCESSION_RANKINGS),
-        replicate = lambda wildcards: "output/counts/genome/vectors/" + re.sub("IP_\d$","IP_2",wildcards.clip_replicate_label) + ".counts",
-        table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
-        parameters = lambda wildcards: "output/" + OVERDISPERSION_MODE + "_model_coef/{experiment_label}." + overdispersion_replicate_lookup[wildcards.clip_replicate_label] + ".tsv",
-        # parameters = lambda wildcards: "output/clip_model_coef/{experiment_label}.{wildcards.clip_replicate_label}.tsv",
-    output:
-        "output/threshold_scan/{experiment_label}.{clip_replicate_label}.threshold_data.tsv",
-        "output/tested_windows/{experiment_label}.{clip_replicate_label}.tested_windows.tsv.gz",
-        "output/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz",
-        "output/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_feature_summary.tsv",
-        "output/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_transcript_summary.tsv",
-        "output/enrichment_summaries/{experiment_label}.{clip_replicate_label}.enriched_window_gene_summary.tsv",
-        "output/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_fractions_feature_data.tsv",
-        "output/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds_feature_data.tsv",
-        "output/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds_transcript_data.tsv",
-        "output/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds_feature_gc_data.tsv",
-        "output/figures/threshold_scan/{experiment_label}.{clip_replicate_label}.threshold_scan.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_coverage.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_rates.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_counts.linear.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_counts.log10.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_odds.feature.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_odds.all_transcript_types.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_odds.select_transcript_types.pdf",
-        "output/figures/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_window_counts.per_gene_feature.pdf",
-        "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_fractions.feature.pdf",
-        "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature.pdf",
-        "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.all_transcript_types.pdf",
-        "output/figures/all_reads/{experiment_label}.{clip_replicate_label}.all_reads_odds.feature_gc.pdf"
-    params:
-        input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label],
-        error_file = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_windows.err",
-        out_file = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_windows.out",
-        run_time = "02:30:00",
-        memory = "6000",
-        job_name = "call_enriched_windows"
-    benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/call_enriched_windows.R {input.table} {input.accession_rankings} {input.feature_annotations} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
-rule check_window_concordance:
-    input:
-        windows = lambda wildcards: expand("output/tested_windows/{{experiment_label}}.{clip_replicate_label}.tested_windows.tsv.gz", clip_replicate_label = experiment_to_clip_replicate_labels[wildcards.experiment_label])
-    output:
-        "output/figures/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.pdf",
-        "output/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.tsv"
-    params:
-        error_file = "stderr/{experiment_label}.check_window_concordance.err",
-        out_file = "stdout/{experiment_label}.check_window_concordance.out",
-        run_time = "0:15:00",
-        memory = "1000",
-        job_name = "check_window_concordance"
-    benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/check_window_concordance.R output/tested_windows {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
+module finemap:
+    snakefile:
+        "rules/basic/finemap.smk"
+    config: config
 
-rule find_reproducible_enriched_windows:
-    input:
-        windows = lambda wildcards: expand("output/enriched_windows/{{experiment_label}}.{clip_replicate_label}.enriched_windows.tsv.gz", clip_replicate_label = experiment_to_clip_replicate_labels[wildcards.experiment_label])
-    output:
-        reproducible_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
-        linear_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.linear.pdf",
-        log_bar = "output/figures/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_window_counts.log10.pdf"
-    params:
-        error_file = "stderr/{experiment_label}.find_reproducible_enriched_windows.err",
-        out_file = "stdout/{experiment_label}.find_reproducible_enriched_windows.out",
-        run_time = "5:00",
-        memory = "2000",
-        job_name = "find_reproducible_enriched_windows"
-    benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R output/enriched_windows/ {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
-rule sample_background_windows_by_region:
-    input:
-        enriched_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
-        all_windows = ancient(FEATURE_ANNOTATIONS),
-    output:
-        variable_windows = "output/homer/region_matched_background/variable/{experiment_label}.sampled_variable_windows.bed.gz",
-        fixed_windows = "output/homer/region_matched_background/fixed/{experiment_label}.sampled_fixed_windows.bed.gz"
-    params:
-        error_file = "stderr/{experiment_label}.sample_background_windows_by_region.err",
-        out_file = "stdout/{experiment_label}.sample_background_windows_by_region.out",
-        run_time = "10:00",
-        memory = "3000",
-        job_name = "sample_background_windows"
-    benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/sample_matched_background_by_region.R {input.enriched_windows} {input.all_windows} 75 output/homer/region_matched_background {wildcards.experiment_label};"
+module analysis:
+    snakefile:
+        "rules/basic/analysis.smk"
+    config: config
 
-rule get_nt_coverage:
-    input:
-        windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
-        clip_bams = lambda wildcards: [replicate_label_to_bams[clip_replicate_label] for clip_replicate_label in experiment_to_clip_replicate_labels[wildcards.experiment_label]],
-        input_bams = lambda wildcards: [replicate_label_to_bams[input_replicate_label] for input_replicate_label in experiment_to_input_replicate_labels[wildcards.experiment_label]],         
-    output:
-        nt_census = temp("output/finemapping/nt_coverage/{experiment_label}.nt_census.bed"),
-        nt_input_counts = temp("output/finemapping/nt_coverage/{experiment_label}.nt_coverage.input.counts"),
-        nt_clip_counts = temp("output/finemapping/nt_coverage/{experiment_label}.nt_coverage.clip.counts"),
-        nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
-    params:
-        error_file = "stderr/{experiment_label}.get_nt_coverage.err",
-        out_file = "stdout/{experiment_label}.get_nt_coverage.out",
-        run_time = "2:00:00",
-        memory = "15000",
-        job_name = "get_nt_coverage"
-    benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
-    container:
-        "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
-    shell:
-        "zcat {input.windows} | tail -n +2 | sort -k1,1 -k2,2n | awk -v OFS=\"\t\" '{{print $1, $2 -37, $3+37,$4,$5,$6}}' | "
-            "bedtools merge -i - -s -c 6 -o distinct | awk -v OFS=\"\t\" '{{for(i=$2;i< $3;i++) {{print $1,i,i+1,\"MW:\" NR \":\" i - $2,0,$4, NR}} }}' > {output.nt_census}; "
-        "samtools cat {input.input_bams} | bedtools intersect -s -wa -a - -b {output.nt_census} | "
-            "bedtools bamtobed -i - | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
-            "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
-            "bedtools shift -p 1 -m -1 -g {CHROM_SIZES} -i - | "
-            "bedtools sort -i - | "
-            "bedtools coverage -counts -s -a {output.nt_census} -b - | awk '{{print $NF}}' > {output.nt_input_counts};"
-        "samtools cat {input.clip_bams} | bedtools intersect -s -wa -a - -b {output.nt_census} | "
-            "bedtools bamtobed -i - | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
-            "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
-            "bedtools shift -p 1 -m -1 -g {CHROM_SIZES} -i - | "
-            "bedtools sort -i - | "
-            "bedtools coverage -counts -s -a {output.nt_census} -b - | awk '{{print $NF}}' > {output.nt_clip_counts};"
-        "paste {output.nt_census} {output.nt_input_counts} {output.nt_clip_counts} > {output.nt_coverage}"
 
-rule finemap_windows:
-    input:
-        nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed",        
-    output:
-        finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
-    params:
-        error_file = "stderr/{experiment_label}.finemap_windows.err",
-        out_file = "stdout/{experiment_label}.finemap_windows.out",
-        run_time = "1:00:00",
-        memory = "10000",
-        job_name = "finemap_windows"
-    benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/finemap_enriched_windows.R {input.nt_coverage} output/finemapping/mapped_sites/ {wildcards.experiment_label}"
+module meta_analysis:
+    snakefile:
+        "rules/basic/meta_analysis.smk"
+    config:
+        config
 
-rule run_homer:
-    input:
-        finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz",
-        background = "output/homer/region_matched_background/fixed/{experiment_label}.sampled_fixed_windows.bed.gz",
-        genome = GENOME
-    output:
-        report = "output/homer/finemapped_results/{experiment_label}/homerResults.html"
-    params:
-        error_file = "stderr/{experiment_label}.run_homer.err",
-        out_file = "stdout/{experiment_label}.run_homer.out",
-        run_time = "40:00",
-        memory = "2000",
-        job_name = "run_homer"
-    benchmark: "benchmarks/run_homer/{experiment_label}.all_replicates.reproducible.txt"
-    container:
-        "docker://howardxu520/skipper:Homer_4.11"
-    shell:
-        "findMotifsGenome.pl <(zcat {input.finemapped_windows} | awk -v OFS=\"\t\" '{{print $4 \":\"$9,$1,$2+1,$3,$6}}') "
-            "{input.genome} output/homer/finemapped_results/{wildcards.experiment_label} -preparsedDir output/homer/preparsed -size given -rna -nofacts -S 20 -len 5,6,7,8,9 -nlen 1 "
-            "-bg <(zcat {input.background} | awk -v OFS=\"\t\" '{{print $4,$1,$2+1,$3,$6}}') "
 
-rule consult_encode_reference:
-    input:
-        enriched_windows = lambda wildcards: expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = experiment_labels),
-        enriched_re = lambda wildcards: expand("output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz", experiment_label = experiment_labels),
-        encode_references = lambda wildcards: expand(TOOL_DIR + "/{reference}.reference.tsv", reference = ["encode3_feature_summary", "encode3_eclip_enrichment", "encode3_class_assignment"])
-    output:
-        tsne_coordinates = "output/tsne/skipper.tsne_query.tsv",
-        tsne_plot = "output/figures/tsne/skipper.tsne_query.pdf"
-    params:
-        error_file = "stderr/skipper.consult_encode_reference.err",
-        out_file = "stdout/skipper.consult_encode_reference.out",
-        run_time = "10:00",
-        memory = "1000",
-        job_name = "consult_encode_reference"
-    benchmark: "benchmarks/consult_encode_reference/skipper.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/consult_encode_reference.R output/reproducible_enriched_windows output/reproducible_enriched_re {TOOL_DIR} skipper "
+module bigwig:
+    snakefile:
+        "rules/basic/bigwig.smk"
+    config:
+        config
 
-rule consult_term_reference:
-    input:
-        enriched_windows = "output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
-        gene_sets = GENE_SETS,
-        gene_set_reference = GENE_SET_REFERENCE,
-        gene_set_distance = GENE_SET_DISTANCE
-    output:
-        enrichment_results = "output/gene_sets/{experiment_label}.enriched_terms.tsv.gz",
-        enrichment_plot = "output/figures/gene_sets/{experiment_label}.clustered_top_terms.pdf"
-    params:
-        error_file = "stderr/{experiment_label}.consult_term_reference.err",
-        out_file = "stdout/{experiment_label}.consult_term_reference.out",
-        run_time = "15:00",
-        memory = "1000",
-        job_name = "consult_term_reference"
-    benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
-    container:
-        "docker://howardxu520/skipper:R_4.1.3_1"
-    shell:
-        "Rscript --vanilla {TOOL_DIR}/consult_term_reference.R {input.enriched_windows} {input.gene_sets} {input.gene_set_reference} {input.gene_set_distance} {wildcards.experiment_label} "
+module prep_ml:
+    snakefile:
+        "rules/ml/prep_ml.smk"
+    config:
+        config
+
+module rbpnet:
+    snakefile:
+        "rules/ml/train_rbpnet.smk"
+    config:
+        config
+
+module benchmark:
+    snakefile:
+        "rules/ml/benchmark_ml.smk"
+    config:
+        config
+
+
+module variants_rbpnet:
+    snakefile:
+        "rules/ml/variants_rbpnet.smk"
+    config:
+        config
+
+module ctk_mcross:
+    snakefile:
+        "rules/mcross/ctk_mcross.smk"
+    config:
+        config
+
+############################## Run modules #################################
+    
+if config['protocol']=='ENCODE4':
+    use rule * from se_preprocess as se_*
+else:
+    use rule * from pe_preprocess as pe_*
+
+use rule * from bigwig
+use rule * from qc
+use rule * from genome
+use rule * from repeat
+use rule * from finemap
+use rule consult_encode_reference_re from analysis
+use rule consult_encode_reference from analysis
+if has_all_required(config, geneset_keys):
+    use rule consult_term_reference from analysis
+if config["HOMER"] != "":
+    use rule sample_background_windows_by_region from analysis
+    use rule run_homer from analysis
+if has_all_required(config, ml_keys):
+    use rule * from prep_ml as ml_*
+    use rule * from rbpnet as rbpnet_*
+    use rule * from variants_rbpnet as rbpnet_variants_*
+    use rule * from ctk_mcross
+use rule * from meta_analysis
+use rule * from benchmark
