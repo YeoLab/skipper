@@ -64,10 +64,11 @@ if __name__ == "__main__":
     model_name = sys.argv[3] #"nucleotide-transformer-500m-human-ref"
     # Load environment variables from .env from working directory
     # go to huggingface and create a token and save it in .env
-    load_dotenv()
+    # load_dotenv()
 
     # Get the token
     hf_token = os.getenv("HF_TOKEN")
+    # print(hf_token)
 
     # Login using the token
     login(token=hf_token)

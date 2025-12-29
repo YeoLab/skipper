@@ -114,7 +114,7 @@ rule align_reads_encode:
     container:
         "docker://howardxu520/skipper:star_2.7.10b"
     resources:
-        mem_mb=160000,
+        mem_mb=320000,
         runtime="2h"
     shell:   
         "STAR "

@@ -159,17 +159,17 @@ rule all:
     input:
         "ml_variants_done.txt",
         "basic_done.txt",
-        "mcross_done.txt"
+        # "mcross_done.txt"
 
 
 rule all_benchmark_outputs:
     input:
         benchmark_outputs,
-        expand("output/ml/benchmark/homer/{data_types}_mcross/{experiment_label}.pearson_auprc.csv",
-                data_types = ['CITS'],
-               experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i]),
+        # expand("output/ml/benchmark/homer/{data_types}_mcross/{experiment_label}.pearson_auprc.csv",
+        #         data_types = ['CITS'],
+        #        experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i]),
         expand("output/ml/rbpnet_model_original/{experiment_label}/valid/test_data_metric.csv",
-               experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i]),
+               experiment_label = [i for i in manifest.Experiment.tolist()]),
         expand("output/ml/nt_lora/{experiment_label}/{model_name}/d_log_odds_corr.csv",
                experiment_label = [i for i in manifest.Experiment.tolist()],
                 model_name = ['nucleotide-transformer-500m-human-ref']),
@@ -248,21 +248,21 @@ rule all_basic_output:
         touch {output}
         """
         
-rule all_ctk:
-    input:
-        expand("output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.homer", experiment_label = manifest.Experiment),
-        expand("output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.homer",experiment_label = manifest.Experiment, data_types=['CITS']),
-        # expand("output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.00.pdf", experiment_label = manifest.Experiment),
-        # expand("output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.00.pdf", experiment_label = manifest.Experiment, data_types=['CITS']),
-    output:
-        "mcross_done.txt"
-    resources:
-        mem_mb=400,
-        run_time=20
-    shell:
-        """
-        touch {output}
-        """
+# rule all_ctk:
+#     input:
+#         expand("output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.homer", experiment_label = manifest.Experiment),
+#         expand("output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.homer",experiment_label = manifest.Experiment, data_types=['CITS']),
+#         # expand("output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.00.pdf", experiment_label = manifest.Experiment),
+#         # expand("output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.00.pdf", experiment_label = manifest.Experiment, data_types=['CITS']),
+#     output:
+#         "mcross_done.txt"
+#     resources:
+#         mem_mb=400,
+#         run_time=20
+#     shell:
+#         """
+#         touch {output}
+        # """
 
 module se_preprocess:
     snakefile:

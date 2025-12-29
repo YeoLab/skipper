@@ -122,7 +122,7 @@ rule ctk_parse:
         peak_bd = "output/ctk/{replicate_label}.uniq.peak.sig.boundary.bed",
         peak_PH = "output/ctk/{replicate_label}.uniq.peak.sig.halfPH.bed",
     resources:
-        runtime = "2h",
+        runtime = "8h",
         mem_mb = "20000",
         tmpdir = "output/ctktmp",
     threads: 8

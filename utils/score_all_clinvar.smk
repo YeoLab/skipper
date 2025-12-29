@@ -1,20 +1,18 @@
 from pathlib import Path
-VCF='/tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.rename.vcf.gz'
-
-
-# Defines regions to query
-TABLE='/tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v41.annotation.tiled_partition.bed.gz'
 import pandas as pd
 locals().update(config)
+workdir: "/tscc/nfs/home/hsher/scratch/clinvar_analysis"
+VCF='/tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.rename.vcf.gz'
+# Defines regions to query
+TABLE='/tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v41.annotation.tiled_partition.bed.gz'
 
-tabledir = Path('/tscc/nfs/home/hsher/ps-yeolab5/ENCODE_paper_tables/')
+
+# load models
+tabledir = Path('/tscc/nfs/home/hsher/projects/ENCODE/tables/')
 metrics=pd.read_csv(tabledir/'model_performance.csv')
 selected_models = metrics.loc[metrics['selected'], 'Experiment'].sort_values().tolist()
-
-workdir: "/tscc/nfs/home/hsher/scratch/clinvar_analysis"
-from pathlib import Path
-model_dir = Path('/tscc/nfs/home/hsher/scratch/')
-models = model_dir.glob('ENCO*/output/ml/rbpnet_model/*')
+model_dir = Path('/tscc/nfs/home/hsher/ps-yeolab5/rbpnet_models')
+models = model_dir.glob('*')
 eclip_dict = {}
 model_dict = {}
 for f in models:

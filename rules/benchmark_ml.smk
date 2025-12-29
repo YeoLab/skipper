@@ -1,5 +1,7 @@
 locals().update(config)
-
+# for train_and_evaluate_nucleotide_transformer
+envvars:
+        "HF_TOKEN", # hugging-face-user-access-token
 rule test_sdata_to_fasta:
     input:
         zarr = "output/ml/rbpnet_data/{experiment_label}/prep_done"
@@ -156,15 +158,16 @@ rule train_and_evaluate_nucleotide_transformer:
     output:
         "output/ml/nt_lora/{experiment_label}/{model_name}/d_log_odds_corr.csv"
     resources:
-        mem_mb=320000,
+        mem_mb=160000,
         runtime="3h",
-        slurm_partition="rtx3090",
+        slurm_partition="rtx6000",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
-    conda:
-        "envs/eugene2_nt_lora.yaml"
+    singularity:
+        "/tscc/nfs/home/hsher/scratch/singularity/eugene_nt_lora_latest.sif" # https://hub.docker.com/r/algaebrown/eugene_nt_lora # singularity pull docker://algaebrown/eugene_nt_lora
     shell:
         """
+        export HF_HOME=/tscc/nfs/home/${{USER}}/.cache/huggingface
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {TOOL_DIR}/benchmark_nucleotide_transformer.py \

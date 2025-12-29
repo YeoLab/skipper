@@ -17,6 +17,7 @@ rule prepare_data:
         "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
     shell:
         """
+        export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/prep_data.py {CONFIG_PATH} {wildcards.experiment_label} \
