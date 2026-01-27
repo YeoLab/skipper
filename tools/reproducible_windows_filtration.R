@@ -39,8 +39,9 @@ if (nrow(windows) == 0){
 	reproducible_enriched_windows = data.frame(matrix(nrow = 0, ncol = length(columns))) 
 	colnames(reproducible_enriched_windows) = columns
 
-	# Save empty table.
+	# Save empty tables.
 	write_tsv(reproducible_enriched_windows, paste0("output/reproducible_enriched_windows/", prefix, ".reproducible_enriched_windows.tsv.gz"))
+    write_tsv(reproducible_enriched_windows, paste0('output/secondary_results/filtered_out_windows/', prefix, '.filtered_out_windows.tsv.gz'))
 	quit()
 }	
 
