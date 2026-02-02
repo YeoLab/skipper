@@ -1,4 +1,4 @@
-verbose: true
+verbose: false
 notemp: true
 latency: 60
 printshellcmds: true

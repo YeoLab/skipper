@@ -161,7 +161,20 @@ rule all:
         "basic_done.txt",
         # "mcross_done.txt"
 
-
+rule all_uploads:
+    input:
+        expand("output/ml/rbpnet_data/parquet/{experiment_label}.{split}.parquet",
+               experiment_label = [i for i in manifest.Experiment.tolist()],
+               split = ['train', 'test', 'val'])
+    output:
+        "upload_done.txt"
+    resources:
+        mem_mb=400,
+        run_time=20
+    shell:
+        """
+        touch {output}
+        """
 rule all_benchmark_outputs:
     input:
         benchmark_outputs,
@@ -335,6 +348,12 @@ module variants_rbpnet:
     config:
         config
 
+module upload:
+    snakefile:
+        "rules/upload_rbpnet_to_hf.smk"
+    config:
+        config
+
 ## Benchmarking other methods ##
 module ctk_mcross:
     snakefile:
@@ -360,3 +379,4 @@ use rule * from rbpnet as rbpnet_*
 use rule * from variants_rbpnet as rbpnet_variants_*
 use rule * from ctk_mcross
 use rule * from benchmark
+use rule * from upload
