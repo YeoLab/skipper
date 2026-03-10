@@ -51,35 +51,6 @@ p_data = processed_count_data %>% group_by(clip, input, gc_bin, baseline_l2or) %
 	mutate(pvalue = pmax(1e-12, 1 - VGAM::pbetabinom(q = clip - 1, size = clip + input, prob = logisticb2(baseline_l2or), rho = model_overdispersion))) %>%
 	inner_join(processed_count_data,.)
 
-# Convenience link functions on base-2 scale for logits and inverse-logits. 
-logisticb2 = function(x) 1 / (1 + 2**-x)
-logitb2 = function(x) log2(x / (1 - x))
-
-# Prepare exon subtype ordering and plotting orders for features and transcript types. 
-exon_subtypes = accession_data$exon_subtype %>% unique
-protein_coding_subtype = accession_data$exon_subtype[accession_data$accession == "protein_coding"] %>% head(1)
-prioritized_exon_subtypes = exon_subtypes[cumsum(exon_subtypes == protein_coding_subtype) < 1]
-unprioritized_exon_subtypes = exon_subtypes[cumsum(exon_subtypes == protein_coding_subtype) >= 1]
-feature_plot_order = c("CDS_SOLITARY", "CDS_START","CDS_STOP","CDS","UTR5","UTR3",paste0("EXON_", prioritized_exon_subtypes),paste0("EXON_", unprioritized_exon_subtypes),"SSB_ADJ","SSB_PROX","SS3_ADJ","SS3_PROX","SS5_ADJ","SS5_PROX","PRIMIRNA","INTRON") %>% rev
-transcript_plot_order = feature_annotations %>% group_by(transcript_type_top) %>% count(sort=TRUE) %>% mutate(tname = gsub("_","\n",transcript_type_top)) %>% pull(tname) 
-
-# Keep windows with any reads and form GC deciles within which to compute baselines. 
-count_gc_data = count_data[select(count_data, matches("(IP|IN)_[0-9]+$")) %>% rowSums > 0,] %>% group_by(gc_bin = cut_number(gc,10)) %>% filter(.data[[clip_replicate_label]] + .data[[input_replicate_label]] > 0)
-
-# Rename chosen replicates to `input`/`clip`, compute GC-bin baselines (mean clip fraction), and attach back to rows. 
-processed_count_data = count_gc_data %>% rename(input = all_of(input_replicate_label), clip = all_of(clip_replicate_label)) %>% 
-	summarize(baseline_l2or = mean((clip / (clip + input))) %>% logitb2) %>% 
-	inner_join(select(count_gc_data %>% rename(input = all_of(input_replicate_label), clip = all_of(clip_replicate_label)), -matches("(IP|IN)_[0-9]+$")),.)
-
-# Set beta-binomial overdispersion (rho) from model, on probability scale. 
-model_overdispersion = VGAM::logitlink(median(model_data$rho), inverse=TRUE)
-
-# Collapse to unique (clip,input,gc_bin,baseline) combos, compute enrichment and p-values, and rejoin to per-window rows. 
-p_data = processed_count_data %>% group_by(clip, input, gc_bin, baseline_l2or) %>%
-	summarize %>% mutate(enrichment_l2or = log2((clip + logisticb2(baseline_l2or)) / (input + 1 - logisticb2(baseline_l2or))) - baseline_l2or) %>%
-	mutate(pvalue = pmax(1e-12, 1 - VGAM::pbetabinom(q = clip - 1, size = clip + input, prob = logisticb2(baseline_l2or), rho = model_overdispersion))) %>%
-	inner_join(processed_count_data,.)
-
 # Global IP fraction across all windows, used in some heuristics below. 
 p_clip = with(p_data, sum(clip) / sum(clip + input))
 

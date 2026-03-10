@@ -17,6 +17,7 @@ WORKDIR = config.get("WORKDIR")
 workdir: config['WORKDIR']
 TMPDIR = config.get("TMPDIR")
 GINI_CUTOFF = config.get("GINI_CUTOFF")
+BLACKLIST = config.get("BLACKLIST")
 
 # Set the temporary directory within the working directory by default. 
 if not TMPDIR:
@@ -24,6 +25,11 @@ if not TMPDIR:
 
 if not GINI_CUTOFF:
     config['GINI_CUTOFF'] = 0.9
+
+if not BLACKLIST or str(BLACKLIST).strip().lower() in {"none", "null", "na", "n/a"}:
+    BLACKLIST = None
+
+config["BLACKLIST"] = BLACKLIST
 
 # Check for proper overdispersion mode. 
 if OVERDISPERSION_MODE not in ["clip","input"]:
