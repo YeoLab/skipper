@@ -9,35 +9,36 @@ args = commandArgs(trailingOnly=TRUE)
 data_directory = args[1]
 prefix = args[2]
 
-if(length(args) > 2) {
-	blacklist = read_tsv(args[3], col_names = c("chr","start","end","name","score","strand"), col_types = "cddcdc")
-} else {
-	blacklist = tibble(chr=character(),start=numeric(),end=numeric(),name=character(),score=numeric(),strand=character())
-}
-
 # Collect all enriched window files for the given experiment prefix.
-enriched_window_files = list.files(path = data_directory, pattern = paste0("^", prefix, "\\..*enriched_windows.tsv.gz"), full.names = TRUE)
+enriched_window_files = list.files(
+  path = data_directory,
+  pattern = paste0("^", prefix, "\\..*enriched_windows.tsv.gz"),
+  full.names = TRUE
+)
 
 enriched_window_schema <- readr::read_tsv(
   enriched_window_files[[1]],
   col_types = "cddcdcdddcddddcddccccccccc"
-) %>% slice(0) %>% mutate(clip_replicate_label = character())
+) %>%
+  slice(0) %>%
+  mutate(clip_replicate_label = character())
 
 enriched_window_data <- enriched_window_files %>%
   setNames(sub("\\.enriched_windows\\.tsv.gz", "", basename(.))) %>%
-  map(\(x) read_tsv(x, col_types="cddcdcdddcddddcddccccccccc") %>%
-        mutate(name = as.character(name)) %>%
-        anti_join(blacklist %>% select(-name))) %>%
-  Filter(\(x) nrow(x) > 0, .) %>%
+  map(\(x) {
+    read_tsv(x, col_types = "cddcdcdddcddddcddccccccccc") %>%
+      mutate(name = as.character(name))
+  }) %>%
+  purrr::keep(\(x) nrow(x) > 0) %>%
   bind_rows(.id = "clip_replicate_label") %>%
   { bind_rows(enriched_window_schema, .) }
 
-# Force numeric types. 
+# Force numeric types.
 enriched_window_data <- enriched_window_data %>%
   mutate(across(
-    c(baseline_l2or, input, clip, enrichment_l2or, pvalue, qvalue),
+    c(input, clip, enrichment_l2or, pvalue, qvalue),
     ~ suppressWarnings(as.numeric(.))
-  ))   
+  ))
 
 # Handle case: no enriched windows across all replicates.
 if (nrow(enriched_window_data) == 0){

@@ -19,6 +19,8 @@ TMPDIR = config.get("TMPDIR")
 GINI_CUTOFF = config.get("GINI_CUTOFF")
 BLACKLIST = config.get("BLACKLIST")
 
+############################ ESTABLISH DEFAULTS ###########################
+
 # Set the temporary directory within the working directory by default. 
 if not TMPDIR:
     config['TMPDIR'] = os.path.join(WORKDIR, "tmp")
@@ -29,11 +31,21 @@ if not GINI_CUTOFF:
 if not BLACKLIST or str(BLACKLIST).strip().lower() in {"none", "null", "na", "n/a"}:
     BLACKLIST = None
 
+if not NORMALIZATION_MODE:
+    NORMALIZATION_MODE = "new"
+
+if not THRESHOLD_MIN:
+    THRESHOLD_MIN = 2
+
 config["BLACKLIST"] = BLACKLIST
+config["NORMALIZATION_MODE"] = NORMALIZATION_MODE
+config["THRESHOLD_MIN"] = THRESHOLD_MIN
 
 # Check for proper overdispersion mode. 
 if OVERDISPERSION_MODE not in ["clip","input"]:
     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")
+
+########################## CLEAN MANIFEST #############################
 
 # Read and cleanup manifest.
 manifest = pd.read_csv(MANIFEST, comment = "#", index_col = False).dropna(subset=['Experiment','Sample'])
@@ -126,7 +138,8 @@ else:
 config['experiment_labels'] = pd.Series(manifest.Experiment.drop_duplicates().tolist())
 experiment_data = manifest.groupby("Experiment").agg({"CLIP_replicate_label": list, "Input_replicate_label" : list})
 
-# Build dictionaries that link replicates together for modeling and analysis:
+########################## Build dictionaries that link replicates together for modeling and analysis ############################
+
 # Fpr determining which replicates to use when estimating variance.
 config['overdispersion_replicate_lookup'] = dict(zip(manifest.CLIP_replicate_label.tolist(),
                                                      manifest.Input_replicate_label.tolist() if OVERDISPERSION_MODE == "input"
@@ -160,6 +173,8 @@ for experiment_label, label_list in zip(experiment_data.index, experiment_data.I
 
 # Save mapping into config for downstream steps
 config['experiment_to_input_replicate_labels']=experiment_to_input_replicate_labels
+
+########################## FINAL SETUP ###########################
 
 # Add the manifest to the config file
 config['manifest'] = manifest

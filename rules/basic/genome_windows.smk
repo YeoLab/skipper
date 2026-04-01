@@ -281,7 +281,10 @@ rule call_enriched_windows:
     conda:
         "envs/skipper_R.yaml"
     params:
-        input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label]
+        input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label],
+        blacklist = (BLACKLIST if BLACKLIST is not None else ""),
+        threshold_min = THRESHOLD_MIN,
+        normalization_mode = NORMALIZATION_MODE
     shell:
         r"""
         set -euo pipefail
@@ -297,6 +300,10 @@ rule call_enriched_windows:
             {params.input_replicate_label} \
             {wildcards.clip_replicate_label} \
             {wildcards.experiment_label}.{wildcards.clip_replicate_label} \
+            {params.threshold_min} \
+            {params.normalization_mode} \
+            {params.blacklist} \
+            
         >> {log.stdout} 2> {log.stderr}
 
         echo "[`date`] Finished call_enriched_windows" | tee -a {log.stdout}
@@ -347,8 +354,6 @@ rule find_reproducible_enriched_windows:
         mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
-    params:
-        blacklist = (BLACKLIST if BLACKLIST is not None else "")
     log:
         stdout = config["WORKDIR"] + "/stdout/{experiment_label}.find_reproducible_enriched_windows.out",
         stderr = config["WORKDIR"] + "/stderr/{experiment_label}.find_reproducible_enriched_windows.err",
@@ -364,7 +369,6 @@ rule find_reproducible_enriched_windows:
         Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R \
             output/secondary_results/enriched_windows/ \
             {wildcards.experiment_label} \
-            {params.blacklist} \
         >> {log.stdout} 2> {log.stderr}
 
         echo "[`date`] Finished find_reproducible_enriched_windows" | tee -a {log.stdout}
