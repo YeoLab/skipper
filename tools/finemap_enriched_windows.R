@@ -15,10 +15,14 @@ window_size = 75 # Smoothing and peak selection window size (nt).
 # Ensure the output directory exists. 
 dir.create(output_directory, showWarnings = FALSE, recursive = TRUE)
 
-# If there is no data, emit an empty file and stop early. 
 if(nrow(count_data) == 0) {
-        file.create(paste0(output_directory, "/", output_stem, ".finemapped_windows.bed.gz"))
-        quit()
+    outfile <- paste0(output_directory, "/", output_stem, ".finemapped_windows.bed.gz")
+
+    con <- gzfile(outfile, "w")
+    writeLines(character(0), con)
+    close(con)
+
+    quit(save = "no")
 }
 
 # Note: some R versions have memory issues on large joins; computations below avoid unnecessary joins where possible. 

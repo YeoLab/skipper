@@ -23,6 +23,19 @@ enriched_windows = enriched_window_files %>%
     Filter(function(x) nrow(x) > 0, .) %>%
     bind_rows(.id = "experiment_label") 
 
+# If we have no enriched windows, emit placeholder figure and tables. 
+if(length(enriched_windows) == 0) {
+    df <- setNames(data.frame(matrix(ncol = 15, nrow = 0)),
+               c("id", "tsne_1", "tsne_2", "rbp", "cells", "cluster", "class"))
+    # Save the term-level enrichment results.
+    write_tsv(df, paste0("output/secondary_results/tsne/", prefix, ".tsne_query.tsv"))
+    
+	pdf(paste0("output/figures/tsne/", prefix, ".tsne_query.pdf"),height= 1,width = 2)
+		print(ggplot() + annotate("text", x = 1, y = 1, label = "No enriched windows") + theme_void())
+	dev.off()
+	quit()
+}
+
 # Collect the union of all experiment IDs present in either input.
 experiment_labels = enriched_windows$experiment_label %>% unique
 

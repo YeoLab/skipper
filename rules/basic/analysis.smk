@@ -56,7 +56,29 @@ rule run_homer:
         set -euo pipefail
 
         echo "Running on node: $(hostname)" | tee {log.stdout}
-        echo "[`date`] Starting run_homer" | tee  -a {log.stdout}
+        echo "[`date`] Starting run_homer" | tee -a {log.stdout}
+
+        outdir="output/homer/finemapped_results/{wildcards.experiment_label}"
+        mkdir -p "$outdir"
+
+        # Skip HOMER gracefully if there are no finemapped windows.
+        if [ "$(zcat {input.finemapped_windows} | wc -l)" -eq 0 ]; then
+            echo "No finemapped windows found. Skipping HOMER." | tee -a {log.stdout}
+
+            cat > {output.report} <<EOF
+<html>
+<head><title>No motifs found</title></head>
+<body>
+<p>No finemapped windows were available, so HOMER was not run.</p>
+</body>
+</html>
+EOF
+
+            echo "# No motifs: no finemapped windows available." > {output.pwm}
+
+            echo "[`date`] Finished run_homer (skipped)" | tee -a {log.stdout}
+            exit 0
+        fi
 
         # Prepare process-substitution inputs
         fg_input=<(zcat {input.finemapped_windows} \
@@ -67,7 +89,7 @@ rule run_homer:
 
         # Run HOMER motif analysis
         findMotifsGenome.pl "$fg_input" {input.genome} \
-            output/homer/finemapped_results/{wildcards.experiment_label} \
+            "$outdir" \
             -preparsedDir output/homer/preparsed \
             -size given -rna -nofacts -S 20 -len 5,6,7,8,9 -nlen 1 \
             -bg "$bg_input" \
