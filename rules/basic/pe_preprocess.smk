@@ -53,8 +53,8 @@ rule copy_with_umi:
         fq_2 = temp("output/secondary_results/fastqs/copy/{replicate_label}-2.fastq.gz"),      
     threads: 2
     resources:
-        runtime="2h",
-        mem_mb=2000
+        mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.copy_with_umi.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/{replicate_label}.copy_with_umi.out",
@@ -95,8 +95,8 @@ rule run_initial_fastqc:
     conda:
         "envs/fastqc.yaml"
     resources:
-        mem_mb=16000,
-        runtime="3h"
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
     params:
         outdir="output/QC/fastqc/initial/"
     shell:
@@ -133,9 +133,9 @@ rule trim_fastq_encode:
         metrics = "output/secondary_results/fastqs/trimmed/{replicate_label}-trimmed.log"
     threads: 8
     resources:
-        tmpdir = "/tscc/nfs/home/hsher/scratch/singularity_tmp",
-        mem_mb=16000,
-        runtime="3h"
+        tmpdir = TMPDIR,
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/{replicate_label}.trim_fastq_encode.out",
@@ -178,8 +178,8 @@ rule run_trimmed_fastqc:
     conda:
         "envs/fastqc.yaml"
     resources:
-        mem_mb=16000,
-        runtime="2h"
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail
@@ -222,8 +222,8 @@ rule align_reads_encode:
     conda:
         "envs/star.yaml"
     resources:
-        mem_mb=160000,
-        runtime="2h"
+        mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail
@@ -274,8 +274,8 @@ rule sort_bam:
     conda:
         "envs/bedbam_tools.yaml"
     resources:
-        mem_mb = 16000,
-        runtime = "1h"
+        mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail
@@ -306,8 +306,8 @@ rule index_bams:
     conda:
         "envs/bedbam_tools.yaml"
     resources:
-        mem_mb = 1000,
-        runtime = "1h"
+        mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail
@@ -336,8 +336,8 @@ rule dedup_umi:
     conda:
         "envs/umicollapse.yaml"
     resources:
-        mem_mb = 48000,
-        runtime = "2h",
+        mem_mb=lambda wildcards, attempt: 48000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
         tmpdir = TMPDIR
     shell:
         r"""
@@ -371,8 +371,8 @@ rule select_informative_read:
     conda:
         "envs/bedbam_tools.yaml"
     resources:
-        mem_mb = 10000,
-        runtime = "1h"
+        mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     params:
         flag = 64 if UNINFORMATIVE_READ == "1" else 128
     shell:

@@ -115,12 +115,10 @@ rule annotate_finemap:
         stdout = config["WORKDIR"] + "/stdout/{experiment_label}.annotate_finemap.out",
         stderr = config["WORKDIR"] + "/stderr/{experiment_label}.annotate_finemap.err",
     resources:
-        mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
-        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
+        mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     conda:
         "envs/metadensity.yaml"
-    envmodules:
-        "finemap/1.100.0"
     shell:
         r"""
         set -euo pipefail
@@ -165,8 +163,6 @@ rule find_both_tested_windows:
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     conda:
         "envs/metadensity.yaml"
-    envmodules:
-        "finemap/1.100.0"
     shell:
         r"""
         set -euo pipefail

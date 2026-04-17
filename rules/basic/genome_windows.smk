@@ -12,13 +12,13 @@ if (not feature_exists) or (not partition_exists):
             rankings = ancient(ACCESSION_RANKINGS),
         output:
             gff_filt = "output/gff/filtered.gff3",
-            rankings_filt = "output/gff/filtered_ranks.txt",
+            rankings_filt = "output/gff/filtered_ranks.txt"
         params:
             source = config["GFF_SOURCE"]
         threads: 1
         resources:
-            mem_mb = 32000,
-            runtime = "1h"
+            mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
+            runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
         benchmark: "benchmarks/filter_gff.txt"
         log:
             stdout = config["WORKDIR"] + "/stdout/filter_gff.out",
@@ -320,8 +320,8 @@ rule check_window_concordance:
         "output/secondary_results/enrichment_reproducibility/{experiment_label}.enrichment_reproducibility.tsv",
         "output/secondary_results/enrichment_reproducibility/{experiment_label}.odds_data.tsv"
     resources:
-        mem_mb = 8000,
-        runtime = "30m"
+        mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 30 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
     log:
         stdout = config["WORKDIR"] + "/stdout/{experiment_label}.check_window_concordance.out",
