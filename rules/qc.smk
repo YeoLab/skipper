@@ -49,8 +49,8 @@ rule multiqc:
     conda:
         "envs/multiqc2.yaml"
     resources:
-        mem_mb=4000,
-        runtime="30m"
+        mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
+        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     shell:
         r"""
         set -euo pipefail

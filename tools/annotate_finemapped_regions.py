@@ -2,20 +2,29 @@
 import pandas as pd
 from pybedtools import BedTool
 import sys
-
+from pathlib import Path
+from pandas.errors import EmptyDataError
 
 if __name__ == '__main__':
     finemapped_sites = BedTool(sys.argv[1])
-    finemapped_sites_df = finemapped_sites.to_dataframe()
+    
     
     ranking = pd.read_csv(sys.argv[2], sep = '\t')
     # read annotation
     window = pd.read_csv(sys.argv[3],
                         sep = '\t')
-    window_bed = BedTool.from_dataframe(window)
 
     outf = sys.argv[4]
-
+    
+    try:
+        finemapped_sites_df = finemapped_sites.to_dataframe()
+    except EmptyDataError: 
+        print("No sites to parse. Creating an empty file and exiting cleanly with this warning.")
+        Path(outf).touch()
+        sys.exit(0)
+        
+    window_bed = BedTool.from_dataframe(window)
+    
     # find windows overlapping finemapped regions
     site_annotation_finemap = finemapped_sites.intersect(
         window_bed,s = True, wb = True).to_dataframe(
