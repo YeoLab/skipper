@@ -18,6 +18,9 @@ workdir: config['WORKDIR']
 TMPDIR = config.get("TMPDIR")
 GINI_CUTOFF = config.get("GINI_CUTOFF")
 BLACKLIST = config.get("BLACKLIST")
+NORMALIZATION_MODE = config.get("NORMALIZATION_MODE")
+THRESHOLD_MIN = config.get("THRESHOLD_MIN")
+HOMER = config.get("HOMER")
 
 ############################ ESTABLISH DEFAULTS ###########################
 
@@ -31,6 +34,9 @@ if not GINI_CUTOFF:
 if not BLACKLIST or str(BLACKLIST).strip().lower() in {"none", "null", "na", "n/a"}:
     BLACKLIST = None
 
+if not HOMER:
+    HOMER = ""
+
 if not NORMALIZATION_MODE:
     NORMALIZATION_MODE = "new"
 
@@ -38,6 +44,7 @@ if not THRESHOLD_MIN:
     THRESHOLD_MIN = 2
 
 config["BLACKLIST"] = BLACKLIST
+config["HOMER"] = HOMER
 config["NORMALIZATION_MODE"] = NORMALIZATION_MODE
 config["THRESHOLD_MIN"] = THRESHOLD_MIN
 
@@ -77,7 +84,7 @@ if clip_reps_per_experiment.min() < 2:
     print(clip_reps_per_experiment)
     sleep(5)
 
-# These replicate index checks are independent of FASTQ/BAM and can stay as-is.
+# Additional index checks.
 if max(manifest.groupby("Sample")["Input_replicate"].agg(lambda x: min(x))) > 1:
     raise Exception("Input replicates for samples in manifest do not increment from 1 as expected")
 
@@ -179,28 +186,6 @@ config['experiment_to_input_replicate_labels']=experiment_to_input_replicate_lab
 # Add the manifest to the config file
 config['manifest'] = manifest
 
-# Collect benchmark-related outputs based on optional external mapping files.
-benchmark_outputs = []
-
-# For RBNS
-if 'RBNS_MAPPING' in config:
-    config['RBNS_mapping_df'] = pd.read_csv(config['RBNS_MAPPING'])
-    print(config['RBNS_mapping_df'])
-    experiments_to_banchmark = set(config['manifest']['Experiment']).intersection(set(config['RBNS_mapping_df']['Experiment']))
-    benchmark_outputs+=[f"output/ml/benchmark/homer/RBNS/{experiment_label}.pearson_auprc.csv"
-                        for experiment_label in list(experiments_to_banchmark)]
-else:
-    pass
-
-# FOR SELEX
-if 'SELEX_MAPPING' in config:
-    config['SELEX_mapping_df'] = pd.read_csv(config['SELEX_MAPPING'])
-    experiments_to_banchmark = set(config['manifest']['Experiment']).intersection(set(config['SELEX_mapping_df']['Experiment']))
-    benchmark_outputs+=[f"output/ml/benchmark/homer/SELEX/{experiment_label}.pearson_auprc.csv"
-                        for experiment_label in list(experiments_to_banchmark)]
-else:
-    pass
-
 # Record the path of the config file that was passed to the command line (allows workflow to keep track of config file).
 if '--configfile' in sys.argv:
     i = sys.argv.index('--configfile')
@@ -228,38 +213,24 @@ config["UNINFORMATIVE_READ"] = str(3 - config["INFORMATIVE_READ"])
 # Always include the basic.
 all_inputs = ["basic_done.txt"]
 
-# Look through all ml related keys. 
-ml_keys = ["HEADER", "RENAME", "ROULETTE_DIR", "GNOMAD_DIR", "CLINVAR_VCF", "VEP_CACHEDIR",
-           "VEP_CACHE_VERSION", "SINGLETON_REFERENCE", "OE_RATIO_REFERENCE", "GNOMAD_CONSTRAINT"]
-
 repeat_keys = ["REPEAT_TABLE", "REPEAT_BED"]
 
 geneset_keys = ["GENE_SETS", "GENE_SET_REFERENCE", "GENE_SET_DISTANCE"]
 
 homer_keys = ["HOMER"]
 
-meta_keys = ["META_ANALYSIS"]
-
 # Auto assign keys to None (avoids DAG error in snakemake).
-for k in ml_keys + repeat_keys + geneset_keys + homer_keys + meta_keys:
+for k in repeat_keys + geneset_keys + homer_keys:
     if k not in config or k == False:
         config[k] = "DO/NOT/RUN"
 
-# A function that checks if all ml keys are present. 
+# A function that checks if all keys are present. 
 def has_all_required(cfg, keys):
     return all(cfg.get(k) not in [None, "DO/NOT/RUN"] for k in keys)
 
 if "CLIP_bam" not in manifest.columns:
     all_inputs += [
         "QC_done.txt"
-    ]
-
-# If all ml configs are provided, include the ml rules.
-if has_all_required(config, ml_keys):
-    all_inputs += [
-        "ml_variants_done.txt",
-        "ml_benchmark_done.txt",
-        "mcross_done.txt",
     ]
 
 if has_all_required(config, repeat_keys):
@@ -272,20 +243,12 @@ if has_all_required(config, geneset_keys):
         "geneset_done.txt",
     ]
 
-if config["HOMER"] or has_all_required(config, ml_keys):
+if config["HOMER"] != "":
     all_inputs += [
         "homer_done.txt",
     ]
 
-if config["META_ANALYSIS"] != "":
-    all_inputs += [
-        "meta_done.txt",
-    ]
-
-if config["META_ANALYSIS"] != "" and has_all_required(config, repeat_keys):
-    all_inputs += [
-        "meta_repeats_done.txt",
-    ]
+print(all_inputs)
 
 # Run rule all. 
 rule all:
@@ -360,7 +323,6 @@ rule all_meta_repeat_output:
         touch {output}
         """
 
-
 rule all_homer_output:
     input:
         expand("output/secondary_results/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz", experiment_label = manifest.Experiment),
@@ -406,160 +368,63 @@ rule all_geneset_output:
         touch {output}
         """
 
-# Calls upon ouputs needed for machine learning. 
-rule all_ml_variants_output:
-    input:
-        expand("output/ml/rbpnet_model/{experiment_label}/valid/test_data_metric.csv",
-               experiment_label = manifest.Experiment),
-        expand("output/ml/rbpnet_model/{experiment_label}/motif_done",
-               experiment_label = manifest.Experiment),
-        expand("output/variants/gnomAD_roulette/{experiment_label}.total.csv",
-               experiment_label = manifest.Experiment),
-        expand("output/variants/clinvar/{experiment_label}.vep.tsv",
-            experiment_label = manifest.Experiment),
-        expand("output/variant_analysis/{experiment_label}.clinvar_variants.csv",
-               experiment_label = manifest.Experiment),
-    output:
-        "ml_variants_done.txt"
-    resources:
-        mem_mb=400,
-        run_time=20
-    shell:
-        """
-        touch {output}
-        """
-
-# Calls upon outputs needed for benchmarking. 
-rule all_ml_benchmark_outputs:
-    input:
-        benchmark_outputs,
-        expand("output/ml/benchmark/homer/{data_types}_mcross/{experiment_label}.pearson_auprc.csv",
-                data_types = ['CITS'],
-               experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i]),
-        expand("output/ml/rbpnet_model_original/{experiment_label}/valid/test_data_metric.csv",
-               experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i]),
-        expand("output/ml/nt_lora/{experiment_label}/{model_name}/d_log_odds_corr.csv",
-               experiment_label = [i for i in manifest.Experiment.tolist()],
-                model_name = ['nucleotide-transformer-500m-human-ref']),
-    output:
-        "ml_benchmark_done.txt"
-    resources:
-        mem_mb=400,
-        run_time=20
-    shell:
-        """
-        touch {output}
-        """
-
-# Calls upon outputs needed for mcross. 
-rule all_ctk:
-    input:
-        expand("output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.homer", experiment_label = manifest.Experiment),
-        expand("output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.homer",experiment_label = manifest.Experiment, data_types=['CITS']),
-    output:
-        "mcross_done.txt"
-    resources:
-        mem_mb=400,
-        run_time=20
-    shell:
-        """
-        touch {output}
-        """
-
 ############################## Define modules #################################
 
 
 module se_preprocess:
     snakefile:
-        "rules/basic/se_preprocess.smk"
+        "rules/se_preprocess.smk"
     config:
         config
 
 
 module pe_preprocess:
     snakefile:
-        "rules/basic/pe_preprocess.smk"
+        "rules/pe_preprocess.smk"
     config:
         config
 
 
 module qc:
     snakefile:
-        "rules/basic/qc.smk"
+        "rules/qc.smk"
     config:
         config
 
 
 module genome:
     snakefile:
-        "rules/basic/genome_windows.smk"
+        "rules/genome_windows.smk"
     config: 
         config
 
 
 module repeat:
     snakefile:
-        "rules/basic/repeat.smk"
+        "rules/repeat.smk"
     config: 
         config
 
 
 module finemap:
     snakefile:
-        "rules/basic/finemap.smk"
+        "rules/finemap.smk"
     config: 
         config
 
 
 module analysis:
     snakefile:
-        "rules/basic/analysis.smk"
+        "rules/analysis.smk"
     config:
         config
-
-
-module meta_analysis:
-    snakefile:
-        "rules/basic/meta_analysis.smk"
-    config:
-        config
-
 
 module bigwig:
     snakefile:
-        "rules/basic/bigwig.smk"
+        "rules/bigwig.smk"
     config:
         config
 
-module prep_ml:
-    snakefile:
-        "rules/ml/prep_ml.smk"
-    config:
-        config
-
-module rbpnet:
-    snakefile:
-        "rules/ml/train_rbpnet.smk"
-    config:
-        config
-
-module benchmark:
-    snakefile:
-        "rules/ml/benchmark_ml.smk"
-    config:
-        config
-
-module variants_rbpnet:
-    snakefile:
-        "rules/ml/variants_rbpnet.smk"
-    config:
-        config
-
-module ctk_mcross:
-    snakefile:
-        "rules/mcross/ctk_mcross.smk"
-    config:
-        config
 
 ############################## Run modules #################################
 
@@ -582,10 +447,3 @@ if has_all_required(config, geneset_keys):
 if config["HOMER"] != "":
     use rule sample_background_windows_by_region from analysis
     use rule run_homer from analysis
-if has_all_required(config, ml_keys):
-    use rule * from prep_ml as ml_*
-    use rule * from rbpnet as rbpnet_*
-    use rule * from variants_rbpnet as rbpnet_variants_*
-    use rule * from ctk_mcross
-use rule * from meta_analysis
-use rule * from benchmark
