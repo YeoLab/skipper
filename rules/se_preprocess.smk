@@ -13,7 +13,7 @@ star_exists = os.path.exists(CHROM_SIZES)
 if not star_exists:
     rule run_star_genome_generate:
         input:
-            gff = "output/gff/filtered.gff3",
+            gff = ancient(GFF),
             fasta_file = ancient(GENOME),
         output:
             chrom_sizes = CHROM_SIZES,
@@ -32,19 +32,24 @@ if not star_exists:
         shell:
             r"""
             set -euo pipefail
-    
+            
             echo "Running on node: $(hostname)" | tee {log.stdout}
             echo "[`date`] Starting star_genome_generate." | tee -a {log.stdout}
-    
+            
+            tmp_gff="$(mktemp --tmpdir={resources.tmpdir} star_annotation.XXXXXX.gff3)"
+            gunzip -c {input.gff} > "$tmp_gff"
+            
             STAR \
                 --runMode genomeGenerate \
                 --runThreadN {threads} \
                 --genomeDir {params.star_dir} \
                 --genomeFastaFiles {input.fasta_file} \
-                --sjdbGTFfile {input.gff} \
+                --sjdbGTFfile "$tmp_gff" \
                 --sjdbOverhang 99 \
             >> {log.stdout} 2> {log.stderr}
-    
+            
+            rm -f "$tmp_gff"
+            
             echo "[`date`] Finished star_genome_generate." | tee -a {log.stdout}
             """
 

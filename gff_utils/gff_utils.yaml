@@ -1,0 +1,22 @@
+name: gff_utils_env
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  # Python
+  - python=3.10
+  - pandas
+  - pyranges
+
+  # R base
+  - r-base=4.3
+
+  # R CRAN packages
+  - r-dplyr
+  - r-readr
+  - r-stringr
+  - r-tibble
+
+  # Bioconductor packages
+  - bioconductor-genomicranges
+  - bioconductor-rtracklayer

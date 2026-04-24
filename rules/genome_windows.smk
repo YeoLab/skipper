@@ -6,46 +6,9 @@ partition_exists = os.path.exists(PARTITION)
 partition_nuc_exists = os.path.exists(PARTITION.replace(".bed", ".nuc"))
 
 if (not feature_exists) or (not partition_exists):
-    rule filter_gff:
-        input:
-            gff = ancient(GFF),
-            rankings = ancient(ACCESSION_RANKINGS),
-        output:
-            gff_filt = "output/gff/filtered.gff3",
-            rankings_filt = "output/gff/filtered_ranks.txt"
-        params:
-            source = config["GFF_SOURCE"]
-        threads: 1
-        resources:
-            mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
-            runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
-        benchmark: "benchmarks/filter_gff.txt"
-        log:
-            stdout = config["WORKDIR"] + "/stdout/filter_gff.out",
-            stderr = config["WORKDIR"] + "/stderr/filter_gff.err",
-        conda:
-            "envs/skipper_R.yaml"
-        shell:
-            r"""
-            set -euo pipefail
-    
-            echo "Running on node: $(hostname)" | tee {log.stdout}
-            echo "[`date`] Starting filter_gff" | tee -a {log.stdout}
-    
-            Rscript --vanilla {TOOL_DIR}/filter_gff.R \
-                {params.source} \
-                {input.gff} \
-                {input.rankings} \
-                {output.gff_filt} \
-                {output.rankings_filt} \
-            >> {log.stdout} 2> {log.stderr}
-    
-            echo "[`date`] Finished filter_gff" | tee -a {log.stdout}
-            """
-    
     rule parse_gff:
         input:
-            gff_filt = "output/gff/filtered.gff3",
+            gff = ancient(GFF),
             rankings = ancient(ACCESSION_RANKINGS),
         output:
             partition = PARTITION,
@@ -68,7 +31,7 @@ if (not feature_exists) or (not partition_exists):
             echo "[`date`] Starting parse_gff" | tee -a {log.stdout}
     
             Rscript --vanilla {TOOL_DIR}/parse_gff.R \
-                {input.gff_filt} \
+                {input.gff} \
                 {input.rankings} \
                 {output.partition} \
                 {output.feature_annotations} \

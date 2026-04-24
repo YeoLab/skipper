@@ -212,6 +212,23 @@ for (feature_data in feature_data_list) {
   full_partition <- c(full_partition, subtracted_data)
 }
 
+# Base features represents the broad biological region without contextual annotations like splice-site proximity. 
+base_feature_list = c(
+    list(cds_reduced, utr3_reduced, utr5_reduced),
+    exons_reduced_list,
+    list(primirna_reduced, introns_reduced)
+)
+
+base_partition = GRanges()
+for (base_feature_data in base_feature_list) {
+    subtracted_data = setdiff(base_feature_data, base_partition)
+    base_partition = c(base_partition, subtracted_data)
+}
+
+base_partition = sort(base_partition)
+base_partition$base_feature_id = seq_len(length(base_partition))
+                            
+
 # -------------------------------
 # Tile reduced features into fixed-size windows
 # -------------------------------
@@ -234,50 +251,97 @@ feature_annotations <- dplyr::tibble(
     .groups = "drop"
   )
 
+# Annotate tiled windows by base feature.
+base_hits = findOverlaps(tiled_partition, base_partition)
+
+base_annotations = dplyr::tibble(
+    row_id = queryHits(base_hits),
+    base_feature_type = base_partition$feature_type[subjectHits(base_hits)],
+    base_feature_id = base_partition$base_feature_id[subjectHits(base_hits)]
+) %>%
+    dplyr::distinct(row_id, .keep_all = TRUE)
+
 # -------------------------------
 # Meta-annotations (gene/transcript IDs)
 # -------------------------------
-meta_hits <- findOverlaps(tiled_partition, c(transcripts, primirna))
+# Meta-annotations (gene/transcript IDs).
+meta_features = c(transcripts, primirna)
+meta_hits = findOverlaps(tiled_partition, meta_features)
 
-meta_annotations <- dplyr::tibble(
-  row_id = queryHits(meta_hits),
-  metadata = c(transcripts, primirna)$metadata[subjectHits(meta_hits)]
-) %>%
-  (tidyr::separate)(metadata, c("gene_name","gene_id","transcript_id","gene_type","transcript_type"), sep = ":") %>%
-  (dplyr::group_by)(row_id) %>%
-  (dplyr::summarize)(
-    gene_name = stringr::str_flatten(unique(gene_name), collapse = ":"),
-    gene_id = stringr::str_flatten(unique(gene_id), collapse = ":"),
-    transcript_ids = stringr::str_flatten(unique(transcript_id), collapse = ":"),
-    gene_type_top = intersect(accession_type_rankings, gene_type) %>% head(1),
-    transcript_type_top = intersect(accession_type_rankings, transcript_type) %>% head(1),
-    gene_types = stringr::str_flatten(intersect(accession_type_rankings, unique(gene_type)), collapse = ":"),
-    transcript_types = stringr::str_flatten(intersect(accession_type_rankings, unique(transcript_type)), collapse = ":"),
-    .groups = "drop"
-  )
+# Convert overlap result to a data.table using metadata columns directly.
+meta_dt = data.table::data.table(
+    row_id = queryHits(meta_hits),
+    gene_name = meta_features$gene_name[subjectHits(meta_hits)],
+    gene_id = meta_features$gene_id[subjectHits(meta_hits)],
+    transcript_id = meta_features$transcript_id[subjectHits(meta_hits)],
+    gene_type = meta_features$gene_type[subjectHits(meta_hits)],
+    transcript_type = meta_features$transcript_type[subjectHits(meta_hits)]
+)
+
+# Helper to mimic original behavior with data table optimizations.
+get_top_ranked_type = function(x, rankings) {
+    hits = rankings[rankings %in% x]
+    if (length(hits) == 0L) {
+        return(NA_character_)
+    }
+    hits[[1]]
+}
+
+meta_annotations = meta_dt[
+    ,
+    .(
+        gene_name = stringr::str_flatten(unique(gene_name), collapse = ":"),
+        gene_id = stringr::str_flatten(unique(gene_id), collapse = ":"),
+        transcript_ids = stringr::str_flatten(unique(transcript_id), collapse = ":"),
+        gene_type_top = get_top_ranked_type(gene_type, accession_type_rankings),
+        transcript_type_top = get_top_ranked_type(transcript_type, accession_type_rankings),
+        gene_types = stringr::str_flatten(
+            accession_type_rankings[accession_type_rankings %in% unique(gene_type)],
+            collapse = ":"
+        ),
+        transcript_types = stringr::str_flatten(
+            accession_type_rankings[accession_type_rankings %in% unique(transcript_type)],
+            collapse = ":"
+        )
+    ),
+    by = row_id
+]
+
+# Convert back to tibble/data.frame. 
+meta_annotations = tibble::as_tibble(meta_annotations)
 
 # -------------------------------
 # Export partition (BED) and annotations (TSV)
 # -------------------------------
+# Export partition (BED) and annotations (TSV)
 tiled_partition$name <- seq_len(length(tiled_partition))
 rtracklayer::export.bed(tiled_partition, partition_output)
 
-annotated_features <- dplyr::bind_cols(
-  meta_annotations,
-  feature_annotations %>% dplyr::select(-row_id)
-) %>%
-  (dplyr::mutate)(feature_id = tiled_partition$feature_id %>% as.numeric()) %>%
-  dplyr::group_by(feature_id) %>% dplyr::mutate(feature_bin = dplyr::row_number()) %>% (dplyr::ungroup) %>%
-  dplyr::mutate(
-    chrom = as.character(seqnames(tiled_partition)),
-    start = start(tiled_partition) - 1L,
-    end = end(tiled_partition),
-    strand = as.character(strand(tiled_partition))
-  ) %>%
-  dplyr::transmute(
-    chrom, start, end, name = row_id, score = 0, strand, feature_id, feature_bin,
-    feature_type_top, feature_types, gene_name, gene_id, transcript_ids,
-    gene_type_top, transcript_type_top, gene_types, transcript_types
-  )
+annotated_features = meta_annotations %>%
+    dplyr::left_join(feature_annotations, by = "row_id") %>%
+    dplyr::left_join(base_annotations, by = "row_id") %>%
+    dplyr::mutate(
+        feature_id = as.numeric(tiled_partition$feature_id)
+    ) %>%
+    dplyr::group_by(feature_id) %>%
+    dplyr::mutate(feature_bin = dplyr::row_number()) %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(base_feature_id) %>%
+    dplyr::mutate(base_feature_bin = dplyr::row_number()) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+        chrom = as.character(seqnames(tiled_partition)),
+        start = start(tiled_partition) - 1L,
+        end = end(tiled_partition),
+        strand = as.character(strand(tiled_partition))
+    ) %>%
+    dplyr::transmute(
+        chrom, start, end, name = row_id, score = 0, strand,
+        feature_id, feature_bin,
+        base_feature_id,
+        feature_type_top, feature_types,
+        gene_name, gene_id, transcript_ids,
+        gene_type_top, transcript_type_top, gene_types, transcript_types
+    )
 
 readr::write_tsv(annotated_features, annotations_output)
