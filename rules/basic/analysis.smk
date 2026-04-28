@@ -61,8 +61,8 @@ rule run_homer:
         outdir="output/homer/finemapped_results/{wildcards.experiment_label}"
         mkdir -p "$outdir"
 
-        # Skip HOMER gracefully if there are no finemapped windows.
-        if [ "$(zcat {input.finemapped_windows} | wc -l)" -eq 0 ]; then
+        # Skip HOMER gracefully if there are less than 5 windows (very minimal cutoff).
+        if [ "$(zcat {input.finemapped_windows} | wc -l)" -lt 5 ] || [ "$(zcat {input.background} | wc -l)" -lt 5 ]; then
             echo "No finemapped windows found. Skipping HOMER." | tee -a {log.stdout}
 
             cat > {output.report} <<EOF

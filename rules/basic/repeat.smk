@@ -63,7 +63,7 @@ rule quantify_repeats:
     conda:
         "envs/bedbam_tools.yaml"
     resources:
-        mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
+        mem_mb=lambda wildcards, attempt: 48000 * (2 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     shell:
         r"""
