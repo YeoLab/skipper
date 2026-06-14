@@ -117,6 +117,7 @@ rule annotate_finemap:
     resources:
         mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
+        tmpdir = TMPDIR,
     conda:
         "envs/metadensity.yaml"
     shell:
@@ -125,6 +126,9 @@ rule annotate_finemap:
 
         echo "Running on node: $(hostname)" | tee {log.stdout}
         echo "[`date`] Starting annotate_finemap" | tee -a {log.stdout}
+
+        export TMPDIR="{resources.tmpdir}"
+        mkdir -p "$TMPDIR"
 
         PY="$CONDA_PREFIX/bin/python"
 
@@ -161,6 +165,7 @@ rule find_both_tested_windows:
     resources:
         mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
+        tmpdir = TMPDIR,
     conda:
         "envs/metadensity.yaml"
     shell:
@@ -169,6 +174,9 @@ rule find_both_tested_windows:
 
         echo "Running on node: $(hostname)" | tee {log.stdout}
         echo "[`date`] Starting find_both_tested_windows" | tee -a {log.stdout}
+
+        export TMPDIR="{resources.tmpdir}"
+        mkdir -p "$TMPDIR"
 
         PY="$CONDA_PREFIX/bin/python"
 
