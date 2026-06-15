@@ -21,6 +21,16 @@ model_data = read_tsv(args[4])
 input_replicate_label = args[5]
 clip_replicate_label = args[6]
 output_stem = args[7]
+threshold_min = args[8]
+normalization_mode = args[9]
+
+###!!!### Will need to be increased to 8 when threshold min is added. 
+if(length(args) > 9) {
+	blacklist = read_tsv(args[10], col_names = c("chr","start","end","name","score","strand"), col_types = "cddcdc")
+} else {
+	blacklist = tibble(chr=character(),start=numeric(),end=numeric(),name=character(),score=numeric(),strand=character())
+}
+count_data = anti_join(count_data, blacklist %>% select(-name))
 
 # Convenience link functions on base-2 scale for logits and inverse-logits. 
 logisticb2 = function(x) 1 / (1 + 2**-x)
@@ -37,48 +47,104 @@ transcript_plot_order = feature_annotations %>% group_by(transcript_type_top) %>
 # Keep windows with any reads and form GC deciles within which to compute baselines. 
 count_gc_data = count_data[select(count_data, matches("(IP|IN)_[0-9]+$")) %>% rowSums > 0,] %>% group_by(gc_bin = cut_number(gc,10)) %>% filter(.data[[clip_replicate_label]] + .data[[input_replicate_label]] > 0)
 
-# Rename chosen replicates to `input`/`clip`, compute GC-bin baselines (mean clip fraction), and attach back to rows. 
-processed_count_data = count_gc_data %>% rename(input = all_of(input_replicate_label), clip = all_of(clip_replicate_label)) %>% 
-	summarize(baseline_l2or = mean((clip / (clip + input))) %>% logitb2) %>% 
-	inner_join(select(count_gc_data %>% rename(input = all_of(input_replicate_label), clip = all_of(clip_replicate_label)), -matches("(IP|IN)_[0-9]+$")),.)
+if (normalization_mode == "classic") {
+    
+    # Rename chosen replicates to `input`/`clip`, compute GC-bin baselines (mean clip fraction), and attach back to rows. 
+    processed_count_data = count_gc_data %>% rename(input = all_of(input_replicate_label), clip = all_of(clip_replicate_label)) %>% 
+    	summarize(baseline_l2or = mean((clip / (clip + input))) %>% logitb2) %>% 
+    	inner_join(select(count_gc_data %>% rename(input = all_of(input_replicate_label), clip = all_of(clip_replicate_label)), -matches("(IP|IN)_[0-9]+$")),.)
+    
+    # Set beta-binomial overdispersion (rho) from model, on probability scale. 
+    model_overdispersion = VGAM::logitlink(median(model_data$rho), inverse=TRUE)
+    
+    # Collapse to unique (clip,input,gc_bin,baseline) combos, compute enrichment and p-values, and rejoin to per-window rows. 
+    p_data = processed_count_data %>% group_by(clip, input, gc_bin, baseline_l2or) %>%
+    	summarize %>% mutate(enrichment_l2or = log2((clip + logisticb2(baseline_l2or)) / (input + 1 - logisticb2(baseline_l2or))) - baseline_l2or) %>%
+    	mutate(pvalue = pmax(1e-12, 1 - VGAM::pbetabinom(q = clip - 1, size = clip + input, prob = logisticb2(baseline_l2or), rho = model_overdispersion))) %>%
+    	inner_join(processed_count_data,.)
+    
+} else if (normalization_mode == "new") {
+    
+    prior_mass = 5
 
-# Set beta-binomial overdispersion (rho) from model, on probability scale. 
-model_overdispersion = VGAM::logitlink(median(model_data$rho), inverse=TRUE)
-
-# Collapse to unique (clip,input,gc_bin,baseline) combos, compute enrichment and p-values, and rejoin to per-window rows. 
-p_data = processed_count_data %>% group_by(clip, input, gc_bin, baseline_l2or) %>%
-	summarize %>% mutate(enrichment_l2or = log2((clip + logisticb2(baseline_l2or)) / (input + 1 - logisticb2(baseline_l2or))) - baseline_l2or) %>%
-	mutate(pvalue = pmax(1e-12, 1 - VGAM::pbetabinom(q = clip - 1, size = clip + input, prob = logisticb2(baseline_l2or), rho = model_overdispersion))) %>%
-	inner_join(processed_count_data,.)
-
-# Convenience link functions on base-2 scale for logits and inverse-logits. 
-logisticb2 = function(x) 1 / (1 + 2**-x)
-logitb2 = function(x) log2(x / (1 - x))
-
-# Prepare exon subtype ordering and plotting orders for features and transcript types. 
-exon_subtypes = accession_data$exon_subtype %>% unique
-protein_coding_subtype = accession_data$exon_subtype[accession_data$accession == "protein_coding"] %>% head(1)
-prioritized_exon_subtypes = exon_subtypes[cumsum(exon_subtypes == protein_coding_subtype) < 1]
-unprioritized_exon_subtypes = exon_subtypes[cumsum(exon_subtypes == protein_coding_subtype) >= 1]
-feature_plot_order = c("CDS_SOLITARY", "CDS_START","CDS_STOP","CDS","UTR5","UTR3",paste0("EXON_", prioritized_exon_subtypes),paste0("EXON_", unprioritized_exon_subtypes),"SSB_ADJ","SSB_PROX","SS3_ADJ","SS3_PROX","SS5_ADJ","SS5_PROX","PRIMIRNA","INTRON") %>% rev
-transcript_plot_order = feature_annotations %>% group_by(transcript_type_top) %>% count(sort=TRUE) %>% mutate(tname = gsub("_","\n",transcript_type_top)) %>% pull(tname) 
-
-# Keep windows with any reads and form GC deciles within which to compute baselines. 
-count_gc_data = count_data[select(count_data, matches("(IP|IN)_[0-9]+$")) %>% rowSums > 0,] %>% group_by(gc_bin = cut_number(gc,10)) %>% filter(.data[[clip_replicate_label]] + .data[[input_replicate_label]] > 0)
-
-# Rename chosen replicates to `input`/`clip`, compute GC-bin baselines (mean clip fraction), and attach back to rows. 
-processed_count_data = count_gc_data %>% rename(input = all_of(input_replicate_label), clip = all_of(clip_replicate_label)) %>% 
-	summarize(baseline_l2or = mean((clip / (clip + input))) %>% logitb2) %>% 
-	inner_join(select(count_gc_data %>% rename(input = all_of(input_replicate_label), clip = all_of(clip_replicate_label)), -matches("(IP|IN)_[0-9]+$")),.)
-
-# Set beta-binomial overdispersion (rho) from model, on probability scale. 
-model_overdispersion = VGAM::logitlink(median(model_data$rho), inverse=TRUE)
-
-# Collapse to unique (clip,input,gc_bin,baseline) combos, compute enrichment and p-values, and rejoin to per-window rows. 
-p_data = processed_count_data %>% group_by(clip, input, gc_bin, baseline_l2or) %>%
-	summarize %>% mutate(enrichment_l2or = log2((clip + logisticb2(baseline_l2or)) / (input + 1 - logisticb2(baseline_l2or))) - baseline_l2or) %>%
-	mutate(pvalue = pmax(1e-12, 1 - VGAM::pbetabinom(q = clip - 1, size = clip + input, prob = logisticb2(baseline_l2or), rho = model_overdispersion))) %>%
-	inner_join(processed_count_data,.)
+    processed_count_data = count_gc_data %>%
+        rename(input = all_of(input_replicate_label),
+               clip = all_of(clip_replicate_label)) %>%
+        group_by(gc_bin) %>%
+        mutate(
+            total_input_gc_bin = sum(input),
+            total_clip_gc_bin  = sum(clip),
+    
+            gc_bin_in_ip_ratio = total_input_gc_bin / total_clip_gc_bin,
+    
+            gc_bin_input_frac = total_input_gc_bin / (total_input_gc_bin + total_clip_gc_bin),
+            gc_bin_clip_frac  = total_clip_gc_bin  / (total_input_gc_bin + total_clip_gc_bin),
+    
+            # Compute the original symmetric size factors from the GC-bin totals.
+            input_sf = sqrt(total_input_gc_bin / total_clip_gc_bin),
+            clip_sf  = sqrt(total_clip_gc_bin  / total_input_gc_bin),
+    
+            # Add a small prior mass split according to the GC-bin background ratio.
+            stabilized_input = input + prior_mass * gc_bin_input_frac,
+            stabilized_clip  = clip  + prior_mass * gc_bin_clip_frac
+        ) %>%
+        ungroup() %>%
+        mutate(
+            original_total = input + clip,
+    
+            # Apply the original symmetric normalization to the stabilized counts.
+            sym_norm_input = stabilized_input / input_sf,
+            sym_norm_clip  = stabilized_clip  / clip_sf,
+    
+            sym_norm_total = sym_norm_input + sym_norm_clip,
+    
+            # Rescale both sides by a common factor so the total stays near the original total.
+            rescale_factor = if_else(sym_norm_total > 0,
+                                     original_total / sym_norm_total,
+                                     0),
+    
+            target_norm_input = sym_norm_input * rescale_factor,
+            target_norm_clip  = sym_norm_clip  * rescale_factor,
+    
+            # Round to integer pseudocounts while preserving the original total exactly.
+            norm_input = round(target_norm_input),
+            norm_clip  = original_total - norm_input
+        ) %>%
+        select(-matches("(IP|IN)_[0-9]+$"),
+               -gc_bin_input_frac,
+               -gc_bin_clip_frac,
+               -stabilized_input,
+               -stabilized_clip,
+               -original_total,
+               -sym_norm_input,
+               -sym_norm_clip,
+               -sym_norm_total,
+               -rescale_factor,
+               -target_norm_input,
+               -target_norm_clip)
+    
+    # Set beta-binomial overdispersion (rho) from model, on probability scale. 
+    model_overdispersion = VGAM::logitlink(median(model_data$rho), inverse=TRUE)
+    
+    # Collapse to unique normalized count combinations, compute enrichment and p-values,
+    # and rejoin to per-window rows.
+    p_data = processed_count_data %>%
+        group_by(norm_clip, norm_input, gc_bin) %>%
+        summarize(.groups = "drop") %>%
+        mutate(
+            enrichment_l2or = log2(norm_clip / norm_input),
+            pvalue = pmax(
+                1e-12,
+                1 - VGAM::pbetabinom(
+                    q = norm_clip - 1,
+                    size = norm_clip + norm_input,
+                    prob = 0.5,
+                    rho = model_overdispersion
+                )
+            )
+        ) %>%
+        inner_join(processed_count_data, ., by = c("norm_clip", "norm_input", "gc_bin"))
+}
 
 # Global IP fraction across all windows, used in some heuristics below. 
 p_clip = with(p_data, sum(clip) / sum(clip + input))
@@ -93,7 +159,7 @@ threshold_max = p_data %>% mutate(total_counts = input + clip) %>% arrange(desc(
 # Cap at 500 and ensure it's at least 2.
 threshold_max <- min(500, threshold_max)
 
-thresholds <- 2:threshold_max
+thresholds <- threshold_min:threshold_max
 
 threshold_data <- tibble(
 threshold  = thresholds,
@@ -147,13 +213,24 @@ dev.off()
 # Count all windows per feature type for denominators in rate/odds summaries. 
 all_window_feature_data = feature_annotations %>% group_by(feature_type_top) %>% count(name = "n_windows") %>% ungroup
 
-# Persist the tested-windows table (above threshold) with formatted numeric columns. 
-tested_window_data = q_data %>% filter(above_threshold) %>% select(-above_threshold) %>% mutate(across(c("baseline_l2or", "enrichment_l2or","pvalue","qvalue"), ~ sprintf(.x, fmt = "%.6g")))
-write_tsv(tested_window_data, paste0("output/secondary_results/tested_windows/", output_stem, ".tested_windows.tsv.gz"))
+if (normalization_mode == "classic") {
+    # Persist the tested-windows table (above threshold) with formatted numeric columns. 
+    tested_window_data = q_data %>% filter(above_threshold) %>% select(-above_threshold) %>% mutate(across(c("baseline_l2or", "enrichment_l2or","pvalue","qvalue"), ~ sprintf(.x, fmt = "%.6g")))
+    write_tsv(tested_window_data, paste0("output/secondary_results/tested_windows/", output_stem, ".tested_windows.tsv.gz"))
+    
+    # Extract enriched windows (q < 0.2), join annotations, and sort by q-value. 
+    enriched_window_data = q_data %>% filter(above_threshold, qvalue < 0.2) %>% select(-above_threshold) %>% left_join(feature_annotations) %>% arrange(qvalue)
+    write_tsv(enriched_window_data %>% mutate(across(c("baseline_l2or", "enrichment_l2or","pvalue","qvalue"), ~ sprintf(.x, fmt = "%.6g"))), paste0("output/secondary_results/enriched_windows/", output_stem, ".enriched_windows.tsv.gz"))
+} else if (normalization_mode == "new") {
+    # Persist the tested-windows table (above threshold) with formatted numeric columns. 
+    tested_window_data = q_data %>% filter(above_threshold) %>% select(-above_threshold) %>% mutate(across(c("enrichment_l2or","pvalue","qvalue"), ~ sprintf(.x, fmt = "%.6g")))
+    write_tsv(tested_window_data, paste0("output/secondary_results/tested_windows/", output_stem, ".tested_windows.tsv.gz"))
+    
+    # Extract enriched windows (q < 0.2), join annotations, and sort by q-value. 
+    enriched_window_data = q_data %>% filter(above_threshold, qvalue < 0.2) %>% select(-above_threshold) %>% left_join(feature_annotations) %>% arrange(qvalue)
+    write_tsv(enriched_window_data %>% mutate(across(c("enrichment_l2or","pvalue","qvalue"), ~ sprintf(.x, fmt = "%.6g"))), paste0("output/secondary_results/enriched_windows/", output_stem, ".enriched_windows.tsv.gz"))
+}
 
-# Extract enriched windows (q < 0.2), join annotations, and sort by q-value. 
-enriched_window_data = q_data %>% filter(above_threshold, qvalue < 0.2) %>% select(-above_threshold) %>% left_join(feature_annotations) %>% arrange(qvalue)
-write_tsv(enriched_window_data %>% mutate(across(c("baseline_l2or", "enrichment_l2or","pvalue","qvalue"), ~ sprintf(.x, fmt = "%.6g"))), paste0("output/secondary_results/enriched_windows/", output_stem, ".enriched_windows.tsv.gz"))
 
 # If no enriched windows, emit placeholder PDFs and empty summary TSVs, then quit gracefully. 
 if(nrow(enriched_window_data) == 0) {

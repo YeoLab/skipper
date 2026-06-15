@@ -9,26 +9,34 @@ args = commandArgs(trailingOnly=TRUE)
 data_directory = args[1]
 prefix = args[2]
 
-if(length(args) > 2) {
-	blacklist = read_tsv(args[3], col_names = c("chr","start","end","name","score","strand"), col_types = "cddcdc")
-} else {
-	blacklist = tibble(chr=character(),start=numeric(),end=numeric(),name=character(),score=numeric(),strand=character())
-}
-
 # Collect all enriched window files for the given experiment prefix.
-enriched_window_files = list.files(path = data_directory, pattern = paste0("^", prefix, "\\..*enriched_windows.tsv.gz"), full.names = TRUE)
+enriched_window_files = list.files(
+  path = data_directory,
+  pattern = paste0("^", prefix, "\\..*enriched_windows.tsv.gz"),
+  full.names = TRUE
+)
 
-# specify col_type to handle case of no enriched windows
-enriched_window_data = enriched_window_files %>%
-    setNames(sub("\\.enriched_windows\\.tsv.gz", "", basename(.))) %>% 
-    map(function(x) read_tsv(x, col_types="cddcdcdddcddddcddccccccccc") %>% mutate(name = as.character(name)) %>% anti_join(blacklist %>% select(-name))) %>% 
-    Filter(function(x) nrow(x) > 0, .) %>%
-    bind_rows(.id = "clip_replicate_label") 
+enriched_window_schema <- readr::read_tsv(
+  enriched_window_files[[1]],
+  col_types = "cddcdcdddcddddcddccccccccc"
+) %>%
+  slice(0) %>%
+  mutate(clip_replicate_label = character())
 
-# Force numeric types. 
+enriched_window_data <- enriched_window_files %>%
+  setNames(sub("\\.enriched_windows\\.tsv.gz", "", basename(.))) %>%
+  map(\(x) {
+    read_tsv(x, col_types = "cddcdcdddcddddcddccccccccc") %>%
+      mutate(name = as.character(name))
+  }) %>%
+  purrr::keep(\(x) nrow(x) > 0) %>%
+  bind_rows(.id = "clip_replicate_label") %>%
+  { bind_rows(enriched_window_schema, .) }
+
+# Force numeric types.
 enriched_window_data <- enriched_window_data %>%
   mutate(across(
-    c(baseline_l2or, input, clip, enrichment_l2or, pvalue, qvalue),
+    c(input, clip, enrichment_l2or, pvalue, qvalue),
     ~ suppressWarnings(as.numeric(.))
   ))
 
@@ -51,8 +59,17 @@ if (nrow(enriched_window_data) == 0){
 
 # Handle case: only single-replicate enrichment (no overlap).
 if (nrow(enriched_window_data %>% group_by(name) %>% filter(n() > 1)) == 0) {
-	# Save structure-matching empty tibble
-	reproducible_enriched_window_data = enriched_window_data %>% group_by(across(-c(clip_replicate_label,baseline_l2or,input,clip,enrichment_l2or,pvalue,qvalue))) %>% summarize %>% head(0)
+	# Construct an empty dataframe with expected columns
+	columns= c("chr","start","end","name","score","strand","gc",
+	"gc_bin","chrom","feature_id","feature_bin","feature_type_top","feature_types",
+	"gene_name","gene_id","transcript_ids","gene_type_top","transcript_type_top",
+	"gene_types","transcript_types", "input_sum","clip_sum","enrichment_n",
+	"enrichment_l2or_min","enrichment_l2or_mean","enrichment_l2or_max","p_max","p_min",
+	"q_max","q_min") 
+	reproducible_enriched_window_data = data.frame(matrix(nrow = 0, ncol = length(columns))) 
+	colnames(reproducible_enriched_window_data) = columns
+
+	# Save empty table and exit
 	write_tsv(reproducible_enriched_window_data, paste0("output/secondary_results/unfiltered_reproducible_enriched_windows/", prefix, ".unfiltered_reproducible_enriched_windows.tsv.gz"))
 	quit()
 }	

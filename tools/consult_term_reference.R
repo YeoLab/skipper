@@ -21,6 +21,21 @@ enriched_windows = read_tsv(enriched_window_file)
 terms = fgsea::gmtPathways(term_gmt_file)
 term_reference = read_tsv(term_reference_file)
 
+# If we have no enriched windows, emit placeholder figure and tables. 
+if(length(enriched_windows$chr) == 0) {
+    df <- setNames(data.frame(matrix(ncol = 15, nrow = 0)),
+               c("term","n_genes_term","n_genes_enriched","n_windows_enriched",
+                 "n_windows_total","estimate","statistic","parameter","conf.low",
+                 "conf.high","method","alternative","l2fc","p_unadjusted","p_adj"))
+    # Save the term-level enrichment results.
+    write_tsv(df, paste0("output/gene_sets/", prefix, ".enriched_terms.tsv.gz"))
+    
+	pdf(paste0("output/figures/gene_sets/", prefix, ".clustered_top_terms.pdf"),height= 1,width = 2)
+		print(ggplot() + annotate("text", x = 1, y = 1, label = "0 or 1 significant terms") + theme_void())
+	dev.off()
+	quit()
+}
+
 # Keep only those terms that appear in the reference table to align with available priors.
 valid_terms = terms[unique(term_reference$term)]
 

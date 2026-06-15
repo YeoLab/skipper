@@ -17,23 +17,63 @@ window_size = 100                 # Window size for tiling
 transcript_data = rtracklayer::readGFF(gff3_file) %>% .[which(.$transcript_type != "artifact"),]
 gr = makeGRangesFromDataFrame(transcript_data, keep.extra.columns=TRUE)
 
-# Import accession rankings and define type/subtype priorities
-accession_data = readr::read_tsv(accession_ranking_file) %>% (dplyr::arrange)(rank)
+# Import accession rankings and define type/subtype priorities.
+accession_data = readr::read_tsv(accession_ranking_file) %>% dplyr::arrange(rank)
 accession_type_rankings = c(accession_data$accession, "primary_miRNA")
 exon_subtypes = accession_data$exon_subtype %>% unique
 protein_coding_subtype = accession_data$exon_subtype[accession_data$accession == "protein_coding"] %>% head(1)
 prioritized_exon_subtypes = exon_subtypes[cumsum(exon_subtypes == protein_coding_subtype) < 1]
 unprioritized_exon_subtypes = exon_subtypes[cumsum(exon_subtypes == protein_coding_subtype) >= 1]
 
-# Define a canonical order of feature types
-feature_order = c(paste0("EXON_", prioritized_exon_subtypes), "CDS_SOLITARY", "CDS_START","CDS_STOP","CDS",
-                  "UTR3","UTR5",paste0("EXON_", unprioritized_exon_subtypes),
-                  "SSB_ADJ","SS3_ADJ","SS5_ADJ","SSB_PROX","SS3_PROX","SS5_PROX","PRIMIRNA","INTRON")
+# Define a canonical order of feature types.
+feature_order = c(
+    paste0("EXON_", prioritized_exon_subtypes),
+    "CDS_SOLITARY", "CDS_START", "CDS_STOP", "CDS",
+    "UTR3", "UTR5",
+    paste0("EXON_", unprioritized_exon_subtypes),
+    "SSB_ADJ", "SS3_ADJ", "SS5_ADJ", "SSB_PROX", "SS3_PROX", "SS5_PROX", "PRIMIRNA", "INTRON"
+)
 
-# Check that gene/transcript types in GFF match rankings
-write("Checking that all gene and transcript types are included in ranking", stderr())
-stopifnot(length(setdiff(unique(gr$gene_type), accession_type_rankings)) == 0,
-          length(setdiff(unique(gr$transcript_type), accession_type_rankings)) == 0)
+# Check that gene/transcript types in GFF match rankings.
+write("Checking that all gene and transcript types are included in ranking.", stderr())
+
+gff_gene_types = sort(unique(stats::na.omit(gr$gene_type)))
+gff_transcript_types = sort(unique(stats::na.omit(gr$transcript_type)))
+ranking_types = sort(unique(stats::na.omit(accession_type_rankings)))
+
+missing_gene_types = setdiff(gff_gene_types, ranking_types)
+missing_transcript_types = setdiff(gff_transcript_types, ranking_types)
+unused_ranking_types = setdiff(ranking_types, union(gff_gene_types, gff_transcript_types))
+
+# Always report unused ranking entries.
+if (length(unused_ranking_types) > 0) {
+    write("Note: The following accession types are present in the ranking file but not used in this GFF:", stderr())
+    write(paste0("    - ", unused_ranking_types), stderr())
+}
+
+# Only stop if required types are missing.
+if (length(missing_gene_types) > 0 || length(missing_transcript_types) > 0) {
+
+    error_lines = c(
+        "Accession ranking file does not match the GFF annotation.",
+        "",
+        paste0("Ranking file: ", accession_ranking_file),
+        paste0("GFF file: ", gff3_file),
+        ""
+    )
+
+    if (length(missing_gene_types) > 0) {
+        error_lines = c(
+            error_lines,
+            "Add the following missing accession type to the ranking file:",
+            paste0("    - ", missing_gene_types),
+            ""
+        )
+    }
+
+    stop(paste(error_lines, collapse = "\n"), call. = FALSE)
+}
+
 write("...Success", stderr())
 
 # Build metadata string for each feature

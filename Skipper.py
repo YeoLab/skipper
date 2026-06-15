@@ -1,4 +1,4 @@
- ############################## SETUP #################################
+############################## SETUP #################################
 
 # Import packages. 
 import pandas as pd
@@ -17,6 +17,12 @@ WORKDIR = config.get("WORKDIR")
 workdir: config['WORKDIR']
 TMPDIR = config.get("TMPDIR")
 GINI_CUTOFF = config.get("GINI_CUTOFF")
+BLACKLIST = config.get("BLACKLIST")
+NORMALIZATION_MODE = config.get("NORMALIZATION_MODE")
+THRESHOLD_MIN = config.get("THRESHOLD_MIN")
+HOMER = config.get("HOMER")
+
+############################ ESTABLISH DEFAULTS ###########################
 
 # Set the temporary directory within the working directory by default. 
 if not TMPDIR:
@@ -25,9 +31,28 @@ if not TMPDIR:
 if not GINI_CUTOFF:
     config['GINI_CUTOFF'] = 0.9
 
+if not BLACKLIST or str(BLACKLIST).strip().lower() in {"none", "null", "na", "n/a"}:
+    BLACKLIST = None
+
+if not HOMER:
+    HOMER = ""
+
+if not NORMALIZATION_MODE:
+    NORMALIZATION_MODE = "new"
+
+if not THRESHOLD_MIN:
+    THRESHOLD_MIN = 2
+
+config["BLACKLIST"] = BLACKLIST
+config["HOMER"] = HOMER
+config["NORMALIZATION_MODE"] = NORMALIZATION_MODE
+config["THRESHOLD_MIN"] = THRESHOLD_MIN
+
 # Check for proper overdispersion mode. 
 if OVERDISPERSION_MODE not in ["clip","input"]:
     raise Exception("Overdispersion must be calculated using 'clip' or 'input' samples")
+
+########################## CLEAN MANIFEST #############################
 
 # Read and cleanup manifest.
 manifest = pd.read_csv(MANIFEST, comment = "#", index_col = False).dropna(subset=['Experiment','Sample'])
@@ -38,18 +63,28 @@ manifest["Input_replicate"] = pd.to_numeric(manifest.Input_replicate, downcast="
 for col in manifest.columns[manifest.columns.str.contains('_fastq') | manifest.columns.str.contains('_adapter')]:
     manifest[col] = manifest[col].str.strip()
 
-# Check that input values are valid.  
-try:
-    if min(manifest.groupby("Experiment")["CLIP_fastq"].agg(lambda x: len(set(x)))) < 2:
-        sys.stderr.write("WARNING: NONZERO EXPERIMENTS HAVE ONLY ONE CLIP REPLICATE.\nPIPELINE MUST HALT AFTER GENERATING RAW COUNTS\nThis usually means your manifest is incorrectly formatted\n")
-        print(manifest.groupby("Experiment")["CLIP_fastq"].agg(lambda x: len(set(x))))
-        sleep(5)
-except:
-    if min(manifest.groupby("Experiment")["CLIP_fastq_1"].agg(lambda x: len(set(x)))) < 2:
-        sys.stderr.write("WARNING: NONZERO EXPERIMENTS HAVE ONLY ONE CLIP REPLICATE.\nPIPELINE MUST HALT AFTER GENERATING RAW COUNTS\nThis usually means your manifest is incorrectly formatted\n")
-        print(manifest.groupby("Experiment")["CLIP_fastq_1"].agg(lambda x: len(set(x))))
-        sleep(5)
+# Check that input values are valid.
+def _first_present(df, candidates):
+    for c in candidates:
+        if c in df.columns:
+            return c
+    return None
 
+clip_id_col = _first_present(manifest, ["CLIP_bam", "CLIP_fastq", "CLIP_fastq_1"])
+if clip_id_col is None:
+    raise Exception("Manifest must contain one of: CLIP_bam, CLIP_fastq, CLIP_fastq_1")
+
+clip_reps_per_experiment = manifest.groupby("Experiment")[clip_id_col].agg(lambda x: len(set(x)))
+if clip_reps_per_experiment.min() < 2:
+    sys.stderr.write(
+        "WARNING: NONZERO EXPERIMENTS HAVE ONLY ONE CLIP REPLICATE.\n"
+        "PIPELINE MUST HALT AFTER GENERATING RAW COUNTS\n"
+        "This usually means your manifest is incorrectly formatted\n"
+    )
+    print(clip_reps_per_experiment)
+    sleep(5)
+
+# Additional index checks.
 if max(manifest.groupby("Sample")["Input_replicate"].agg(lambda x: min(x))) > 1:
     raise Exception("Input replicates for samples in manifest do not increment from 1 as expected")
 
@@ -78,36 +113,40 @@ replicate_labels = pd.Series(input_replicate_labels + clip_replicate_labels)
 config['replicate_labels']= replicate_labels
 
 # Map each replicate label to its corresponding FASTQ file(s) and adapter sequence(s), depending on the protocol version. 
-if "Input_fastq" in manifest.columns and config['protocol']=='ENCODE4':
-    config['replicate_label_to_fastqs'] = dict(zip(input_replicate_labels + clip_replicate_labels,
-                                                   input_replicates.Input_fastq.tolist() + clip_replicates.CLIP_fastq.tolist()))
-    config['replicate_label_to_adapter'] = dict(zip(input_replicate_labels + clip_replicate_labels,
-                                                    input_replicates.Input_adapter.tolist() + clip_replicates.CLIP_adapter.tolist()))
-elif config['protocol']=='ENCODE3':
-    config['replicate_label_to_fastq_1'] = dict(zip(input_replicate_labels + clip_replicate_labels,
-                                                    input_replicates.Input_fastq_1.tolist() + clip_replicates.CLIP_fastq_1.tolist()))
-    config['replicate_label_to_fastq_2'] = dict(zip(input_replicate_labels + clip_replicate_labels,
-                                                    input_replicates.Input_fastq_2.tolist() + clip_replicates.CLIP_fastq_2.tolist()))
-    config['replicate_label_to_adapter_1'] = dict(zip(input_replicate_labels + clip_replicate_labels,
-                                                      input_replicates.Input_adapter_1.tolist() + clip_replicates.CLIP_adapter_1.tolist()))
-    config['replicate_label_to_adapter_2'] = dict(zip(input_replicate_labels + clip_replicate_labels,
-                                                      input_replicates.Input_adapter_2.tolist() + clip_replicates.CLIP_adapter_2.tolist()))
-else:
-    raise Exception("protocol does not fit in ENCODE3 or ENCODE4")
+if "CLIP_bam" not in manifest.columns:
+    if "Input_fastq" in manifest.columns and config['protocol']=='ENCODE4':
+        config['replicate_label_to_fastqs'] = dict(zip(input_replicate_labels + clip_replicate_labels,
+                                                       input_replicates.Input_fastq.tolist() + clip_replicates.CLIP_fastq.tolist()))
+        config['replicate_label_to_adapter'] = dict(zip(input_replicate_labels + clip_replicate_labels,
+                                                        input_replicates.Input_adapter.tolist() + clip_replicates.CLIP_adapter.tolist()))
+    elif config['protocol']=='ENCODE3':
+        config['replicate_label_to_fastq_1'] = dict(zip(input_replicate_labels + clip_replicate_labels,
+                                                        input_replicates.Input_fastq_1.tolist() + clip_replicates.CLIP_fastq_1.tolist()))
+        config['replicate_label_to_fastq_2'] = dict(zip(input_replicate_labels + clip_replicate_labels,
+                                                        input_replicates.Input_fastq_2.tolist() + clip_replicates.CLIP_fastq_2.tolist()))
+        config['replicate_label_to_adapter_1'] = dict(zip(input_replicate_labels + clip_replicate_labels,
+                                                          input_replicates.Input_adapter_1.tolist() + clip_replicates.CLIP_adapter_1.tolist()))
+        config['replicate_label_to_adapter_2'] = dict(zip(input_replicate_labels + clip_replicate_labels,
+                                                          input_replicates.Input_adapter_2.tolist() + clip_replicates.CLIP_adapter_2.tolist()))
+    else:
+        raise Exception("protocol does not fit in ENCODE3 or ENCODE4")
 
 # Map each replicate label to the expected deduplicated BAM file path. 
-if config['protocol']=='ENCODE4':
+if "CLIP_bam" in manifest.columns:
+    config['replicate_label_to_bams'] = dict(zip(input_replicate_labels + clip_replicate_labels, input_replicates.Input_bam.to_list() + clip_replicates.CLIP_bam.to_list()))
+elif config['protocol']=='ENCODE4':
     config['replicate_label_to_bams'] = dict(zip(input_replicate_labels + clip_replicate_labels, ["output/secondary_results/bams/dedup/genome/" + replicate_label + ".genome.Aligned.sort.dedup.bam" for replicate_label in input_replicate_labels + clip_replicate_labels] ))
 elif config['protocol']=='ENCODE3':
     config['replicate_label_to_bams'] = dict(zip(input_replicate_labels + clip_replicate_labels, [f"output/secondary_results/bams/dedup/genome_R{INFORMATIVE_READ}/" + replicate_label + f".genome.Aligned.sort.dedup.R{INFORMATIVE_READ}.bam" for replicate_label in input_replicate_labels + clip_replicate_labels] ))
 else:
-    raise Exception("protocol does not fit in ENCODE3 or ENCODE4")
+    raise Exception("pre-processing protocol does not fit in ENCODE3 or ENCODE4, and no pre-processed bams provided")
 
 # Extract out experiment label information. 
 config['experiment_labels'] = pd.Series(manifest.Experiment.drop_duplicates().tolist())
 experiment_data = manifest.groupby("Experiment").agg({"CLIP_replicate_label": list, "Input_replicate_label" : list})
 
-# Build dictionaries that link replicates together for modeling and analysis:
+########################## Build dictionaries that link replicates together for modeling and analysis ############################
+
 # Fpr determining which replicates to use when estimating variance.
 config['overdispersion_replicate_lookup'] = dict(zip(manifest.CLIP_replicate_label.tolist(),
                                                      manifest.Input_replicate_label.tolist() if OVERDISPERSION_MODE == "input"
@@ -142,30 +181,10 @@ for experiment_label, label_list in zip(experiment_data.index, experiment_data.I
 # Save mapping into config for downstream steps
 config['experiment_to_input_replicate_labels']=experiment_to_input_replicate_labels
 
+########################## FINAL SETUP ###########################
+
 # Add the manifest to the config file
 config['manifest'] = manifest
-
-# Collect benchmark-related outputs based on optional external mapping files.
-benchmark_outputs = []
-
-# For RBNS
-if 'RBNS_MAPPING' in config:
-    config['RBNS_mapping_df'] = pd.read_csv(config['RBNS_MAPPING'])
-    print(config['RBNS_mapping_df'])
-    experiments_to_banchmark = set(config['manifest']['Experiment']).intersection(set(config['RBNS_mapping_df']['Experiment']))
-    benchmark_outputs+=[f"output/ml/benchmark/homer/RBNS/{experiment_label}.pearson_auprc.csv"
-                        for experiment_label in list(experiments_to_banchmark)]
-else:
-    pass
-
-# FOR SELEX
-if 'SELEX_MAPPING' in config:
-    config['SELEX_mapping_df'] = pd.read_csv(config['SELEX_MAPPING'])
-    experiments_to_banchmark = set(config['manifest']['Experiment']).intersection(set(config['SELEX_mapping_df']['Experiment']))
-    benchmark_outputs+=[f"output/ml/benchmark/homer/SELEX/{experiment_label}.pearson_auprc.csv"
-                        for experiment_label in list(experiments_to_banchmark)]
-else:
-    pass
 
 # Record the path of the config file that was passed to the command line (allows workflow to keep track of config file).
 if '--configfile' in sys.argv:
@@ -194,33 +213,24 @@ config["UNINFORMATIVE_READ"] = str(3 - config["INFORMATIVE_READ"])
 # Always include the basic.
 all_inputs = ["basic_done.txt"]
 
-# Look through all ml related keys. 
-ml_keys = ["HEADER", "RENAME", "ROULETTE_DIR", "GNOMAD_DIR", "CLINVAR_VCF", "VEP_CACHEDIR",
-           "VEP_CACHE_VERSION", "SINGLETON_REFERENCE", "OE_RATIO_REFERENCE", "GNOMAD_CONSTRAINT"]
-
 repeat_keys = ["REPEAT_TABLE", "REPEAT_BED"]
 
 geneset_keys = ["GENE_SETS", "GENE_SET_REFERENCE", "GENE_SET_DISTANCE"]
 
 homer_keys = ["HOMER"]
 
-meta_keys = ["META_ANALYSIS"]
-
 # Auto assign keys to None (avoids DAG error in snakemake).
-for k in ml_keys + repeat_keys + geneset_keys + homer_keys + meta_keys:
+for k in repeat_keys + geneset_keys + homer_keys:
     if k not in config or k == False:
         config[k] = "DO/NOT/RUN"
 
-# A function that checks if all ml keys are present. 
+# A function that checks if all keys are present. 
 def has_all_required(cfg, keys):
     return all(cfg.get(k) not in [None, "DO/NOT/RUN"] for k in keys)
 
-# If all ml configs are provided, include the ml rules.
-if has_all_required(config, ml_keys):
+if "CLIP_bam" not in manifest.columns:
     all_inputs += [
-        "ml_variants_done.txt",
-        "ml_benchmark_done.txt",
-        "mcross_done.txt",
+        "QC_done.txt"
     ]
 
 if has_all_required(config, repeat_keys):
@@ -233,20 +243,12 @@ if has_all_required(config, geneset_keys):
         "geneset_done.txt",
     ]
 
-if config["HOMER"] or has_all_required(config, ml_keys):
+if config["HOMER"] != "":
     all_inputs += [
         "homer_done.txt",
     ]
 
-if config["META_ANALYSIS"] != "":
-    all_inputs += [
-        "meta_done.txt",
-    ]
-
-if config["META_ANALYSIS"] != "" and has_all_required(config, repeat_keys):
-    all_inputs += [
-        "meta_repeats_done.txt",
-    ]
+print(all_inputs)
 
 # Run rule all. 
 rule all:
@@ -256,9 +258,9 @@ rule all:
 ############################## Call all basic outputs #################################
 rule all_basic_output:
     input:
-        expand("output/secondary_results/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam", replicate_label = replicate_labels), 
-        expand("output/secondary_results/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam.bai", replicate_label = replicate_labels), 
-        expand("output/secondary_results/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label = replicate_labels),
+        list(config["replicate_label_to_bams"].values()),
+        [p + ".bai" for p in list(config["replicate_label_to_bams"].values())],
+        expand("output/secondary_results/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label=replicate_labels),
         expand("output/secondary_results/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
         expand("output/secondary_results/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw", replicate_label = replicate_labels),
         expand("output/secondary_results/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz",
@@ -268,10 +270,6 @@ rule all_basic_output:
         expand("output/secondary_results/enrichment_reproducibility/{experiment_label}.odds_data.tsv", experiment_label = manifest.Experiment),
         lambda wildcards: call_enriched_window_output(wildcards),
         "output/figures/tsne/skipper.tsne_query.pdf",
-        # Quality control
-        expand("output/QC/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
-        expand("output/QC/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
-        expand("output/QC/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment),
     output:
         "basic_done.txt"
     resources:
@@ -283,6 +281,21 @@ rule all_basic_output:
         """
 
 ############################## Call specific optional outputs #################################
+
+rule all_qc:
+    input:
+        expand("output/QC/multiqc/{experiment_label}/multiqc_data", experiment_label = manifest.Experiment),
+        expand("output/QC/multiqc/{experiment_label}/multiqc_plots", experiment_label = manifest.Experiment),
+        expand("output/QC/multiqc/{experiment_label}/multiqc_report.html", experiment_label = manifest.Experiment),
+    output:
+        "QC_done.txt"
+    resources: 
+        mem_mb=400,
+        run_time=20
+    shell:
+        """
+        touch {output}
+        """
 
 rule all_meta_output:
     input:
@@ -309,7 +322,6 @@ rule all_meta_repeat_output:
         """
         touch {output}
         """
-
 
 rule all_homer_output:
     input:
@@ -356,160 +368,69 @@ rule all_geneset_output:
         touch {output}
         """
 
-# Calls upon ouputs needed for machine learning. 
-rule all_ml_variants_output:
-    input:
-        expand("output/ml/rbpnet_model/{experiment_label}/valid/test_data_metric.csv",
-               experiment_label = manifest.Experiment),
-        expand("output/ml/rbpnet_model/{experiment_label}/motif_done",
-               experiment_label = manifest.Experiment),
-        expand("output/variants/gnomAD_roulette/{experiment_label}.total.csv",
-               experiment_label = manifest.Experiment),
-        expand("output/variants/clinvar/{experiment_label}.vep.tsv",
-            experiment_label = manifest.Experiment),
-        expand("output/variant_analysis/{experiment_label}.clinvar_variants.csv",
-               experiment_label = manifest.Experiment),
-    output:
-        "ml_variants_done.txt"
-    resources:
-        mem_mb=400,
-        run_time=20
-    shell:
-        """
-        touch {output}
-        """
-
-# Calls upon outputs needed for benchmarking. 
-rule all_ml_benchmark_outputs:
-    input:
-        benchmark_outputs,
-        expand("output/ml/benchmark/homer/{data_types}_mcross/{experiment_label}.pearson_auprc.csv",
-                data_types = ['CITS'],
-               experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i]),
-        expand("output/ml/rbpnet_model_original/{experiment_label}/valid/test_data_metric.csv",
-               experiment_label = [i for i in manifest.Experiment.tolist() if 'QKI' in i or 'RBFOX' in i or 'PUM' in i]),
-        expand("output/ml/nt_lora/{experiment_label}/{model_name}/d_log_odds_corr.csv",
-               experiment_label = [i for i in manifest.Experiment.tolist()],
-                model_name = ['nucleotide-transformer-500m-human-ref']),
-    output:
-        "ml_benchmark_done.txt"
-    resources:
-        mem_mb=400,
-        run_time=20
-    shell:
-        """
-        touch {output}
-        """
-
-# Calls upon outputs needed for mcross. 
-rule all_ctk:
-    input:
-        expand("output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.homer", experiment_label = manifest.Experiment),
-        expand("output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.homer",experiment_label = manifest.Experiment, data_types=['CITS']),
-    output:
-        "mcross_done.txt"
-    resources:
-        mem_mb=400,
-        run_time=20
-    shell:
-        """
-        touch {output}
-        """
-
 ############################## Define modules #################################
 
 
 module se_preprocess:
     snakefile:
-        "rules/basic/se_preprocess.smk"
+        "rules/se_preprocess.smk"
     config:
         config
 
 
 module pe_preprocess:
     snakefile:
-        "rules/basic/pe_preprocess.smk"
+        "rules/pe_preprocess.smk"
     config:
         config
 
 
 module qc:
     snakefile:
-        "rules/basic/qc.smk"
-    config: config
+        "rules/qc.smk"
+    config:
+        config
 
 
 module genome:
     snakefile:
-        "rules/basic/genome_windows.smk"
-    config: config
+        "rules/genome_windows.smk"
+    config: 
+        config
 
 
 module repeat:
     snakefile:
-        "rules/basic/repeat.smk"
-    config: config
+        "rules/repeat.smk"
+    config: 
+        config
 
 
 module finemap:
     snakefile:
-        "rules/basic/finemap.smk"
-    config: config
+        "rules/finemap.smk"
+    config: 
+        config
 
 
 module analysis:
     snakefile:
-        "rules/basic/analysis.smk"
-    config: config
-
-
-module meta_analysis:
-    snakefile:
-        "rules/basic/meta_analysis.smk"
+        "rules/analysis.smk"
     config:
         config
-
 
 module bigwig:
     snakefile:
-        "rules/basic/bigwig.smk"
+        "rules/bigwig.smk"
     config:
         config
 
-module prep_ml:
-    snakefile:
-        "rules/ml/prep_ml.smk"
-    config:
-        config
-
-module rbpnet:
-    snakefile:
-        "rules/ml/train_rbpnet.smk"
-    config:
-        config
-
-module benchmark:
-    snakefile:
-        "rules/ml/benchmark_ml.smk"
-    config:
-        config
-
-
-module variants_rbpnet:
-    snakefile:
-        "rules/ml/variants_rbpnet.smk"
-    config:
-        config
-
-module ctk_mcross:
-    snakefile:
-        "rules/mcross/ctk_mcross.smk"
-    config:
-        config
 
 ############################## Run modules #################################
-    
-if config['protocol']=='ENCODE4':
+
+if "CLIP_bam" in manifest.columns:
+    pass
+elif config['protocol']=='ENCODE4':
     use rule * from se_preprocess as se_*
 else:
     use rule * from pe_preprocess as pe_*
@@ -526,10 +447,3 @@ if has_all_required(config, geneset_keys):
 if config["HOMER"] != "":
     use rule sample_background_windows_by_region from analysis
     use rule run_homer from analysis
-if has_all_required(config, ml_keys):
-    use rule * from prep_ml as ml_*
-    use rule * from rbpnet as rbpnet_*
-    use rule * from variants_rbpnet as rbpnet_variants_*
-    use rule * from ctk_mcross
-use rule * from meta_analysis
-use rule * from benchmark

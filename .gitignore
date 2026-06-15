@@ -1,6 +1,7 @@
 archive/
 *.DS_Store
 .DS_Store/
+testing/
 profiles/Keegan_custom_DO_NOT_COMMIT/
 .snakemake
 __pycache__
