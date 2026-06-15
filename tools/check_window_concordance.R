@@ -50,13 +50,13 @@ for(clip_replicate_1 in clip_replicate_labels) {
 					print(ggplot() + annotate("text", x = 1, y = 1, label = "Insufficient data") + theme_void())
 				dev.off()
 
-                # Create a dummy odds_data table with the same structure as a real broom::tidy(fisher.test()) output.
-                dummy_ft <- fisher.test(matrix(c(1, 1, 1, 1), nrow = 2))
-                odds_data <- broom::tidy(dummy_ft) %>%
+                # Create a dummy odds_data table with the same structure as real output.
+                dummy_ft = fisher.test(matrix(c(1, 1, 1, 1), nrow = 2))
+                odds_data = broom::tidy(dummy_ft) %>%
                     mutate(across(where(is.numeric), ~ NA_real_))
             
                 # Save the dummy Fisher test summary to a TSV file for downstream auditing.
-                output_tsv_path <- paste0(
+                output_tsv_path = paste0(
                     "output/secondary_results/enrichment_reproducibility/",
                     prefix, ".odds_data.tsv"
                 )
@@ -70,7 +70,7 @@ for(clip_replicate_1 in clip_replicate_labels) {
 
 			# Save the Fisher test summary to a TSV file for downstream auditing. 
 			# Note: this overwrites per pair; adjust if per-pair persistence is needed. 
-			output_tsv_path <- paste0("output/secondary_results/enrichment_reproducibility/", prefix, ".odds_data.tsv")
+			output_tsv_path = paste0("output/secondary_results/enrichment_reproducibility/", prefix, ".odds_data.tsv")
 			write_tsv(odds_data, output_tsv_path)
 
 			# Prepare labels and mosaic-bar geometry for visualization of concordance. 

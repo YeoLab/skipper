@@ -12,8 +12,8 @@ rule sample_background_windows_by_region:
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/sample_background_windows_by_region/{experiment_label}.sample_background_windows_by_region.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.sample_background_windows_by_region.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.sample_background_windows_by_region.err",
+        stdout = "stdout/{experiment_label}.sample_background_windows_by_region.out",
+        stderr = "stderr/{experiment_label}.sample_background_windows_by_region.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
@@ -47,8 +47,8 @@ rule run_homer:
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/run_homer/{experiment_label}.all_replicates.reproducible.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.run_homer.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.run_homer.err",
+        stdout = "stdout/{experiment_label}.run_homer.out",
+        stderr = "stderr/{experiment_label}.run_homer.err",
     conda:
         "envs/homer.yaml"
     shell:
@@ -116,8 +116,8 @@ rule consult_encode_reference:
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/consult_encode_reference/skipper.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/consult_encode_reference.out",
-        stderr = config["WORKDIR"] + "/stderr/consult_encode_reference.err",
+        stdout = "stdout/consult_encode_reference.out",
+        stderr = "stderr/consult_encode_reference.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
@@ -154,8 +154,8 @@ rule consult_encode_reference_re:
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/consult_encode_reference_re/skipper.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/consult_encode_reference_re.out",
-        stderr = config["WORKDIR"] + "/stderr/consult_encode_reference_re.err",
+        stdout = "stdout/consult_encode_reference_re.out",
+        stderr = "stderr/consult_encode_reference_re.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
@@ -189,8 +189,8 @@ rule consult_term_reference:
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.consult_term_reference.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.consult_term_reference.err",
+        stdout = "stdout/{experiment_label}.consult_term_reference.out",
+        stderr = "stderr/{experiment_label}.consult_term_reference.err",
     conda:
         "envs/skipper_R.yaml"
     shell:

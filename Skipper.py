@@ -262,7 +262,6 @@ rule all_basic_output:
         [p + ".bai" for p in list(config["replicate_label_to_bams"].values())],
         expand("output/secondary_results/bigwigs/unscaled/plus/{replicate_label}.unscaled.plus.bw", replicate_label=replicate_labels),
         expand("output/secondary_results/bigwigs/scaled/plus/{replicate_label}.scaled.plus.bw", replicate_label = replicate_labels),
-        expand("output/secondary_results/bigwigs/scaled/plus/{replicate_label}.scaled.cov.plus.bw", replicate_label = replicate_labels),
         expand("output/secondary_results/enriched_windows/{experiment_label}.{clip_replicate_label}.enriched_windows.tsv.gz",
                zip, experiment_label = manifest.Experiment, clip_replicate_label = manifest.CLIP_replicate_label),
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz", experiment_label = manifest.Experiment),
@@ -290,32 +289,6 @@ rule all_qc:
     output:
         "QC_done.txt"
     resources: 
-        mem_mb=400,
-        run_time=20
-    shell:
-        """
-        touch {output}
-        """
-
-rule all_meta_output:
-    input:
-        expand("output/secondary_results/counts/genome/megatables/{genome_type}.tsv.gz", genome_type = ["feature_type_top","transcript_type_top"]),
-    output:
-        "meta_done.txt"
-    resources:
-        mem_mb=400,
-        run_time=20
-    shell:
-        """
-        touch {output}
-        """
-
-rule all_meta_repeat_output:
-    input:
-        expand("output/secondary_results/counts/repeats/megatables/{repeat_type}.tsv.gz", repeat_type = ['name', 'class', 'family']),
-    output:
-        "meta_repeats_done.txt"
-    resources:
         mem_mb=400,
         run_time=20
     shell:

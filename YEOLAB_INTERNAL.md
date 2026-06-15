@@ -1,5 +1,5 @@
 # YEO-LAB internal example 
-Hello. This is a short example for running skipper as a member of the Yeo-lab partition on TSCC. Before attempting this example, please log onto TSCC and change directories to your scratch director
+Hello. This is a short example for running Skipper as a member of the Yeo-lab partition on TSCC.
 
 ## Load up an interactive node.
 
@@ -8,7 +8,7 @@ srun -N 1 -c 1 -t 4:00:00 -p gold -q hcg-csd792 -A csd792 --mem 4G --pty /bin/ba
 ```
 
 ## Create a folder in scratch to save the output.
-After logging onto TSCC, simply run the command below (Replacing YOUR_USERNAME with your TSCC username) to create a folder to save the output of the 
+Run the command below (Replacing YOUR_USERNAME with your TSCC username) to create a folder to save the output of the run. 
 
 ```
 mkdir /tscc/lustre/ddn/scratch/YOUR_USERNAME/skipper100_test

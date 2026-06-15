@@ -6,6 +6,8 @@ latency: 60
 skip-script-cleanup: true
 retries: 3
 nolock: true
+default-storage-provider: none
+rerun-triggers: mtime
 keep-going: true
 use-conda: true
 conda-prefix: "PATH/TO/SAVE/CONDA_ENVS"
@@ -18,3 +20,9 @@ default-resources:
   slurm_account: "YOUR_ACCOUNT"
   runtime: 30
   mem_mb: 20000
+  slurm_extra: "--qos=YOUR_QOS"
+use-envmodules: true
+show-failed-logs: true
+slurm-logdir: "PATH/TO/SAVE/SLURM/LOGS"
+# add --exclude=NODE to slurm extra to remove problematic nodes. 
+

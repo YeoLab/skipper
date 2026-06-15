@@ -25,8 +25,8 @@ rule get_nt_coverage:
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.get_nt_coverage.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.get_nt_coverage.err",
+        stdout = "stdout/{experiment_label}.get_nt_coverage.out",
+        stderr = "stderr/{experiment_label}.get_nt_coverage.err",
     conda:
         "envs/bedbam_tools.yaml"
     shell:
@@ -83,8 +83,8 @@ rule finemap_windows:
         runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.finemap_windows.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.finemap_windows.err",
+        stdout = "stdout/{experiment_label}.finemap_windows.out",
+        stderr = "stderr/{experiment_label}.finemap_windows.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
@@ -112,8 +112,8 @@ rule annotate_finemap:
         "output/secondary_results/finemapping/mapped_sites/{experiment_label}.finemapped_windows.annotated.tsv"
     threads: 1
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.annotate_finemap.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.annotate_finemap.err",
+        stdout = "stdout/{experiment_label}.annotate_finemap.out",
+        stderr = "stderr/{experiment_label}.annotate_finemap.err",
     resources:
         mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
@@ -156,8 +156,8 @@ rule find_both_tested_windows:
         tested_windows_merged = "output/secondary_results/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.merged.bed"
     threads: 1
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.find_both_tested_windows.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.find_both_tested_windows.err",
+        stdout = "stdout/{experiment_label}.find_both_tested_windows.out",
+        stderr = "stderr/{experiment_label}.find_both_tested_windows.err",
     resources:
         mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),

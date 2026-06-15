@@ -16,14 +16,14 @@ enriched_window_files = list.files(
   full.names = TRUE
 )
 
-enriched_window_schema <- readr::read_tsv(
+enriched_window_schema = readr::read_tsv(
   enriched_window_files[[1]],
   col_types = "cddcdcdddcddddcddccccccccc"
 ) %>%
   slice(0) %>%
   mutate(clip_replicate_label = character())
 
-enriched_window_data <- enriched_window_files %>%
+enriched_window_data = enriched_window_files %>%
   setNames(sub("\\.enriched_windows\\.tsv.gz", "", basename(.))) %>%
   map(\(x) {
     read_tsv(x, col_types = "cddcdcdddcddddcddccccccccc") %>%
@@ -34,7 +34,7 @@ enriched_window_data <- enriched_window_files %>%
   { bind_rows(enriched_window_schema, .) }
 
 # Force numeric types.
-enriched_window_data <- enriched_window_data %>%
+enriched_window_data = enriched_window_data %>%
   mutate(across(
     c(input, clip, enrichment_l2or, pvalue, qvalue),
     ~ suppressWarnings(as.numeric(.))
@@ -81,20 +81,13 @@ stopifnot(is.numeric(enriched_window_data$qvalue))
 reproducible_enriched_window_data = enriched_window_data %>%
 	group_by(chr,start,end,name,score,strand,gc,gc_bin,feature_id,feature_bin,chrom,feature_type_top,feature_types,
             gene_name, gene_id, transcript_ids, gene_type_top, transcript_type_top, gene_types, transcript_types) %>%
-	summarize(
-		input_sum = sum(input),                               # total input reads
-		clip_sum = sum(clip),                                 # total CLIP reads
-		enrichment_n = sum(qvalue < 0.2),                     # number of replicates enriched (q<0.2)
-		enrichment_l2or_min = min(enrichment_l2or),           # min log2 enrichment
-		enrichment_l2or_mean = mean(enrichment_l2or),         # mean log2 enrichment
-		enrichment_l2or_max = max(enrichment_l2or),           # max log2 enrichment
-		p_max = max(pvalue),                                  # worst p-value
-		p_min = min(pvalue),                                  # best p-value
-		q_max = max(qvalue),                                  # worst q-value
-		q_min = min(qvalue)                                   # best q-value
+	summarize(input_sum = sum(input), clip_sum = sum(clip), enrichment_n = sum(qvalue < 0.2),
+              enrichment_l2or_min = min(enrichment_l2or), enrichment_l2or_mean = mean(enrichment_l2or), 
+              enrichment_l2or_max = max(enrichment_l2or), p_max = max(pvalue), p_min = min(pvalue),
+              q_max = max(qvalue), q_min = min(qvalue)                                  
 	) %>%
-	filter(enrichment_n > 1) %>%                             # require reproducibility across replicates
-	arrange(desc(enrichment_l2or_mean))                      # rank by strongest enrichment
+	filter(enrichment_n > (length(enriched_window_files) - 1)) %>%
+	arrange(desc(enrichment_l2or_mean))
 
 # Save reproducible enriched window data.
 write_tsv(reproducible_enriched_window_data, paste0("output/secondary_results/unfiltered_reproducible_enriched_windows/", prefix, ".unfiltered_reproducible_enriched_windows.tsv.gz"))

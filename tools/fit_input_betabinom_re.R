@@ -9,10 +9,7 @@ args = commandArgs(trailingOnly=TRUE)
 dir.create("output/figures/secondary_figures/input_scatter_re/", showWarnings = FALSE, recursive = TRUE)
 dir.create("output/secondary_results/input_model_coef_re/", showWarnings = FALSE, recursive = TRUE)
 
-# Inputs:
-# args[1] = repeat element (RE) count data
-# args[2] = experiment label
-# args[3] = the given input replicate to compare against others
+# Inputs
 re_data = read_tsv(args[1])
 experiment = args[2]
 given_input_replicate = args[3]
@@ -37,10 +34,7 @@ if (length(re_data$repeat_name) < 1) {
     )
 
     # Write it out and exit early.
-    write_tsv(
-        dummy_out,
-        paste0("output/secondary_results/input_model_coef_re/", experiment, ".", given_input_replicate, ".tsv")
-    )
+    write_tsv(dummy_out, paste0("output/secondary_results/input_model_coef_re/", experiment, ".", given_input_replicate, ".tsv"))
 
     # Stop evaluation of the rest of the script.
     quit()

@@ -20,9 +20,9 @@ enriched_re_files = list.files(
   full.names = TRUE
 )
 
-is_dummy_tbl <- function(df) {
+is_dummy_tbl = function(df) {
   # Find columns that are genuinely numeric.
-  num_cols <- vapply(df, is.numeric, logical(1))
+  num_cols = vapply(df, is.numeric, logical(1))
   
   # If there are *no* numeric columns at all, it is a dummy. 
   if (!any(num_cols)) {
@@ -48,7 +48,6 @@ enriched_re_list = Filter(function(x) !is_dummy_tbl(x), enriched_re_list)
 
 # Read all tables and drop any that are dummy (empty or all-NA numerics).
 if (length(enriched_re_list) == 0) {
-  # No files at all: produce sentinel outputs and exit.
   
   # Dummy tsne_data table with expected column structure.
   tsne_data_dummy = tibble(
@@ -60,12 +59,9 @@ if (length(enriched_re_list) == 0) {
     class   = "Query"
   )
   
-  # Sentinel plot with margin adjustment to avoid "figure margins too large." 
-  pdf(
-    paste0("output/figures/tsne_re/", prefix, ".tsne_re_query.pdf"),
-    height = 1.7,
-    width  = 2.6
-  )
+  # Dummy plot with margin adjustment to avoid "figure margins too large." 
+  pdf(paste0("output/figures/tsne_re/", prefix, ".tsne_re_query.pdf"),
+      height = 1.7, width  = 2.6)
   par(mar = rep(0, 4))
   plot.new()
   text(0.5, 0.5, "No reproducible enriched RE data available.")
@@ -88,20 +84,10 @@ reference_features = read_tsv(paste0(ref_directory, "/encode3_feature_summary.re
 reference_assignments = read_tsv(paste0(ref_directory, "/encode3_class_assignment.reference.tsv")) %>%
   select(-tsne_1, -tsne_2) %>%
   bind_rows(
-    tibble(
-      id      = experiment_labels,
-      rbp     = NA_character_,
-      cluster = 0,
-      class   = "Query"
-    )
+    tibble(id = experiment_labels, rbp = NA_character_, cluster = 0, class = "Query")
   ) %>%
-  mutate(class = factor(
-    class,
-    levels = c(
-      "5' UTR","CDS","3' UTR","Splice site","Intron",
-      "MtRNA","YRNA","snoRNA","tRNA/snRNA","Query"
-    )
-  ))
+  mutate(class = factor(class,levels = c("5' UTR","CDS","3' UTR","Splice site","Intron",
+                                         "MtRNA","YRNA","snoRNA","tRNA/snRNA","Query")))
 
 # Helper to map detailed RE annotations to simplified feature vocabulary for cross-sample comparison.
 simplify_re_data = function(df) {
@@ -146,11 +132,7 @@ if (nrow(re_features) == 0) {
     class   = "Query"
   )
   
-  pdf(
-    paste0("output/figures/tsne_re/", prefix, ".tsne_re_query.pdf"),
-    height = 1.7,
-    width  = 2.6
-  )
+  pdf(paste0("output/figures/tsne_re/", prefix, ".tsne_re_query.pdf"), height = 1.7, width  = 2.6)
   par(mar = rep(0, 4))
   plot.new()
   text(0.5, 0.5, "No reproducible enriched RE data available.")

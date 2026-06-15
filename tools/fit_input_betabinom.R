@@ -12,10 +12,7 @@ args = commandArgs(trailingOnly=TRUE)
 dir.create("output/figures/secondary_figures/input_distributions/", showWarnings = FALSE, recursive = TRUE)
 dir.create("output/secondary_results/input_model_coef/", showWarnings = FALSE, recursive = TRUE)
 
-# Inputs:
-# args[1] = count data table
-# args[2] = experiment label
-# args[3] = given input replicate name (column)
+# Inputs.
 count_data = read_tsv(args[1])
 experiment = args[2]
 given_input_replicate = args[3]
