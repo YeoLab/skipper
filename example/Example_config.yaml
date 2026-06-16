@@ -6,9 +6,8 @@ MANIFEST: /path/to/your/skipper/example/Example_manifest.csv
 TOOL_DIR: /path/to/your/skipper/tools
 
 # Required Annotation Files
-GFF_SOURCE: "gencode" # One of either "gencode" or "ensembl". 
 GFF: /path/to/your/skipper/annotations/gencode.v49.filtered.annotation.gff3.gz
-GENOME: /path/to/your/skipper/annotations/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta
+GENOME: /path/to/your/skipper/annotations/GRCh38.primary_assembly.genome.fa
 ACCESSION_RANKINGS: /path/to/your/skipper/annotations/accession_type_ranking.txt
 BLACKLIST: /path/to/your/skipper/annotations/encode3_eclip_blacklist.bed # Leave blank for no blacklist
 

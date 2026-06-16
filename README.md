@@ -93,14 +93,14 @@ This section details a small example run of Skipper on a subsampled dataset. Thi
     While this step is technically optional, it is highly recommended to run Skipper on interactive nodes. This is especially important for your first Skipper run, as the initial snakeconda installations can eat up a surprising amount of ram (see [troubleshooting](#Troubleshooting)). Thus, we recommend filling in the command below with your partition (-p), QOS (-q) and account (-A) information and setting up an interactive node for use with this example. 
 
     ```bash
-    srun -N 1 -c 1 -t 4:00:00 -p -q -A --mem 16G --pty /bin/bash
+    srun -N 1 -c 1 -t 8:00:00 -p -q -A --mem 16G --pty /bin/bash
     ```
 
 3. **Download the human genome from GENCODE**  
    ```bash
    cd /path/to/your/skipper/annotations
    wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/GRCh38.primary_assembly.genome.fa.gz
-   cd ..
+   gunzip GRCh38.primary_assembly.genome.fa.gz
    ```
 4. **Edit config file**
    Open the config file in `example/Example_config.yaml` using any text editor and change every instance of `/path/to/your/skipper` to the **absolute** path to the Skipper directory you just cloned. Also, change every instance of `/path/to/save/output` with the **absolute** path to whatever location you want to save your Skipper outputs too (should be a location with lots of space, such as a scratch directory).
@@ -112,7 +112,7 @@ This section details a small example run of Skipper on a subsampled dataset. Thi
    ```bash
    cd /path/to/your/skipper
    unset SLURM_JOB_ID # required if running on an interactive node. 
-   snakemake -s Skipper.py --configfile example/Skipper_config.yaml --profile profiles/example_slurm
+   snakemake -s Skipper.py --configfile example/Example_config.yaml --profile profiles/example_slurm
    ```
 
 NOTE: The first run of Skipper needs to set up all of the necessary conda environments via snakeconda and has to complete several costly steps that only need to be run for the first Skipper run (e.g. parsing the GFF and generating the STAR genome index). As such, this initial Skipper run will be quite slow, but subsequent runs will be much faster.
@@ -210,7 +210,6 @@ Each of the files in this section must already exist on your machine. Instructio
 
 | Resource      | Description |
 | ----------- | ----------- |
-| GFF_source          | A short string specifying if the data came from either GENCODE or Ensembl (options: "gencode", "ensembl") |
 | GFF                 | Gzipped gene annotation to partition the transcriptome and count reads (must be from [GENCODE](https://www.gencodegenes.org/) or [Ensembl](https://useast.ensembl.org/index.html)). |
 | GENOME              | FASTA for the genome of interest (also available from GENCODE and Ensembl) |
 | ACCESSION_RANKINGS  | A ranking of gene and transcript types present in the GFF to facilitate the transcriptome partitioning  |
