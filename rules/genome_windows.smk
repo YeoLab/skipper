@@ -266,7 +266,6 @@ rule call_enriched_windows:
             {params.threshold_min} \
             {params.normalization_mode} \
             {params.blacklist} \
-            
         >> {log.stdout} 2> {log.stderr}
 
         echo "[`date`] Finished call_enriched_windows" | tee -a {log.stdout}

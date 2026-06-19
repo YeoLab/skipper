@@ -22,7 +22,7 @@ read_gff_as_df = function(path) {
 
 # Create helper function for adding in stop and start codon information (needed for ensembl). 
 add_stop_start = function(cds, to_keep, strand = "+", start = TRUE) {
-  cds_strand = cds %>% filter(strand == strand)
+  cds_strand = cds %>% filter(strand == .env$strand)
   if (nrow(cds_strand) == 0) return(cds_strand[0, ])
 
   if (start && strand == "+") {
