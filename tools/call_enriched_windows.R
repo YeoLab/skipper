@@ -29,7 +29,7 @@ if(length(args) > 9) {
 } else {
 	blacklist = tibble(chr=character(),start=numeric(),end=numeric(),name=character(),score=numeric(),strand=character())
 }
-count_data = anti_join(count_data, blacklist %>% select(-name))
+count_data = anti_join(count_data, blacklist, by = c("chr", "start", "end", "strand"))
 
 # Convenience link functions on base-2 scale for logits and inverse-logits. 
 logisticb2 = function(x) 1 / (1 + 2**-x)
