@@ -44,8 +44,8 @@ rule multiqc:
         multiqc_report = "output/QC/multiqc/{experiment_label}/multiqc_report.html"
     benchmark: "benchmarks/multiqc/{experiment_label}.multiqc.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.multiqc.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.multiqc.err",
+        stdout = "stdout/{experiment_label}.multiqc.out",
+        stderr = "stderr/{experiment_label}.multiqc.err",
     conda:
         "envs/multiqc2.yaml"
     resources:

@@ -46,24 +46,18 @@ if (nrow(windows) == 0){
 }	
 
 # Convert to data.table.
-dt_windows <- as.data.table(windows)
-dt_nucs    <- as.data.table(nucs)
+dt_windows = as.data.table(windows)
+dt_nucs    = as.data.table(nucs)
 
 # Set keys (required for foverlaps).
 setkey(dt_windows, chr, start, end)
 setkey(dt_nucs,    chr, start, end)
 
 # Overlap join.
-res <- foverlaps(
-  dt_nucs,
-  dt_windows,
-  by.x = c("chr", "start", "end"),
-  type = "within", 
-  mult = "first"   
-)
+res = foverlaps(dt_nucs, dt_windows, by.x = c("chr", "start", "end"), type = "within", mult = "first")
 
 # Clean up.
-nucs_with_window <- res[
+nucs_with_window = res[
   , .(
     chr  = chr,
     start = i.start,
@@ -77,10 +71,10 @@ nucs_with_window <- res[
 ]
 
 # Remove all nucleotides that appear in no windows. 
-nucs_with_window_filt <- na.omit(nucs_with_window)
+nucs_with_window_filt = na.omit(nucs_with_window)
 
 # Calculate the gini-coefficient of each window from the nt counts. 
-window_metrics <- nucs_with_window_filt %>% 
+window_metrics = nucs_with_window_filt %>% 
     group_by(name) %>% 
     summarize(
     gini     = DescTools::Gini(clip),
@@ -91,14 +85,14 @@ window_metrics <- nucs_with_window_filt %>%
 window_data = left_join(windows, window_metrics, by = "name")
 
 # Use the ratios to filter the data. 
-windows_filtered <- window_data %>%
+windows_filtered = window_data %>%
   filter(gini < filter)
 
 # Save the resulting filtered data. 
 write_tsv(windows_filtered, paste0('output/reproducible_enriched_windows/', prefix, '.reproducible_enriched_windows.tsv.gz'))
 
 # Use the ratios to filter the data. 
-discarded_windows <- window_data %>%
+discarded_windows = window_data %>%
   filter(gini >= filter)
 
 # Save the resulting filtered data. 

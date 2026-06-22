@@ -24,5 +24,5 @@ default-resources:
 # slurm_extra: "--qos=hcg-csd792"  # to use our nodes
 use-envmodules: true
 show-failed-logs: true
-slurm-logdir: "slurm_logs"
+slurm-logdir: "/tscc/nfs/home/$USER/scratch/slurm_logs"
 # add --exclude=NODE (e.g. tscc-1-18) to slurm extra to remove problematic nodes. 

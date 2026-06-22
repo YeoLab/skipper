@@ -24,7 +24,6 @@ output_stem = args[7]
 threshold_min = args[8]
 normalization_mode = args[9]
 
-###!!!### Will need to be increased to 8 when threshold min is added. 
 if(length(args) > 9) {
 	blacklist = read_tsv(args[10], col_names = c("chr","start","end","name","score","strand"), col_types = "cddcdc")
 } else {
@@ -150,25 +149,25 @@ if (normalization_mode == "classic") {
 p_clip = with(p_data, sum(clip) / sum(clip + input))
 
 # Add total counts (if not already present).
-p_data <- p_data %>%
+p_data = p_data %>%
   mutate(total_counts = input + clip)
 
 # Figure out an upper bound for the threshold scan.
 threshold_max = p_data %>% mutate(total_counts = input + clip) %>% arrange(desc(total_counts)) %>% head(100) %>% tail(1) %>% pull(total_counts)
 
 # Cap at 500 and ensure it's at least 2.
-threshold_max <- min(500, threshold_max)
+threshold_max = min(500, threshold_max)
 
-thresholds <- threshold_min:threshold_max
+thresholds = threshold_min:threshold_max
 
-threshold_data <- tibble(
+threshold_data = tibble(
 threshold  = thresholds,
 n_enriched = vapply(
     thresholds,
     function(th) {
-        idx <- p_data$total_counts >= th
+        idx = p_data$total_counts >= th
         if (!any(idx)) return(0L)
-        padj_th <- p.adjust(p_data$pvalue[idx], method = "fdr")
+        padj_th = p.adjust(p_data$pvalue[idx], method = "fdr")
         sum(padj_th < 0.2)
     },
     integer(1)

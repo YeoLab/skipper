@@ -1,19 +1,17 @@
+# Load packages.
 library(tidyverse)
-
 
 # Command line arguments.
 args = commandArgs(trailingOnly=TRUE)
-enriched_windows   = read_tsv(args[1])  # Enriched windows (BED-like format with feature annotations)
-all_windows        = read_tsv(args[2])  # All annotated windows (background)
-fixed_window_size  = as.integer(args[3]) # Desired size for fixed windows
-output_directory   = args[4]             # Output directory
-output_stem        = args[5]             # File prefix for outputs
-
+enriched_windows   = read_tsv(args[1])  
+all_windows        = read_tsv(args[2]) 
+fixed_window_size  = as.integer(args[3])
+output_directory   = args[4]            
+output_stem        = args[5]           
 
 # Create output dirs.
 dir.create(paste0(output_directory, "/variable/"), showWarnings = FALSE, recursive = TRUE)
 dir.create(paste0(output_directory, "/fixed/"), showWarnings = FALSE, recursive = TRUE)
-
 
 # Handle empty enriched set.
 if(nrow(enriched_windows) == 0) {
@@ -21,7 +19,6 @@ if(nrow(enriched_windows) == 0) {
   file.create(paste0(output_directory, "/fixed/", output_stem, ".sampled_fixed_windows.bed.gz"))
   quit()  
 }
-
 
 # Define sampling groups.
 # Group enriched and all windows by broad feature categories.
@@ -35,9 +32,7 @@ all_windows[grepl("SS", all_windows$feature_types), "sampling_group"] = "SS"
 all_windows[grepl("EXON_LNCRNA|EXON_SMALL", all_windows$feature_types), "sampling_group"] = "EXON_NC"
 all_windows[grepl("EXON_MRNA", all_windows$feature_types), "sampling_group"] = "EXON_MRNA"
 
-
-# Sampling strategy.
-# Aim: select ~20000 windows in total as matched background.
+# Sampling strategy: select ~20000 windows in total as matched background.
 sampling_factor = 1 + as.integer(20000 / nrow(enriched_windows))
 
 # Randomly sample region-matched background.
@@ -68,10 +63,6 @@ write_tsv(
 )
 
 # Output fixed-size sampled background.
-# For each sampled window:
-# - if 1bp long, keep start
-# - otherwise, pick random start inside window
-# - resize to fixed_window_size
 sampled_data[,1:6] %>%
   rowwise %>%
   mutate(

@@ -6,46 +6,9 @@ partition_exists = os.path.exists(PARTITION)
 partition_nuc_exists = os.path.exists(PARTITION.replace(".bed", ".nuc"))
 
 if (not feature_exists) or (not partition_exists):
-    rule filter_gff:
-        input:
-            gff = ancient(GFF),
-            rankings = ancient(ACCESSION_RANKINGS),
-        output:
-            gff_filt = "output/gff/filtered.gff3",
-            rankings_filt = "output/gff/filtered_ranks.txt"
-        params:
-            source = config["GFF_SOURCE"]
-        threads: 1
-        resources:
-            mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
-            runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
-        benchmark: "benchmarks/filter_gff.txt"
-        log:
-            stdout = config["WORKDIR"] + "/stdout/filter_gff.out",
-            stderr = config["WORKDIR"] + "/stderr/filter_gff.err",
-        conda:
-            "envs/skipper_R.yaml"
-        shell:
-            r"""
-            set -euo pipefail
-    
-            echo "Running on node: $(hostname)" | tee {log.stdout}
-            echo "[`date`] Starting filter_gff" | tee -a {log.stdout}
-    
-            Rscript --vanilla {TOOL_DIR}/filter_gff.R \
-                {params.source} \
-                {input.gff} \
-                {input.rankings} \
-                {output.gff_filt} \
-                {output.rankings_filt} \
-            >> {log.stdout} 2> {log.stderr}
-    
-            echo "[`date`] Finished filter_gff" | tee -a {log.stdout}
-            """
-    
     rule parse_gff:
         input:
-            gff_filt = "output/gff/filtered.gff3",
+            gff = ancient(GFF),
             rankings = ancient(ACCESSION_RANKINGS),
         output:
             partition = PARTITION,
@@ -56,8 +19,8 @@ if (not feature_exists) or (not partition_exists):
             runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
         benchmark: "benchmarks/parse_gff.txt"
         log:
-            stdout = config["WORKDIR"] + "/stdout/parse_gff.out",
-            stderr = config["WORKDIR"] + "/stderr/parse_gff.err",
+            stdout = "stdout/parse_gff.out",
+            stderr = "stderr/parse_gff.err",
         conda:
             "envs/skipper_R.yaml"
         shell:
@@ -68,7 +31,7 @@ if (not feature_exists) or (not partition_exists):
             echo "[`date`] Starting parse_gff" | tee -a {log.stdout}
     
             Rscript --vanilla {TOOL_DIR}/parse_gff.R \
-                {input.gff_filt} \
+                {input.gff} \
                 {input.rankings} \
                 {output.partition} \
                 {output.feature_annotations} \
@@ -92,8 +55,8 @@ rule partition_bam_reads:
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.partition_bam_reads.out",
-        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.partition_bam_reads.err",
+        stdout = "stdout/{replicate_label}.partition_bam_reads.out",
+        stderr = "stderr/{replicate_label}.partition_bam_reads.err",
     conda:
         "envs/bedbam_tools.yaml"
     shell:
@@ -129,8 +92,8 @@ if not partition_nuc_exists:
             runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
         benchmark: "benchmarks/partition_nuc.txt"
         log:
-            stdout = config["WORKDIR"] + "/stdout/calc_partition_nuc.out",
-            stderr = config["WORKDIR"] + "/stderr/calc_partition_nuc.err",
+            stdout = "stdout/calc_partition_nuc.out",
+            stderr = "stderr/calc_partition_nuc.err",
         conda:
             "envs/bedbam_tools.yaml"
         shell:
@@ -165,8 +128,8 @@ rule make_genome_count_table:
         runtime=lambda wildcards, attempt: 30 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_genome_count_table.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.make_genome_count_table.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.make_genome_count_table.err",
+        stdout = "stdout/{experiment_label}.make_genome_count_table.out",
+        stderr = "stderr/{experiment_label}.make_genome_count_table.err",
     conda:
         "envs/bedbam_tools.yaml"
     shell:
@@ -198,8 +161,8 @@ rule fit_input_betabinomial_model:
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/betabinomial/{experiment_label}.{input_replicate_label}.fit_input.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_model.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_model.err",
+        stdout = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_model.out",
+        stderr = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_model.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
@@ -229,8 +192,8 @@ rule fit_clip_betabinomial_model:
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/fit_clip_betabinomial_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.err",
+        stdout = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.out",
+        stderr = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
@@ -276,8 +239,8 @@ rule call_enriched_windows:
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/call_enriched_windows/{experiment_label}.{clip_replicate_label}.call_enriched_windows.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.{clip_replicate_label}.call_enriched_windows.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.{clip_replicate_label}.call_enriched_windows.err",
+        stdout = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_windows.out",
+        stderr = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_windows.err",
     conda:
         "envs/skipper_R.yaml"
     params:
@@ -324,8 +287,8 @@ rule check_window_concordance:
         runtime=lambda wildcards, attempt: 30 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/check_window_concordance/{experiment_label}.all_replicates.concordance.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.check_window_concordance.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.check_window_concordance.err",
+        stdout = "stdout/{experiment_label}.check_window_concordance.out",
+        stderr = "stderr/{experiment_label}.check_window_concordance.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
@@ -355,8 +318,8 @@ rule find_reproducible_enriched_windows:
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.find_reproducible_enriched_windows.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.find_reproducible_enriched_windows.err",
+        stdout = "stdout/{experiment_label}.find_reproducible_enriched_windows.out",
+        stderr = "stderr/{experiment_label}.find_reproducible_enriched_windows.err",
     conda:
         "envs/skipper_R.yaml"
     shell:
@@ -390,8 +353,8 @@ rule filter_reproducible_windows:
         filter = config["GINI_CUTOFF"]
     benchmark: "benchmarks/filter_reproducible_windows/{experiment_label}.all_replicates.reproducible.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.filter_reproducible_windows.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.filter_reproducible_windows.err",
+        stdout = "stdout/{experiment_label}.filter_reproducible_windows.out",
+        stderr = "stderr/{experiment_label}.filter_reproducible_windows.err",
     conda:
         "envs/skipper_R.yaml"
     shell:

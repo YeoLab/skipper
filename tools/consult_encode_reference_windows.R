@@ -25,7 +25,7 @@ enriched_windows = enriched_window_files %>%
 
 # If we have no enriched windows, emit placeholder figure and tables. 
 if(length(enriched_windows) == 0) {
-    df <- setNames(data.frame(matrix(ncol = 15, nrow = 0)),
+    df = setNames(data.frame(matrix(ncol = 15, nrow = 0)),
                c("id", "tsne_1", "tsne_2", "rbp", "cells", "cluster", "class"))
     # Save the term-level enrichment results.
     write_tsv(df, paste0("output/secondary_results/tsne/", prefix, ".tsne_query.tsv"))

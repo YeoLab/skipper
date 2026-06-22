@@ -8,10 +8,7 @@ args = commandArgs(trailingOnly=TRUE)
 dir.create("output/secondary_figures/figures/clip_distributions/", showWarnings = FALSE, recursive = TRUE)
 dir.create("output/secondary_results/clip_model_coef/", showWarnings = FALSE, recursive = TRUE)
 
-# Input data:
-# args[1] = count table (with CLIP and input counts, GC bins, etc.)
-# args[2] = experiment label
-# args[3] = the given CLIP replicate to compare against others
+# Input data.
 count_data = read_tsv(args[1])
 experiment = args[2]
 given_clip_replicate = args[3]

@@ -8,8 +8,8 @@ rule uniq_repeats:
         unique_repeats = REPEAT_BED
     benchmark: "benchmarks/uniq_repeats.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/uniq_repeats.out",
-        stderr = config["WORKDIR"] + "/stderr/uniq_repeats.err",
+        stdout = "stdout/uniq_repeats.out",
+        stderr = "stderr/uniq_repeats.err",
     conda:
         "envs/bedbam_tools.yaml"
     resources:
@@ -58,8 +58,8 @@ rule quantify_repeats:
         uninformative = config["UNINFORMATIVE_READ"]
     benchmark: "benchmarks/repeats/unassigned_experiment.{replicate_label}.quantify_repeats.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.quantify_repeats.out",
-        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.quantify_repeats.err",
+        stdout = "stdout/{replicate_label}.quantify_repeats.out",
+        stderr = "stderr/{replicate_label}.quantify_repeats.err",
     conda:
         "envs/bedbam_tools.yaml"
     resources:
@@ -98,8 +98,8 @@ rule make_repeat_count_tables:
         family_table = "output/secondary_results/counts/repeats/tables/family/{experiment_label}.tsv.gz",
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_repeat_count_table.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.make_repeat_count_tables.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.make_repeat_count_tables.err",
+        stdout = "stdout/{experiment_label}.make_repeat_count_tables.out",
+        stderr = "stderr/{experiment_label}.make_repeat_count_tables.err",
     resources:
         mem_mb=lambda wildcards, attempt: 2000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
@@ -171,8 +171,8 @@ rule fit_clip_betabinomial_re_model:
         coef = "output/secondary_results/clip_model_coef_re/{experiment_label}.{clip_replicate_label}.tsv",
     benchmark: "benchmarks/fit_clip_betabinomial_re_model/{experiment_label}.{clip_replicate_label}.fit_clip.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.err",
+        stdout = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.out",
+        stderr = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.err",
     conda:
         "envs/skipper_R.yaml"
     resources:
@@ -201,8 +201,8 @@ rule fit_input_betabinomial_re_model:
         coef = "output/secondary_results/input_model_coef_re/{experiment_label}.{input_replicate_label}.tsv",
     benchmark: "benchmarks/fit_input_betabinomial_re_model/{experiment_label}.{input_replicate_label}.fit_input.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.err",
+        stdout = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.out",
+        stderr = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.err",
     conda:
         "envs/skipper_R.yaml"
     resources:
@@ -236,8 +236,8 @@ rule call_enriched_re:
         "output/secondary_results/enriched_re/{experiment_label}.{clip_replicate_label}.enriched_re.tsv.gz"
     benchmark: "benchmarks/call_enriched_re/{experiment_label}.{clip_replicate_label}.call_enriched_re.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.{clip_replicate_label}.call_enriched_re.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.{clip_replicate_label}.call_enriched_re.err",
+        stdout = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_re.out",
+        stderr = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_re.err",
     conda:
         "envs/skipper_R.yaml"
     params:
@@ -274,8 +274,8 @@ rule find_reproducible_enriched_re:
         reproducible_windows = "output/reproducible_enriched_re/{experiment_label}.reproducible_enriched_re.tsv.gz",
     benchmark: "benchmarks/find_reproducible_enriched_re/{experiment_label}.all_replicates.reproducible.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{experiment_label}.find_reproducible_enriched_re.out",
-        stderr = config["WORKDIR"] + "/stderr/{experiment_label}.find_reproducible_enriched_re.err",
+        stdout = "stdout/{experiment_label}.find_reproducible_enriched_re.out",
+        stderr = "stderr/{experiment_label}.find_reproducible_enriched_re.err",
     conda:
         "envs/skipper_R.yaml"
     resources:

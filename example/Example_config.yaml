@@ -6,17 +6,16 @@ MANIFEST: /path/to/your/skipper/example/Example_manifest.csv
 TOOL_DIR: /path/to/your/skipper/tools
 
 # Required Annotation Files
-GFF_SOURCE: "gencode" # One of either "gencode" or "ensembl". 
-GFF: /path/to/your/skipper/annotations/gencode.v38.annotation.gff3.gz
-GENOME: /path/to/your/skipper/annotations/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta
+GFF: /path/to/your/skipper/annotations/gencode.v49.filtered.annotation.gff3.gz
+GENOME: /path/to/your/skipper/annotations/GRCh38.primary_assembly.genome.fa
 ACCESSION_RANKINGS: /path/to/your/skipper/annotations/accession_type_ranking.txt
 BLACKLIST: /path/to/your/skipper/annotations/encode3_eclip_blacklist.bed # Leave blank for no blacklist
 
 # Auto Generated Annotation Files.
 # MUST still specify paths/names so skipper knows where to save generated files to!
-PARTITION: /path/to/save/output/annotations/gencode.v38.tiled_partition.bed.gz
-FEATURE_ANNOTATIONS: /path/to/save/output/annotations/gencode.v38.tiled_partition.features.tsv.gz
-STAR_DIR: /path/to/save/output/annotations/gencode.v38_star_ref
+PARTITION: /path/to/save/output/annotations/gencode.v49.filtered.tiled_partition.bed.gz
+FEATURE_ANNOTATIONS: /path/to/save/output/annotations/gencode.v49.filtered.tiled_partition.features.tsv.gz
+STAR_DIR: /path/to/save/output/annotations/gencode.v49.filtered_star_ref
 
 # eCLIP Parameters
 protocol: ENCODE4 # ENCODE4 for single end, ENCODE3 for paired end.

@@ -15,17 +15,16 @@ window_size = 75 # Smoothing and peak selection window size (nt).
 # Ensure the output directory exists. 
 dir.create(output_directory, showWarnings = FALSE, recursive = TRUE)
 
+# Handle case of 0 counts. 
 if(nrow(count_data) == 0) {
-    outfile <- paste0(output_directory, "/", output_stem, ".finemapped_windows.bed.gz")
+    outfile = paste0(output_directory, "/", output_stem, ".finemapped_windows.bed.gz")
 
-    con <- gzfile(outfile, "w")
+    con = gzfile(outfile, "w")
     writeLines(character(0), con)
     close(con)
 
     quit(save = "no")
 }
-
-# Note: some R versions have memory issues on large joins; computations below avoid unnecessary joins where possible. 
 
 # Aggregate <window_size> nt sliding windows to smooth coverage by convolving counts and averaging positions. 
 # The convolution with a length-window_size boxcar computes running sums, then clip/input are rounded to integers. 

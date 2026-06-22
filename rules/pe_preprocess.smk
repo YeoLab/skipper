@@ -9,7 +9,7 @@ locals().update(config)
 
 rule run_star_genome_generate:
     input:
-        gff = "output/gff/filtered.gff3",
+        gff = ancient(GFF),
         fasta_file = ancient(GENOME),
     output:
         chrom_sizes = CHROM_SIZES,
@@ -21,26 +21,31 @@ rule run_star_genome_generate:
         runtime = "2h",
     benchmark: "benchmarks/run_star_genome_generate.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/run_star_genome_generate.out",
-        stderr = config["WORKDIR"] + "/stderr/run_star_genome_generate.err",
+        stdout = "stdout/run_star_genome_generate.out",
+        stderr = "stderr/run_star_genome_generate.err",
     conda:
         "envs/star.yaml"
     shell:
         r"""
         set -euo pipefail
-
+        
         echo "Running on node: $(hostname)" | tee {log.stdout}
         echo "[`date`] Starting star_genome_generate." | tee -a {log.stdout}
-
+        
+        tmp_gff="$(mktemp --tmpdir={resources.tmpdir} star_annotation.XXXXXX.gff3)"
+        gunzip -c {input.gff} > "$tmp_gff"
+        
         STAR \
             --runMode genomeGenerate \
             --runThreadN {threads} \
             --genomeDir {params.star_dir} \
             --genomeFastaFiles {input.fasta_file} \
-            --sjdbGTFfile {input.gff} \
+            --sjdbGTFfile "$tmp_gff" \
             --sjdbOverhang 99 \
         >> {log.stdout} 2> {log.stderr}
-
+        
+        rm -f "$tmp_gff"
+        
         echo "[`date`] Finished star_genome_generate." | tee -a {log.stdout}
         """
 
@@ -57,8 +62,8 @@ rule copy_with_umi:
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.copy_with_umi.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.copy_with_umi.out",
-        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.copy_with_umi.err",
+        stdout = "stdout/{replicate_label}.copy_with_umi.out",
+        stderr = "stderr/{replicate_label}.copy_with_umi.err",
     shell:
         r"""
         set -euo pipefail
@@ -90,8 +95,8 @@ rule run_initial_fastqc:
     threads: 2
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.initial_fastqc.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.run_initial_fastqc.out",
-        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.run_initial_fastqc.err",
+        stdout = "stdout/{replicate_label}.run_initial_fastqc.out",
+        stderr = "stderr/{replicate_label}.run_initial_fastqc.err",
     conda:
         "envs/fastqc.yaml"
     resources:
@@ -138,8 +143,8 @@ rule trim_fastq_encode:
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
     benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.trim_fastq_encode.out",
-        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.trim_fastq_encode.err",
+        stdout = "stdout/{replicate_label}.trim_fastq_encode.out",
+        stderr = "stderr/{replicate_label}.trim_fastq_encode.err",
     conda:
         "envs/skewer.yaml"
     shell:
@@ -173,8 +178,8 @@ rule run_trimmed_fastqc:
     threads: 2
     benchmark: "benchmarks/fastqc/unassigned_experiment.{replicate_label}.trimmed_fastqc.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.run_trimmed_fastqc.out",
-        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.run_trimmed_fastqc.err",
+        stdout = "stdout/{replicate_label}.run_trimmed_fastqc.out",
+        stderr = "stderr/{replicate_label}.run_trimmed_fastqc.err",
     conda:
         "envs/fastqc.yaml"
     resources:
@@ -217,8 +222,8 @@ rule align_reads_encode:
         rg = "{replicate_label}"
     benchmark: "benchmarks/align/unassigned_experiment.{replicate_label}.align_reads_genome.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.align_reads_encode.out",
-        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.align_reads_encode.err",
+        stdout = "stdout/{replicate_label}.align_reads_encode.out",
+        stderr = "stderr/{replicate_label}.align_reads_encode.err",
     conda:
         "envs/star.yaml"
     resources:
@@ -269,8 +274,8 @@ rule sort_bam:
     threads: 2
     benchmark: "benchmarks/sort/{ref}/unassigned_experiment.{replicate_label}.sort_bam.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.{ref}.sort_bam.out",
-        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.{ref}.sort_bam.err",
+        stdout = "stdout/{replicate_label}.{ref}.sort_bam.out",
+        stderr = "stderr/{replicate_label}.{ref}.sort_bam.err",
     conda:
         "envs/bedbam_tools.yaml"
     resources:
@@ -301,8 +306,8 @@ rule index_bams:
     threads: 2
     benchmark: "benchmarks/index_bam/{round}/{ref}/{mid}/unassigned_experiment.{replicate_label}.index_bam.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{round}.{ref}.{mid}.{replicate_label}.index_bams.out",
-        stderr = config["WORKDIR"] + "/stderr/{round}.{ref}.{mid}.{replicate_label}.index_bams.err",
+        stdout = "stdout/{round}.{ref}.{mid}.{replicate_label}.index_bams.out",
+        stderr = "stderr/{round}.{ref}.{mid}.{replicate_label}.index_bams.err",
     conda:
         "envs/bedbam_tools.yaml"
     resources:
@@ -331,8 +336,8 @@ rule dedup_umi:
         bam_dedup = "output/secondary_results/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam"
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.dedup_umi.out",
-        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.dedup_umi.err",
+        stdout = "stdout/{replicate_label}.dedup_umi.out",
+        stderr = "stderr/{replicate_label}.dedup_umi.err",
     conda:
         "envs/umicollapse.yaml"
     resources:
@@ -366,8 +371,8 @@ rule select_informative_read:
         bam_informative = "output/secondary_results/bams/dedup/genome_R" + str(INFORMATIVE_READ) + "/{replicate_label}.genome.Aligned.sort.dedup.R" + str(INFORMATIVE_READ) + ".bam"
     benchmark: "benchmarks/select/unassigned_experiment.{replicate_label}.select_informative_read.txt"
     log:
-        stdout = config["WORKDIR"] + "/stdout/{replicate_label}.select_informative_read.out",
-        stderr = config["WORKDIR"] + "/stderr/{replicate_label}.select_informative_read.err",
+        stdout = "stdout/{replicate_label}.select_informative_read.out",
+        stderr = "stderr/{replicate_label}.select_informative_read.err",
     conda:
         "envs/bedbam_tools.yaml"
     resources:

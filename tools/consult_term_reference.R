@@ -21,12 +21,11 @@ enriched_windows = read_tsv(enriched_window_file)
 terms = fgsea::gmtPathways(term_gmt_file)
 term_reference = read_tsv(term_reference_file)
 
-# If we have no enriched windows, emit placeholder figure and tables. 
+# If there are no enriched windows, emit placeholder figure and tables. 
 if(length(enriched_windows$chr) == 0) {
-    df <- setNames(data.frame(matrix(ncol = 15, nrow = 0)),
-               c("term","n_genes_term","n_genes_enriched","n_windows_enriched",
-                 "n_windows_total","estimate","statistic","parameter","conf.low",
-                 "conf.high","method","alternative","l2fc","p_unadjusted","p_adj"))
+    df = setNames(data.frame(matrix(ncol = 15, nrow = 0)), c("term","n_genes_term","n_genes_enriched","n_windows_enriched",
+                                                             "n_windows_total","estimate","statistic","parameter","conf.low",
+                                                             "conf.high","method","alternative","l2fc","p_unadjusted","p_adj"))
     # Save the term-level enrichment results.
     write_tsv(df, paste0("output/gene_sets/", prefix, ".enriched_terms.tsv.gz"))
     
