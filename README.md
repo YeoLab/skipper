@@ -237,11 +237,11 @@ Each of these parameters should be edited to reflect the parameters of the speci
 | INFORMATIVE_READ    | Which read (1 or 2) reflects the crosslink site (for Paired End runs) |
 | OVERDISPERSION_MODE | Overdispersion can be estimated from multiple input replicates ("input") or multiple CLIP replicates ("clip"): "input" is recommended |
 | GINI_CUTOFF   | A filter used to remove windows with incredibly narrow peaks (skyscrapers). These skyscrapers are usually the result of PCR errors or other sequencing artifacts, and should thus be filtered out of the final result. To use a more strict filter, decrease this cutoff (e.g. 0.8). To use a more lenient filter, increase this cutoff (e.g. 0.95). To use no filter at all, just set this cutoff to any value above 1.|
-|NORMALIZATION_MODE | Use Skipper's new pseudocount based normalization mode ("new") or its original expected ratio adjustment normalization ("classic"). "new" is reccomended. Classic is maintained only to ensure reproducibility for older analyses. 
-|THRESHOLD_MIN | The minimum threshold strength used by Flipper. Setting this to N will prevent Skipper from identifying windows with less than N total reads across the input and IP fractions as significantly enriched. 
+|NORMALIZATION_MODE | Use Skipper's new pseudocount based normalization mode ("new") or its original expected ratio adjustment normalization ("classic"). "new" is reccomended. Classic is maintained only to ensure reproducibility for older analyses. |
+|THRESHOLD_MIN | The minimum threshold strength used by Flipper. Setting this to N will prevent Skipper from identifying windows with less than N total reads across the input and IP fractions as significantly enriched. |
+|DEFINITION_OF_REPRODUCIBILITY | Minimum number of replicates with significant enrichment to be considered "reproducible"*. Use "ALL" to automatically select the total number of replicates for the sample as the cutoff (the default behavior), otherwise enter an integer.|
 
-### Advanced inputs
-These inputs are required only if you wish to perform some of the many additional analyses available through Skipper. Removing these commands from the config file will cause Skipper to skip over these analyses.  
+*Skipper sticks to a traditional definition of "reproducible" where any window found as significant in all replicates is considered reproducible. However, some users may want to introduce a less strict cutoff when working with higher replicates, such as any window found in 2/3 replicates.
 
 #### Motif analysis
 | Input      | Description |

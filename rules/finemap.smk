@@ -12,9 +12,9 @@ rule get_nt_coverage:
             for input_replicate_label in experiment_to_input_replicate_labels[wildcards.experiment_label]
         ],         
     output:
-        nt_census = temp("output/secondary_results/finemapping/nt_coverage/{experiment_label}.nt_census.bed"),
-        nt_input_counts = temp("output/secondary_results/finemapping/nt_coverage/{experiment_label}.nt_coverage.input.counts"),
-        nt_clip_counts = temp("output/secondary_results/finemapping/nt_coverage/{experiment_label}.nt_coverage.clip.counts"),
+        nt_census = "output/secondary_results/finemapping/nt_coverage/{experiment_label}.nt_census.bed",
+        nt_input_counts = "output/secondary_results/finemapping/nt_coverage/{experiment_label}.nt_coverage.input.counts",
+        nt_clip_counts = "output/secondary_results/finemapping/nt_coverage/{experiment_label}.nt_coverage.clip.counts",
         nt_coverage = "output/secondary_results/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
     params:
         chrom_sizes = config["CHROM_SIZES"],

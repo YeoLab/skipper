@@ -313,8 +313,10 @@ rule find_reproducible_enriched_windows:
     output:
         reproducible_windows = "output/secondary_results/unfiltered_reproducible_enriched_windows/{experiment_label}.unfiltered_reproducible_enriched_windows.tsv.gz",
     resources:
-        mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
-        runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
+        mem_mb = lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
+        runtime = lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
+    params:
+        repro_def = config["DEFINITION_OF_REPRODUCIBILITY"]
     benchmark: "benchmarks/find_reproducible_enriched_windows/{experiment_label}.all_replicates.reproducible.txt"
     log:
         stdout = "stdout/{experiment_label}.find_reproducible_enriched_windows.out",
@@ -331,6 +333,7 @@ rule find_reproducible_enriched_windows:
         Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R \
             output/secondary_results/enriched_windows/ \
             {wildcards.experiment_label} \
+            {params.repro_def} \
         >> {log.stdout} 2> {log.stderr}
 
         echo "[`date`] Finished find_reproducible_enriched_windows" | tee -a {log.stdout}
