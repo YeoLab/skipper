@@ -8,6 +8,9 @@ dir.create("output/secondary_results/unfiltered_reproducible_enriched_windows/",
 args = commandArgs(trailingOnly=TRUE)
 data_directory = args[1]
 prefix = args[2]
+repro_def = args[3]
+
+print(repro_def)
 
 # Collect all enriched window files for the given experiment prefix.
 enriched_window_files = list.files(
@@ -15,6 +18,12 @@ enriched_window_files = list.files(
   pattern = paste0("^", prefix, "\\..*enriched_windows.tsv.gz"),
   full.names = TRUE
 )
+
+if (repro_def == "ALL") {
+    cutoff = length(enriched_window_files)
+} else {
+    cutoff = as.numeric(repro_def)
+}
 
 enriched_window_schema = readr::read_tsv(
   enriched_window_files[[1]],
@@ -86,7 +95,7 @@ reproducible_enriched_window_data = enriched_window_data %>%
               enrichment_l2or_max = max(enrichment_l2or), p_max = max(pvalue), p_min = min(pvalue),
               q_max = max(qvalue), q_min = min(qvalue)                                  
 	) %>%
-	filter(enrichment_n > (length(enriched_window_files) - 1)) %>%
+	filter(enrichment_n >= cutoff) %>%
 	arrange(desc(enrichment_l2or_mean))
 
 # Save reproducible enriched window data.
