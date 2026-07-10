@@ -22,6 +22,6 @@ rule upload_hf_dataset:
         export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
-        export HF_HOME=/tscc/nfs/home/${{USER}}/.cache/huggingface
+        export HF_HOME=/tscc/nfs/home/${{USER}}/scratch/.cache/huggingface
         python {TOOL_DIR}/upload_to_hf_dataset.py {wildcards.experiment_label} output/ml/rbpnet_data/parquet
         """

@@ -20,7 +20,7 @@ rule parse_gff:
 
 rule partition_bam_reads:
     input:
-        CHROM_SIZES,
+        ancient(CHROM_SIZES),
         bam = lambda wildcards: config['replicate_label_to_bams'][wildcards.replicate_label],
         region_partition = PARTITION,
     output:
