@@ -23,7 +23,7 @@ module load skipper
 
 **IMPORTANT**: The only modules that should be loaded are the default modules (the ones that automatically load whenever you go on TSCC) and Skipper (Loading Skipper also automatically loads the singularity module). No other modules should be loaded, as this may confuse snakemake as to which environment to run the code in, causing an error. You can check what modules you have loaded using ```module list ```
 
-## Download the example files from github. 
+## Copy the example config file from the Skipper module. 
 
 Copy the config file from the skipper module folder to the scratch directory you just made. 
 
