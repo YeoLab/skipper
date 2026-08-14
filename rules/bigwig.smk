@@ -17,8 +17,8 @@ rule make_unscaled_bigwig:
     log:
         stdout = "stdout/{replicate_label}.make_unscaled_bigwig.out",
         stderr = "stderr/{replicate_label}.make_unscaled_bigwig.err",
-    conda:
-        "envs/bedbam_tools.yaml"
+    container:
+        PYTHON_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -61,8 +61,8 @@ rule make_scaled_bigwig:
     log:
         stdout = "stdout/{replicate_label}.make_scaled_bigwig.out",
         stderr = "stderr/{replicate_label}.make_scaled_bigwig.err",
-    conda:
-        "envs/bedbam_tools.yaml"
+    container:
+        PYTHON_CONTAINER
     shell:
         r"""
         set -euo pipefail

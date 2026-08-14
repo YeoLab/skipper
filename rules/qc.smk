@@ -46,8 +46,8 @@ rule multiqc:
     log:
         stdout = "stdout/{experiment_label}.multiqc.out",
         stderr = "stderr/{experiment_label}.multiqc.err",
-    conda:
-        "envs/multiqc2.yaml"
+    container:
+        PYTHON_CONTAINER
     resources:
         mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),

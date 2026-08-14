@@ -14,8 +14,8 @@ rule sample_background_windows_by_region:
     log:
         stdout = "stdout/{experiment_label}.sample_background_windows_by_region.out",
         stderr = "stderr/{experiment_label}.sample_background_windows_by_region.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -49,8 +49,8 @@ rule run_homer:
     log:
         stdout = "stdout/{experiment_label}.run_homer.out",
         stderr = "stderr/{experiment_label}.run_homer.err",
-    conda:
-        "envs/homer.yaml"
+    container:
+        PYTHON_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -118,8 +118,8 @@ rule consult_encode_reference:
     log:
         stdout = "stdout/consult_encode_reference.out",
         stderr = "stderr/consult_encode_reference.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -156,8 +156,8 @@ rule consult_encode_reference_re:
     log:
         stdout = "stdout/consult_encode_reference_re.out",
         stderr = "stderr/consult_encode_reference_re.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -191,8 +191,8 @@ rule consult_term_reference:
     log:
         stdout = "stdout/{experiment_label}.consult_term_reference.out",
         stderr = "stderr/{experiment_label}.consult_term_reference.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     shell:
         r"""
         set -euo pipefail

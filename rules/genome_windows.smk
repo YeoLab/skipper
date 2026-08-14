@@ -21,8 +21,8 @@ if (not feature_exists) or (not partition_exists):
         log:
             stdout = "stdout/parse_gff.out",
             stderr = "stderr/parse_gff.err",
-        conda:
-            "envs/skipper_R.yaml"
+        container:
+            R_CONTAINER
         shell:
             r"""
             set -euo pipefail
@@ -57,8 +57,8 @@ rule partition_bam_reads:
     log:
         stdout = "stdout/{replicate_label}.partition_bam_reads.out",
         stderr = "stderr/{replicate_label}.partition_bam_reads.err",
-    conda:
-        "envs/bedbam_tools.yaml"
+    container:
+        PYTHON_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -94,8 +94,8 @@ if not partition_nuc_exists:
         log:
             stdout = "stdout/calc_partition_nuc.out",
             stderr = "stderr/calc_partition_nuc.err",
-        conda:
-            "envs/bedbam_tools.yaml"
+        container:
+            PYTHON_CONTAINER
         shell:
             r"""
             set -euo pipefail
@@ -130,8 +130,8 @@ rule make_genome_count_table:
     log:
         stdout = "stdout/{experiment_label}.make_genome_count_table.out",
         stderr = "stderr/{experiment_label}.make_genome_count_table.err",
-    conda:
-        "envs/bedbam_tools.yaml"
+    container:
+        PYTHON_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -163,8 +163,8 @@ rule fit_input_betabinomial_model:
     log:
         stdout = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_model.out",
         stderr = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_model.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -194,8 +194,8 @@ rule fit_clip_betabinomial_model:
     log:
         stdout = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.out",
         stderr = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_model.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -241,8 +241,8 @@ rule call_enriched_windows:
     log:
         stdout = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_windows.out",
         stderr = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_windows.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     params:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label],
         blacklist = (BLACKLIST if BLACKLIST is not None else ""),
@@ -288,8 +288,8 @@ rule check_window_concordance:
     log:
         stdout = "stdout/{experiment_label}.check_window_concordance.out",
         stderr = "stderr/{experiment_label}.check_window_concordance.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -321,8 +321,8 @@ rule find_reproducible_enriched_windows:
     log:
         stdout = "stdout/{experiment_label}.find_reproducible_enriched_windows.out",
         stderr = "stderr/{experiment_label}.find_reproducible_enriched_windows.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -357,8 +357,8 @@ rule filter_reproducible_windows:
     log:
         stdout = "stdout/{experiment_label}.filter_reproducible_windows.out",
         stderr = "stderr/{experiment_label}.filter_reproducible_windows.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     shell:
         r"""
         set -euo pipefail

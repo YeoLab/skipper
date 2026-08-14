@@ -25,3 +25,13 @@ OVERDISPERSION_MODE: input   # input or clip, input is reccomended
 GINI_CUTOFF: 0.9
 NORMALIZATION_MODE: new # new or classic
 THRESHOLD_MIN: 2
+
+################################# CONTAINER IMAGES (optional) ####################################
+# Every rule runs inside one of two prebuilt images. By default Skipper pulls
+# them from Docker Hub and Snakemake caches the converted .sif files under the
+# apptainer-prefix set in your profile. Uncomment and edit these only if you
+# built the images yourself, or if your compute nodes have no outbound network
+# and you pulled the .sif files yourself instead.
+#
+# R_CONTAINER: /path/to/your/skipper-r.sif
+# PYTHON_CONTAINER: /path/to/your/skipper-py.sif

@@ -40,7 +40,7 @@ valid_terms = terms[unique(term_reference$term)]
 
 # Count enriched windows per gene (splitting multi-gene entries on “:”).
 # Produces a tibble with columns: gene, n_windows_enriched.
-clip_gene_data = enriched_windows %>% summarize(table(gene = strsplit(gene_name,split=":") %>% unlist) %>% as_tibble) %>% rename(n_windows_enriched = n)
+clip_gene_data = enriched_windows %>% reframe(table(gene = strsplit(gene_name,split=":") %>% unlist) %>% as_tibble) %>% rename(n_windows_enriched = n)
 
 # Total number of enriched windows across all genes, used as the binomial denominator.
 n_windows_total = clip_gene_data %>% with(sum(n_windows_enriched))

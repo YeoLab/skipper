@@ -32,14 +32,42 @@ Please see the YEOLAB_INTERNAL.md file for specific instructions on running Skip
    conda create -n snakemake9 snakemake=9.12.0
    ```
 
-   All other required packages and environments will be installed automatically by Snakemake and Conda the first time you run Skipper.
+   Conda is used **only** to install Snakemake itself. Skipper's own dependencies do not come from Conda
+
+4. **Make Singularity/Apptainer available**  
+   Every Skipper rule runs inside one of two prebuilt container images, so you need a container runtime. On an HPC this is usually a module:
+
+   ```bash
+   module load singularitypro/3.11   # TSCC; your cluster's module name may differ
+   ```
+
+   Check it worked with `singularity --version`. Either `singularity` or `apptainer` on your `PATH` will do.
+
+## Software environments
+
+Every rule runs inside one of two prebuilt images published on Docker Hub:
+
+| Image | Contents | Rules |
+|---|---|---|
+| `howardxu520/skipper:R_v1.0` | R 4.4.3 / Bioconductor 3.20 — tidyverse, GenomicRanges, rtracklayer, VGAM, DescTools, fgsea | The 16 `Rscript` rules |
+| `howardxu520/skipper:python_v1.0` | Python 3.12 (pandas, pybedtools) plus STAR, bedtools, samtools, `bedGraphToBigWig`, fastqc, fastp, skewer, umicollapse, HOMER and MultiQC | everything from trimming and alignment through counting, coverage, bigwigs, motif calling and QC |
+
+Snakemake pulls each image once, converts it to a `.sif`, and caches it under `apptainer-prefix`. If your compute nodes have no outbound network, pull them on a login node instead and point Skipper at the local files from your config:
+
+```yaml
+R_CONTAINER: "/abs/path/to/skipper-r.sif"
+PYTHON_CONTAINER: "/abs/path/to/skipper-py.sif"
+```
 
 ## Configuring Your Snakemake Profile
 
 Snakemake profiles allow you to supply additional arguments without cluttering the command line.  
 An example profile is provided at:`profiles/example_basic/config.yaml`
 
-This profile is configured for running Skipper on a single-node machine (not recommended for most use cases; see [Running Skipper on HPCs](#Running-Skipper-on-HPCs)). The only required change is to specify a path for saving Conda environments (choose any location on your machine with sufficient storage space).
+This profile is configured for running Skipper on a single-node machine (not recommended for most use cases; see [Running Skipper on HPCs](#Running-Skipper-on-HPCs)). Two settings need your attention:
+
+- **`apptainer-prefix`** — where the `.sif` images are cached. Pick a location with 30 GB free that is readable from every node that will run jobs.
+- **`apptainer-args`** — add a `--bind` for every directory your config points at that lives outside `WORKDIR`: `TOOL_DIR`, `GENOME`, `GFF`, `STAR_DIR`, `PARTITION`, `FEATURE_ANNOTATIONS`, `REPEAT_TABLE`, `MANIFEST` and the fastq/bam files it names. Anything not bound is simply invisible inside the container. Keep `--cleanenv`; it stops a stray `R_LIBS`, `PYTHONPATH` or `CONDA_PREFIX` in your shell from leaking in and shadowing the image's own.
 
 ## Running Skipper on HPCs
 
@@ -74,7 +102,8 @@ An example profile is provided in:
 profiles/example_slurm/config.yaml
 ```
 
-- **CONDA prefix** Do not forget to change this to a path on your cluster. 
+- **`apptainer-prefix`** Do not forget to change this to a path on your cluster. It must be on shared storage that every compute node can read.
+- **`apptainer-args`** Add a `--bind` for every input directory outside `WORKDIR` (see [Configuring Your Snakemake Profile](#configuring-your-snakemake-profile)).
 - **Slurm account, partition:** You must enter your own account and partition information.
 - **Cluster specific options:** Some systems require additional details. For example:  
 
@@ -90,7 +119,7 @@ profiles/example_slurm/config.yaml
 
 This section details a small example run of Skipper on a subsampled dataset. This example assumes that you are working on a linux based system with Slurm set up and have already gone through all installation steps above (including adjusting the example profile). 
 1. **Setup an interactive node**
-    While this step is technically optional, it is highly recommended to run Skipper on interactive nodes. This is especially important for your first Skipper run, as the initial snakeconda installations can eat up a surprising amount of ram (see [troubleshooting](#Troubleshooting)). Thus, we recommend filling in the command below with your partition (-p), QOS (-q) and account (-A) information and setting up an interactive node for use with this example. 
+    While this step is technically optional, it is highly recommended to run Skipper on interactive nodes. This is especially important for your first Skipper run, when Snakemake downloads and converts the two container images. Thus, we recommend filling in the command below with your partition (-p), QOS (-q) and account (-A) information and setting up an interactive node for use with this example. Remember to `module load singularitypro/3.11` (or your cluster's equivalent) on the interactive node as well.
 
     ```bash
     srun -N 1 -c 1 -t 8:00:00 -p -q -A --mem 16G --pty /bin/bash
@@ -111,11 +140,12 @@ This section details a small example run of Skipper on a subsampled dataset. Thi
 6. **Run Skipper**  
    ```bash
    cd /path/to/your/skipper
+   module load singularitypro/3.11 # or your cluster's container runtime module
    unset SLURM_JOB_ID # required if running on an interactive node. 
    snakemake -s Skipper.py --configfile example/Example_config.yaml --profile profiles/example_slurm
    ```
 
-NOTE: The first run of Skipper needs to set up all of the necessary conda environments via snakeconda and has to complete several costly steps that only need to be run for the first Skipper run (e.g. parsing the GFF and generating the STAR genome index). As such, this initial Skipper run will be quite slow, but subsequent runs will be much faster.
+NOTE: On the first run, Snakemake downloads the two container images from Docker Hub and converts them to `.sif` files under your `apptainer-prefix`. That run also has to complete several costly steps that only need to be run once (e.g. parsing the GFF and generating the STAR genome index). As such, this initial Skipper run will be quite slow, but subsequent runs reuse the cached images and start immediately.
 
 NOTE: If difficulties arrise while running this example (or any run of Skipper) please see the [Troubleshooting](#Troubleshooting) section and/or open an issue. 
 
@@ -148,20 +178,33 @@ It is important to note that although we feel this is the best GFF filtering str
 
 Skipper works with GFF files from either GENCODE or Ensembl. This section provides a brief example of running the filtration pipeline on the `gencode.v49.basic.annotation.gff3.gz` file available from the [GENCODE website](https://www.gencodegenes.org/human/).
 
-1. **Create and activate a new conda environment from the provided YAML file**
+The GFF utilities are not Snakemake rules — you run them by hand, once, before
+your first Skipper run — but they need no Conda environment either. Both
+Skipper images carry their dependencies, so run them with `apptainer exec`.
+
+1. **Point at the images**
     ```bash
+    module load singularitypro/3.11   # or your cluster's container runtime module
     cd path/to/your/skipper/gff_utils
-    conda env create -f gff_utils.yaml
-    conda activate gff_utils_env
+
+    # Either the .sif files you built, or ones pulled from Docker Hub:
+    #   apptainer pull skipper-r.sif  docker://howardxu520/skipper:R_v1.0
+    #   apptainer pull skipper-py.sif docker://howardxu520/skipper:python_v1.0
+    SKIPPER_R=/abs/path/to/skipper-r.sif
+    SKIPPER_PY=/abs/path/to/skipper-py.sif
     ```
 
 2. **Run the filtration pipeline**
     ```bash
-    Rscript "path/to/your/gff_transcript_quality_filter.R" \
+    apptainer exec --cleanenv --bind "$PWD" "$SKIPPER_R" \
+      Rscript "path/to/your/gff_transcript_quality_filter.R" \
         "gencode" \
         "path/to/your/gencode.v49.basic.annotation.gff3.gz" \
         "./gencode.v49.filtered.annotation.gff3.gz"
     ```
+
+    Add a `--bind` for the directory holding your GFF if it lives outside the
+    current one; only paths you bind are visible inside the container.
 
 And that's it. To use an Ensembl GFF instead of a GENCODE GFF, simply replace the `"gencode"` argument supplied to the R script with `"ensembl"`.
 
@@ -178,8 +221,13 @@ Skipper accepts three sources of expression data:
 The example below shows how to filter for genes with a TPM value greater than 1 using GTEx data from Breast Mammary Tissue samples, available from the [GTEx website](https://www.gtexportal.org/home/downloads/adult-gtex%23qtl). Note that this filtration is performed on a GFF that has already gone through the quality-filtering step described above.
 
 3. **Filter a GFF by expression level**
+
+    This one runs in the Python image rather than the R image, since it is a
+    `pyranges` script:
+
     ```bash
-    python "${Skipper_dir}/gff_utils/gff_expression_filter.py" \
+    apptainer exec --cleanenv --bind "$PWD" --bind "${Skipper_dir}" "$SKIPPER_PY" \
+      python "${Skipper_dir}/gff_utils/gff_expression_filter.py" \
         -a "path/to/your/gencode.v49.filtered.annotation.gff3.gz" \
         -t 1 \
         -s "GTEx" \
@@ -327,8 +375,12 @@ Skipper generates 3 types of log files. The first 2 types can be found within th
 
 However, in some cases additional information from snakemake may be necessary, in which cases users are encouraged to investigate the log files in `WORKDIR/.snakemake/slurm_logs`. These log files are organized by rules and contain additional information on the snakemake run.
 
-2. snakeconda installation.
-When running Skipper for the first time, it is not uncommon to run into `CreateCondaEnvironmentException:` errors. While their are a variety of factors that can contribute to these errors (make sure your conda is updated) we have found that these errors can usually be attributed to snakeconda running out of ram when setting up some of the heavier environemnts. Switching to an interactive node with more ram usually solves the issue. 
+2. Container problems.
+
+- `The apptainer or singularity command has to be available...`, you need to make sure the singularity is setup on your system.
+- `No such file or directory` for an input that plainly exists, the path is almost certainly not bound into the container. Add a `--bind` for it to `apptainer-args` in your profile. This is the single most common failure when migrating a working config: only `WORKDIR` is bound automatically.
+- The image download fails on compute nodes, they likely have no outbound network. Pull the images on a login node and set `R_CONTAINER` / `PYTHON_CONTAINER` in your Skipper config to the resulting `.sif` paths.
+- An R or Python package appears to be the wrong version, a host `R_LIBS`, `R_LIBS_USER` or `PYTHONPATH` is leaking in. Make sure `--cleanenv` is present in `apptainer-args`.
 
 3. Jobs dying with no explanation.
 If you observe that many of your jobs are dying without any explanation (e.g. mostly blank files in WORKDIR/stderr, unhelpful error messages in WORKDIR/.snakemake/slurm_logs such as "Killed"), and these jobs are occuring on the same node according to WORKDIR/stdout, then it is likely that this is the result of problematic nodes on your cluster. I would reccomend taking whichever nodes were used for the failed jobs and excluding them from the analysis by adding the following lines to the slurm extra command within your profile like so:

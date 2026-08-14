@@ -10,8 +10,8 @@ rule uniq_repeats:
     log:
         stdout = "stdout/uniq_repeats.out",
         stderr = "stderr/uniq_repeats.err",
-    conda:
-        "envs/bedbam_tools.yaml"
+    container:
+        PYTHON_CONTAINER
     resources:
         mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
@@ -60,8 +60,8 @@ rule quantify_repeats:
     log:
         stdout = "stdout/{replicate_label}.quantify_repeats.out",
         stderr = "stderr/{replicate_label}.quantify_repeats.err",
-    conda:
-        "envs/bedbam_tools.yaml"
+    container:
+        PYTHON_CONTAINER
     resources:
         mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
@@ -103,6 +103,8 @@ rule make_repeat_count_tables:
     resources:
         mem_mb=lambda wildcards, attempt: 2000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
+    container:
+        PYTHON_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -173,8 +175,8 @@ rule fit_clip_betabinomial_re_model:
     log:
         stdout = "stdout/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.out",
         stderr = "stderr/{experiment_label}.{clip_replicate_label}.fit_clip_betabinomial_re_model.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     resources:
         mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 180 * (2 ** (attempt - 1)),
@@ -203,8 +205,8 @@ rule fit_input_betabinomial_re_model:
     log:
         stdout = "stdout/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.out",
         stderr = "stderr/{experiment_label}.{input_replicate_label}.fit_input_betabinomial_re_model.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     resources:
         mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
@@ -238,8 +240,8 @@ rule call_enriched_re:
     log:
         stdout = "stdout/{experiment_label}.{clip_replicate_label}.call_enriched_re.out",
         stderr = "stderr/{experiment_label}.{clip_replicate_label}.call_enriched_re.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     params:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label]
     resources:
@@ -276,8 +278,8 @@ rule find_reproducible_enriched_re:
     log:
         stdout = "stdout/{experiment_label}.find_reproducible_enriched_re.out",
         stderr = "stderr/{experiment_label}.find_reproducible_enriched_re.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     resources:
         mem_mb=lambda wildcards, attempt: 8000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),

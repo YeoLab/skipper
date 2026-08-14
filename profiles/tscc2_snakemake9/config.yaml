@@ -8,9 +8,17 @@ nolock: true
 default-storage-provider: none
 rerun-triggers: mtime
 keep-going: true
-use-conda: true
-conda-prefix: "/tscc/nfs/home/$USER/scratch/snakeconda/"
-conda-frontend: conda
+software-deployment-method: [apptainer]
+# Where Snakemake caches the .sif files it builds from the docker:// images.
+# Must be on shared storage readable from every compute node.
+apptainer-prefix: "/tscc/nfs/home/$USER/scratch/singularity/"
+# --cleanenv keeps your shell's R_LIBS / PYTHONPATH / PERL5LIB out of the
+# container, where they would otherwise shadow the image's own packages -- the
+# exact failure this branch exists to eliminate. The binds cover every TSCC path
+# a Skipper config can point at: WORKDIR, TOOL_DIR, GENOME, GFF, STAR_DIR,
+# PARTITION, FEATURE_ANNOTATIONS, REPEAT_TABLE, MANIFEST and the fastq/bam files
+# it names.
+apptainer-args: "--cleanenv --bind /tscc/nfs/home --bind /tscc/projects --bind /tscc/lustre"
 rerun-incomplete: true
 jobs: 30
 executor: slurm
@@ -22,7 +30,6 @@ default-resources:
   mem_mb: 20000
   slurm_extra: "--qos=condo"
 # slurm_extra: "--qos=hcg-csd792"  # to use our nodes
-use-envmodules: true
 show-failed-logs: true
 slurm-logdir: "/tscc/nfs/home/$USER/scratch/slurm_logs"
 # add --exclude=NODE (e.g. tscc-1-18) to slurm extra to remove problematic nodes. 

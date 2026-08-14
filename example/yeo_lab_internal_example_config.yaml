@@ -38,3 +38,12 @@ REPEAT_BED: /tscc/projects/ps-yeolab4/software/skipper/2.0.0/bin/skipper/annotat
 GENE_SETS: /tscc/projects/ps-yeolab4/software/skipper/2.0.0/bin/skipper/annotations/c5.go.v7.5.1.symbols.gmt
 GENE_SET_REFERENCE: /tscc/projects/ps-yeolab4/software/skipper/2.0.0/bin/skipper/annotations/encode3_go_terms.reference.tsv.gz
 GENE_SET_DISTANCE: /tscc/projects/ps-yeolab4/software/skipper/2.0.0/bin/skipper/annotations/encode3_go_terms.jaccard_index.rds
+
+################################# CONTAINER IMAGES (optional) ####################################
+# Every rule runs inside one of two prebuilt images. By default Skipper pulls
+# them from Docker Hub and Snakemake caches the converted .sif files under the
+# apptainer-prefix set in your profile. Uncomment and edit these only if you
+# built the images yourself
+#
+# R_CONTAINER: /path/to/your/skipper-r.sif
+# PYTHON_CONTAINER: /path/to/your/skipper-py.sif

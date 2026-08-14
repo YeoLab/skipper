@@ -42,7 +42,7 @@ sampled_data = enriched_windows %>%
   count(name="n_enriched") %>%
   inner_join(all_windows %>% select(name, sampling_group)) %>%
   group_by(sampling_group) %>%
-  summarize(
+  reframe(
     tibble(
       name = sample(
         name[!name %in% enriched_windows$name],

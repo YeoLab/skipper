@@ -145,13 +145,12 @@ if (nrow(re_features) == 0) {
 # Join with reference background fractions, fill missing with priors, and aggregate per id/feature counts.
 clip_count_data = re_features %>%
   group_by(id) %>%
-  summarize(
+  reframe(
     left_join(
       reference_features %>% mutate(id = unique(id)),
       tibble(.),
       by = c("id", "feature")
-    ),
-    .groups = "drop"
+    )
   ) %>%
   mutate(value = ifelse(is.na(value), global_fraction, value)) %>%
   group_by(id, feature, global_fraction) %>%

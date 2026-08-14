@@ -27,8 +27,8 @@ rule get_nt_coverage:
     log:
         stdout = "stdout/{experiment_label}.get_nt_coverage.out",
         stderr = "stderr/{experiment_label}.get_nt_coverage.err",
-    conda:
-        "envs/bedbam_tools.yaml"
+    container:
+        PYTHON_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -85,8 +85,8 @@ rule finemap_windows:
     log:
         stdout = "stdout/{experiment_label}.finemap_windows.out",
         stderr = "stderr/{experiment_label}.finemap_windows.err",
-    conda:
-        "envs/skipper_R.yaml"
+    container:
+        R_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -118,8 +118,8 @@ rule annotate_finemap:
         mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
         tmpdir = TMPDIR,
-    conda:
-        "envs/metadensity.yaml"
+    container:
+        PYTHON_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -130,7 +130,11 @@ rule annotate_finemap:
         export TMPDIR="{resources.tmpdir}"
         mkdir -p "$TMPDIR"
 
-        PY="$CONDA_PREFIX/bin/python"
+        # The container bakes its interpreter onto PATH, so resolve it from
+        # there. This used to read "$CONDA_PREFIX/bin/python", which under
+        # `set -u` is a hard error the moment CONDA_PREFIX is unset -- as it is
+        # inside a container unless something deliberately sets it.
+        PY="$(command -v python)"
 
         echo "Using python: $($PY -c 'import sys; print(sys.executable)')" | tee -a {log.stdout}
         echo "PATH=$PATH" | tee -a {log.stdout}
@@ -166,8 +170,8 @@ rule find_both_tested_windows:
         mem_mb=lambda wildcards, attempt: 45000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 60 * (2 ** (attempt - 1)),
         tmpdir = TMPDIR,
-    conda:
-        "envs/metadensity.yaml"
+    container:
+        PYTHON_CONTAINER
     shell:
         r"""
         set -euo pipefail
@@ -178,7 +182,11 @@ rule find_both_tested_windows:
         export TMPDIR="{resources.tmpdir}"
         mkdir -p "$TMPDIR"
 
-        PY="$CONDA_PREFIX/bin/python"
+        # The container bakes its interpreter onto PATH, so resolve it from
+        # there. This used to read "$CONDA_PREFIX/bin/python", which under
+        # `set -u` is a hard error the moment CONDA_PREFIX is unset -- as it is
+        # inside a container unless something deliberately sets it.
+        PY="$(command -v python)"
 
         echo "Using python: $($PY -c 'import sys; print(sys.executable)')" | tee -a {log.stdout}
         echo "PATH=$PATH" | tee -a {log.stdout}

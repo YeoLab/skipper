@@ -23,12 +23,17 @@ if not star_exists:
         resources:
             mem_mb = 48000,
             runtime = "2h",
+            # The shell block runs `mktemp --tmpdir={resources.tmpdir}`, which
+            # without this line falls back to Snakemake's implicit default --
+            # a host path that need not be bound into the container, so mktemp
+            # fails and takes the rule with it under `set -euo pipefail`.
+            tmpdir = TMPDIR,
         benchmark: "benchmarks/run_star_genome_generate.txt"
         log:
             stdout = "stdout/run_star_genome_generate.out",
             stderr = "stderr/run_star_genome_generate.err",
-        conda:
-            "envs/star.yaml"
+        container:
+            PYTHON_CONTAINER
         shell:
             r"""
             set -euo pipefail
@@ -65,8 +70,8 @@ rule run_initial_fastqc:
     log:
         stdout = "stdout/{replicate_label}.run_initial_fastqc.out",
         stderr = "stderr/{replicate_label}.run_initial_fastqc.err",
-    conda:
-        "envs/fastqc.yaml"
+    container:
+        PYTHON_CONTAINER
     resources:
         mem_mb=16000,
         runtime="2h"
@@ -102,8 +107,8 @@ rule trim_fastq:
     log:
         stdout = "stdout/{replicate_label}.trim_fastq.out",
         stderr = "stderr/{replicate_label}.trim_fastq.err",
-    conda:
-        "envs/skewer.yaml"
+    container:
+        PYTHON_CONTAINER
     resources:
         mem_mb=16000,
         runtime="2h"
@@ -143,8 +148,8 @@ rule extract_umi:
     log:
         stdout = "stdout/{replicate_label}.extract_umi.out",
         stderr = "stderr/{replicate_label}.extract_umi.err",
-    conda:
-        "envs/fastp.yaml"
+    container:
+        PYTHON_CONTAINER
     resources:
         mem_mb=8000,
         runtime="1h"
@@ -181,8 +186,8 @@ rule run_trimmed_fastqc:
     log:
         stdout = "stdout/{replicate_label}.run_trimmed_fastqc.out",
         stderr = "stderr/{replicate_label}.run_trimmed_fastqc.err",
-    conda:
-        "envs/fastqc.yaml"
+    container:
+        PYTHON_CONTAINER
     resources:
         mem_mb=16000,
         runtime="3h"
@@ -217,8 +222,8 @@ rule align_reads:
     log:
         stdout = "stdout/{replicate_label}.align_reads.out",
         stderr = "stderr/{replicate_label}.align_reads.err",
-    conda:
-        "envs/star.yaml"
+    container:
+        PYTHON_CONTAINER
     resources:
         mem_mb=lambda wildcards, attempt: 64000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
@@ -269,8 +274,8 @@ rule sort_bam:
     log:
         stdout = "stdout/{replicate_label}.{ref}.sort_bam.out",
         stderr = "stderr/{replicate_label}.{ref}.sort_bam.err",
-    conda:
-        "envs/bedbam_tools.yaml"
+    container:
+        PYTHON_CONTAINER
     resources:
         mem_mb=lambda wildcards, attempt: 16000 * (1.5 ** (attempt - 1)),
         runtime=lambda wildcards, attempt: 120 * (2 ** (attempt - 1)),
@@ -301,8 +306,8 @@ rule index_bams:
     log:
         stdout = "stdout/{round}.{ref}.{mid}.{replicate_label}.index_bams.out",
         stderr = "stderr/{round}.{ref}.{mid}.{replicate_label}.index_bams.err",
-    conda:
-        "envs/bedbam_tools.yaml"
+    container:
+        PYTHON_CONTAINER
     resources:
         mem_mb=1000,
         runtime="30m"
@@ -331,8 +336,8 @@ rule dedup_umi:
     log:
         stdout = "stdout/{replicate_label}.dedup_umi.out",
         stderr = "stderr/{replicate_label}.dedup_umi.err",
-    conda:
-        "envs/umicollapse.yaml"
+    container:
+        PYTHON_CONTAINER
     resources:
         mem_mb=lambda wildcards, attempt: 48000 * (1.5 ** (attempt - 1)),
         java_mem_mb=lambda wildcards, attempt: 32000 * (1.5 ** (attempt - 1)),

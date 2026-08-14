@@ -9,8 +9,16 @@ nolock: true
 default-storage-provider: none
 rerun-triggers: mtime
 keep-going: true
-use-conda: true
-conda-prefix: "PATH/TO/SAVE/CONDA_ENVS"
-conda-frontend: conda
+software-deployment-method: [apptainer]
+# Where Snakemake caches the .sif files it builds from the docker:// images.
+# Must be readable from every node that runs jobs.
+apptainer-prefix: "PATH/TO/SAVE/SINGULARITY_IMAGES"
+# --cleanenv keeps your shell's R_LIBS / PYTHONPATH / PERL5LIB out of the
+# container, where they would otherwise shadow the image's own packages.
+# Add a --bind for every directory
+# your config points at that lives outside WORKDIR: TOOL_DIR, GENOME, GFF,
+# STAR_DIR, PARTITION, FEATURE_ANNOTATIONS, REPEAT_TABLE, MANIFEST and the
+# fastq/bam files it names.
+apptainer-args: "--cleanenv --bind PATH/TO/YOUR/DATA"
 rerun-incomplete: true
 jobs: 30

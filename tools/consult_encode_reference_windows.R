@@ -65,7 +65,7 @@ win_features = simplify_window_data(enriched_windows) %>%
 	group_by(id = experiment_label, feature) %>% count(name="value") %>% ungroup
 
 # Join with reference background fractions, fill missing with priors, and aggregate per id/feature counts.
-clip_count_data = win_features %>% group_by(id) %>% summarize(left_join(reference_features %>% mutate(id=unique(id)), tibble(.))) %>% 
+clip_count_data = win_features %>% group_by(id) %>% reframe(left_join(reference_features %>% mutate(id=unique(id)), tibble(.))) %>%
 	mutate(value = ifelse(is.na(value), global_fraction, value)) %>% group_by(id, feature, global_fraction) %>% summarize(clip_count = sum(value)) 
 
 # Convert counts to fractions and compute information contribution (entropy_contribution) per feature and sample.

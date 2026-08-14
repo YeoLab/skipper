@@ -213,6 +213,19 @@ def call_enriched_window_output(wildcards):
 config["CHROM_SIZES"] = config["STAR_DIR"] + "/chrNameLength.txt"
 config["UNINFORMATIVE_READ"] = str(3 - config["INFORMATIVE_READ"])
 
+############################## Container images #################################
+# The defaults pull from Docker Hub; Snakemake converts each image to a .sif
+# once and caches it under --apptainer-prefix. To use a .sif you built
+# yourself instead, set either of these in your Skipper config:
+#
+#   R_CONTAINER: "/tscc/nfs/home/YOUR_USER/containers/skipper-r.sif"
+#   PYTHON_CONTAINER: "/tscc/nfs/home/YOUR_USER/containers/skipper-py.sif"
+
+config["R_CONTAINER"] = config.get(
+    "R_CONTAINER", "docker://howardxu520/skipper:R_v1.0")
+config["PYTHON_CONTAINER"] = config.get(
+    "PYTHON_CONTAINER", "docker://howardxu520/skipper:python_v1.0")
+
 ############################## Define which parts of skipper to run #################################
 
 # Always include the basic.
@@ -279,6 +292,8 @@ rule all_basic_output:
     resources:
         mem_mb=400,
         run_time=20
+    container:
+        config["PYTHON_CONTAINER"]
     shell:
         """
         touch {output}
@@ -296,6 +311,8 @@ rule all_qc:
     resources: 
         mem_mb=400,
         run_time=20
+    container:
+        config["PYTHON_CONTAINER"]
     shell:
         """
         touch {output}
@@ -312,6 +329,8 @@ rule all_homer_output:
     resources:
         mem_mb=400,
         run_time=20
+    container:
+        config["PYTHON_CONTAINER"]
     shell:
         """
         touch {output}
@@ -328,6 +347,8 @@ rule all_repeat_output:
     resources:
         mem_mb=400,
         run_time=20
+    container:
+        config["PYTHON_CONTAINER"]
     shell:
         """
         touch {output}
@@ -341,6 +362,8 @@ rule all_geneset_output:
     resources:
         mem_mb=400,
         run_time=20
+    container:
+        config["PYTHON_CONTAINER"]
     shell:
         """
         touch {output}
