@@ -8,6 +8,8 @@ See published article in Cell Genomics: https://www.cell.com/cell-genomics/fullt
 ## Yeo-lab internal users:
 Please see the YEOLAB_INTERNAL.md file for specific instructions on running Skipper on the TSCC cluster. 
 
+NOTE: The internal example files (example/yeo_lab_internal_example_config.yaml, example/yeo_lab_internal_example_manifest.csv, and profiles/tscc2_snakemake9/config.yaml) may also be useful for non-Yeo Lab users who would like to see examples of fully completed input files.
+
 # Set up
 ## Installation
 
