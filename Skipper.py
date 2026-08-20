@@ -259,6 +259,14 @@ print(all_inputs)
 rule all:
     input:
         all_inputs
+
+# A dummy rule used for pre-making annotations en-mass for the lab. 
+rule annotation_preprocessing:
+    input:
+        PARTITION,
+        FEATURE_ANNOTATIONS,
+        PARTITION.replace(".bed", ".nuc"),
+        config["CHROM_SIZES"]
     
 ############################## Call all basic outputs #################################
 rule all_basic_output:

@@ -78,7 +78,8 @@ Second, Skipper resolves overlapping feature annotations. Even after transcript 
 
 It is important to note that although we feel this is the best GFF filtering strategy for most use cases, there are scenarios where such aggressive GFF filtering may be counterproductive. For example, a user may be interested in RBP binding to rare isoforms, or a particular treatment may have substantially altered the isoform distribution within the cells being studied. In such cases, we recommend that users generate their own custom GFF files.
 
-**YEOLAB INTERNAL USER NOTE**
+**YEOLAB INTERNAL USER NOTE:**
+
 Yeo-lab members on TSCC have access to several pre-built annotation resources, including GFF, PARTITION, FEATURE_ANNOTATION, and STAR_DIR files. These are available in `/tscc/projects/ps-yeolab4/software/skipper/2.0.0/bin/skipper/annotations`
 
 Using these whenever possible will lead to significant speedups. **DO NOT USE ANY ANNOTATION FILES FROM OLDER SKIPPER RUNS!!!!** these files were generated before the implementation of the GFF file filtration (removes problematic transcripts) and can lead to erroneous results. 
