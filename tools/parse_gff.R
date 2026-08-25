@@ -10,15 +10,27 @@ partition_output = args[3]
 annotations_output = args[4]     
 window_size = 100                 
 
-
 ######################### Read annotation data #############################
 # Import GFF3, excluding transcripts of type "artifact".
-transcript_data = rtracklayer::readGFF(gff3_file) %>% .[which(.$transcript_type != "artifact"),]
+transcript_data = rtracklayer::readGFF(gff3_file)
+
+bad_transcripts = transcript_data %>%
+    dplyr::filter(is.na(transcript_type) |
+                  transcript_type %in% c("NA", "", "artifact", "unknown", "Unknown", "unclassified"))
+
+if (nrow(bad_transcripts) > 0) {
+    write(paste0("Removing ", nrow(bad_transcripts), " transcripts with invalid transcript types."), stderr())
+}
+
+transcript_data = transcript_data %>%
+    dplyr::filter(!is.na(transcript_type),
+                  !transcript_type %in% c("NA", "", "artifact", "unknown", "Unknown", "unclassified"))
+
 gr = makeGRangesFromDataFrame(transcript_data, keep.extra.columns=TRUE)
 
 # Import accession rankings and define type/subtype priorities.
 accession_data = readr::read_tsv(accession_ranking_file) %>% dplyr::arrange(rank)
-accession_type_rankings = c(accession_data$accession, "primary_miRNA")
+accession_type_rankings = accession_data$accession
 exon_subtypes = accession_data$exon_subtype %>% unique
 protein_coding_subtype = accession_data$exon_subtype[accession_data$accession == "protein_coding"] %>% head(1)
 prioritized_exon_subtypes = exon_subtypes[cumsum(exon_subtypes == protein_coding_subtype) < 1]
@@ -59,6 +71,10 @@ if (length(missing_gene_types) > 0 || length(missing_transcript_types) > 0) {
         error_lines = c(error_lines, "Add the following missing accession type to the ranking file:",
                         paste0("    - ", missing_gene_types),"")
     }
+    if (length(missing_transcript_types) > 0) {
+        error_lines = c(error_lines, "Add the following missing accession type to the ranking file:",
+                        paste0("    - ", missing_transcript_types),"")
+    }
     stop(paste(error_lines, collapse = "\n"), call. = FALSE)
 }
 
@@ -66,7 +82,6 @@ write("...Success", stderr())
 
 # Build metadata string for each feature.
 gr$metadata = paste0(gr$gene_name, ":", gr$gene_id, ":", gr$transcript_id, ":", gr$gene_type, ":", gr$transcript_type)
-
 
 ######################### Define feature-level GRanges #########################
 # UTRs.
@@ -97,15 +112,23 @@ first_last_transcripts = intersect(names(cds_start_split), names(cds_stop_split)
 cds_single = intersect(cds_start_split[first_last_transcripts],
                        cds_stop_split[first_last_transcripts]) %>% stack("metadata") %>% sort 
 
-# pad with ±500bp to define "primary miRNA" features.
-primirna = (gr[which(gr$transcript_type == "miRNA")] + 500) %>% sort
-if (length(primirna) > 0){                                    
-    primirna$transcript_type = "primary_miRNA" 
-    primirna$metadata = paste0(primirna$gene_name, ":", primirna$gene_id, ":", primirna$transcript_id, ":", primirna$gene_type, ":", primirna$transcript_type)
+# Define primary miRNA regions from any recognized miRNA-related transcript type.
+miRNA_types = c("miRNA", "pre_miRNA", "miRNA primary transcript", "primary_miRNA")
+primirna = (gr[gr$transcript_type %in% miRNA_types] + 500) %>% sort
+
+if (length(primirna) > 0) {
+    primirna$transcript_type = "primary_miRNA"
+    primirna$metadata = paste0(primirna$gene_name, ":", primirna$gene_id, ":", primirna$transcript_id, ":",
+                               primirna$gene_type, ":", primirna$transcript_type)
+
+    # Add the synthetic type to the ranking only if it is not already present.
+    if (!"primary_miRNA" %in% accession_type_rankings) {
+        accession_type_rankings = c(accession_type_rankings, "primary_miRNA")
+    }
 } else {
     primirna = NULL
 }
-
+   
 # Exons (excluding CDS).
 exons = gr[gr$type == "exon"] %>% sort
 exons_split = split(exons, exons$metadata) 
