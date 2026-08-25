@@ -8,6 +8,8 @@ See published article in Cell Genomics: https://www.cell.com/cell-genomics/fullt
 ## Yeo-lab internal users:
 Please see the YEOLAB_INTERNAL.md file for specific instructions on running Skipper on the TSCC cluster. 
 
+NOTE: The internal example files (example/yeo_lab_internal_example_config.yaml, example/yeo_lab_internal_example_manifest.csv, and profiles/tscc2_snakemake9/config.yaml) may also be useful for non-Yeo Lab users who would like to see examples of fully completed input files.
+
 # Set up
 ## Installation
 
@@ -67,7 +69,9 @@ An example profile is provided at:`profiles/example_basic/config.yaml`
 This profile is configured for running Skipper on a single-node machine (not recommended for most use cases; see [Running Skipper on HPCs](#Running-Skipper-on-HPCs)). Two settings need your attention:
 
 - **`apptainer-prefix`** — where the `.sif` images are cached. Pick a location with 30 GB free that is readable from every node that will run jobs.
-- **`apptainer-args`** — add a `--bind` for every directory your config points at that lives outside `WORKDIR`: `TOOL_DIR`, `GENOME`, `GFF`, `STAR_DIR`, `PARTITION`, `FEATURE_ANNOTATIONS`, `REPEAT_TABLE`, `MANIFEST` and the fastq/bam files it names. Anything not bound is simply invisible inside the container. Keep `--cleanenv`; it stops a stray `R_LIBS`, `PYTHONPATH` or `CONDA_PREFIX` in your shell from leaking in and shadowing the image's own.
+- **`apptainer-args`** — add a `--bind` for every filesystem location containing files Skipper needs to access, including `WORKDIR`, `TOOL_DIR`, `GENOME`, `GFF`, `STAR_DIR`, `PARTITION`, `FEATURE_ANNOTATIONS`, `REPEAT_TABLE`, `MANIFEST`, and any fastq/bam files listed in the manifest. In most cases, it is simplest to bind 1 or 2 common parent directories that contain all files (for example, `--bind /path/to/scratch --bind /path/to/project`). Keep `--cleanenv`; it stops a stray `R_LIBS`, `PYTHONPATH` or `CONDA_PREFIX` in your shell from leaking in and shadowing the image's own.
+
+NOTE: Remapping a host directory to a different container path (for example, `--bind /path/to/here:/path/to/there`) can cause path mismatches between Snakemake and containerized tools; see [Troubleshooting: bind-path remapping](#bind-path-remapping).
 
 ## Running Skipper on HPCs
 
@@ -103,7 +107,7 @@ profiles/example_slurm/config.yaml
 ```
 
 - **`apptainer-prefix`** Do not forget to change this to a path on your cluster. It must be on shared storage that every compute node can read.
-- **`apptainer-args`** Add a `--bind` for every input directory outside `WORKDIR` (see [Configuring Your Snakemake Profile](#configuring-your-snakemake-profile)).
+- **`apptainer-args`** Add a `--bind` for every directory that contains input files (see [Configuring Your Snakemake Profile](#configuring-your-snakemake-profile)).
 - **Slurm account, partition:** You must enter your own account and partition information.
 - **Cluster specific options:** Some systems require additional details. For example:  
 
@@ -381,8 +385,10 @@ However, in some cases additional information from snakemake may be necessary, i
 - `No such file or directory` for an input that plainly exists, the path is almost certainly not bound into the container. Add a `--bind` for it to `apptainer-args` in your profile. This is the single most common failure when migrating a working config: only `WORKDIR` is bound automatically.
 - The image download fails on compute nodes, they likely have no outbound network. Pull the images on a login node and set `R_CONTAINER` / `PYTHON_CONTAINER` in your Skipper config to the resulting `.sif` paths.
 - An R or Python package appears to be the wrong version, a host `R_LIBS`, `R_LIBS_USER` or `PYTHONPATH` is leaking in. Make sure `--cleanenv` is present in `apptainer-args`.
+- `Bind path remapping`. It is sometimes common practice to create container specific bindings when using singularity, such as `--bind /path/to/here:/path/to/there`. However, this works poorly with snakemake. For example, if you use `--bind /absolute/path/to/manifest:/container/path/to/manifest` in your config file, this will cause an error, as Snakemake needs to read your manifest before it initializes the container. As such, we recommend simply binding the absolute paths on your machine (e.g. `--bind /absolute/path/to/manifest`)
+- **Bind path remapping.** It is sometimes common practice to remap host directories to container specific paths when using Singularity, such as `--bind /path/to/here:/path/to/there`. However, this can work poorly with Snakemake, as some files are accessed by Snakemake on the host before containerized rules are executed. For example, if a manifest exists at `/absolute/path/to/manifest` on the host but is referenced in the config as `/container/path/to/manifest`, Snakemake will fail because `/container/path/to/manifest` only exists inside the container. We therefore recommend binding directories without remapping their paths (for example, `--bind /absolute/path/to/project`) so that the same absolute paths are valid both inside and outside the container.
 
-3. Jobs dying with no explanation.
+4. Jobs dying with no explanation.
 If you observe that many of your jobs are dying without any explanation (e.g. mostly blank files in WORKDIR/stderr, unhelpful error messages in WORKDIR/.snakemake/slurm_logs such as "Killed"), and these jobs are occuring on the same node according to WORKDIR/stdout, then it is likely that this is the result of problematic nodes on your cluster. I would reccomend taking whichever nodes were used for the failed jobs and excluding them from the analysis by adding the following lines to the slurm extra command within your profile like so:
 
   ```yaml
@@ -391,5 +397,5 @@ If you observe that many of your jobs are dying without any explanation (e.g. mo
 
 This is also the common cause of many timeout errors, as Skipper generally provides significantly more than enough time for all rules. 
 
-4. Monitoring pipeline. 
+5. Monitoring pipeline. 
 `squeue -u $USER -o "%.18i %.10P %.20j %.10u %.2t %.10M %.6D %.20R %.80k"` will show currently active jobs (helpful to see if certain rules are getting stuck.)
