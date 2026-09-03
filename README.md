@@ -314,22 +314,24 @@ Each of these parameters should be edited to reflect the parameters of the speci
 | GENE_SET_DISTANCE   | RDS of a matrix containing jaccard index scores for all pairs of gene sets in GMT file |
 
 ## Making a manifest
-The manifest file is a csv file used to direct Skipper to the input files for analysis. The table below lists required annotation information that MUST be included in the every manifest.
 
-NOTE: Skipper requires at least 2 replicates per sample to identify reproducible windows. 
-NOTE: See the example/Example_manifest.csv file for example formatting.
+The manifest file is a csv file used to direct Skipper to the input files for analysis. The table below lists annotation information that can/should be included in every manifest.
 
 | Column      | Description |
 | ----------- | ----------- |
-| Experiment       | CLIP samples will be compared against Input samples within an experiment. The same sample can be used in multiple experiments |
-| Sample           | Each CLIP and Input sample will be processed separately until testing for differential binding   |
-| Cells            | A place to record information on the cell sample used: this is not currently used in analysis  |
-| Input_replicate  | Replicate number for the same Sample. The same Input replicate (FASTQ and number) can be used for multiple CLIP replicates |
-| CLIP_replicate   | Replicate number for the same Sample. Distinct CLIP replicates are required |
+| Sample\* | Primary identifier for the RBP or experimental condition being analyzed. Replicates belonging to the same RBP and condition should use the same Sample value. |
+| Experiment\* | Experiment identifier. In most cases, this should be the same as Sample. This column is retained for compatibility but is not generally important for the analysis. |
+| Cells | Optional metadata describing the cell type or source. This is recorded for reference and is not used in the analysis. |
+| Input\_replicate | Replicate number for the Input sample on that row. |
+| CLIP\_replicate\*\*  | Replicate number for the CLIP sample on that row. |
 
-The remaining required inputs for the manifest depend on if you are running Skipper with FASTQ files or BAM files. 
+\* A single manifest can contain multiple RBPs and/or experimental conditions, allowing them to be processed together in the same Skipper run. Each distinct RBP or experimental condition should be assigned a unique Sample and Experiment identifier.
 
-## Running Skipper with FASTQs
+\*\* Skipper requires at least 2 CLIP replicates per sample to identify reproducible windows.
+
+The remaining required inputs for the manifest depend on whether you are running Skipper with FASTQ files or BAM files. See `example/Example_manifest.csv` for an example of the expected formatting when running Skipper in FASTQ mode.
+
+### Running Skipper with FASTQs
 
 Add the following columns to your manifest
 | Column      | Description |
@@ -339,7 +341,7 @@ Add the following columns to your manifest
 | CLIP_adapter     | Path to FASTA file containing adapter sequences for CLIP replicate                                                     |
 | CLIP_fastq       | Path to CLIP replicate FASTQ (multiple files can be entered per cell to be concatenated, seperated by a space)            |
 
-## Running Skipper with BAMs
+### Running Skipper with BAMs
 
 Add the following columns to your manifest
 | Column      | Description |
