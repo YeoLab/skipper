@@ -257,13 +257,16 @@ rule download_vep_cache:
         "docker://ensemblorg/ensembl-vep:release_113.4"
     shell:
         """
+        mkdir -p {VEP_CACHEDIR}
         cd {VEP_CACHEDIR}
-        wget https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        wget https://ftp.ensembl.org/pub/release-{VEP_CACHE_VERSION}/variation/indexed_vep_cache/homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
         tar xzf homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        rm homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
         """
 rule vep:
     input:
-        "output/variants/clinvar/{experiment_label}.vcf"
+        vcf = "output/variants/clinvar/{experiment_label}.vcf",
+        cache = rules.download_vep_cache.output,
     output:
         "output/variants/clinvar/{experiment_label}.vep.tsv"
     threads: 2
@@ -274,11 +277,11 @@ rule vep:
         "docker://ensemblorg/ensembl-vep:release_113.4"
     shell:
         """
-        if [ -s {input} ]; then
+        if [ -s {input.vcf} ]; then
             vep \
-            -i {input} \
+            -i {input.vcf} \
             --force_overwrite \
-            -o {output} -offline --cache {VEP_CACHEDIR}
+            -o {output} --offline --cache --dir_cache {VEP_CACHEDIR} --cache_version {VEP_CACHE_VERSION}
         else
             touch {output}
         fi

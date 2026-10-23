@@ -79,7 +79,7 @@ rule fetch_variant_sequence:
     threads: 2
     resources:
         mem_mb=80000,
-        runtime="80:00"
+        runtime=80
     params:
         out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
     conda:
@@ -107,7 +107,7 @@ rule score_fa:
     threads: 1
     resources:
         mem_mb=80000,
-        runtime="20:00"
+        runtime=20
     params:
         model_path = lambda wildcards: model_dict[wildcards.model_name]
     conda:
@@ -134,7 +134,7 @@ rule to_vcf:
         "docker://brianyee/bcftools:1.17"
     resources:
         mem_mb=80000,
-        runtime="20:00"
+        runtime=20
     shell:
         """
         bcftools convert -c CHROM,POS,REF,ALT,-,-,filter,- -f {GENOME} --tsv2vcf {input} -o {output}
@@ -147,7 +147,7 @@ rule vep:
     threads: 2
     resources:
         mem_mb=40000,
-        runtime="20:00"
+        runtime=20
     container:
         "docker://ensemblorg/ensembl-vep:latest"
     shell:

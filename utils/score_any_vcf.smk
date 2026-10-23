@@ -135,7 +135,7 @@ rule fetch_variant_sequence:
     threads: 2
     resources:
         mem_mb=80000,
-        runtime="80:00"
+        runtime=80
     params:
         out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
     conda:
@@ -194,7 +194,7 @@ rule combine_score:
     threads: 1
     resources:
         mem_mb=80000,
-        runtime="20:00"
+        runtime=20
     conda:
         "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
     shell:
@@ -217,7 +217,7 @@ rule analysis:
     threads: 1
     resources:
         mem_mb=80000,
-        runtime="20:00"
+        runtime=20
     conda:
         "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
     shell:
@@ -235,7 +235,7 @@ rule vep:
     threads: 2
     resources:
         mem_mb=40000,
-        runtime="80:00"
+        runtime=80
     container:
         "docker://ensemblorg/ensembl-vep:latest"
     shell:
