@@ -1,6 +1,3 @@
-from dotenv import load_dotenv
-import os
-from huggingface_hub import login
 # Imports
 from transformers import AutoTokenizer, TrainingArguments, Trainer, AutoModelForSequenceClassification
 import torch
@@ -62,16 +59,7 @@ if __name__ == "__main__":
     skipper_path = Path(sys.argv[1])
     exp = sys.argv[2]
     model_name = sys.argv[3] #"nucleotide-transformer-500m-human-ref"
-    # Load environment variables from .env from working directory
-    # go to huggingface and create a token and save it in .env
-    # load_dotenv()
-
-    # Get the token
-    hf_token = os.getenv("HF_TOKEN")
-    # print(hf_token)
-
-    # Login using the token
-    login(token=hf_token)
+    # Hugging Face auth is picked up automatically from HF_TOKEN or the cached token (hf auth login)
     device, _, _ = get_backend()
 
     # set num labels to 1 to trigger regression

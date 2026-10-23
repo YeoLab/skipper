@@ -5,9 +5,6 @@ import pyarrow.parquet as pq
 from tqdm import tqdm
 import sys
 
-import os
-from huggingface_hub import login
-
 
 def sdata_to_parquet(sdata, split, exp, CHUNK=1024, outdir = '/tmp'):
 
@@ -54,10 +51,7 @@ def sdata_to_parquet(sdata, split, exp, CHUNK=1024, outdir = '/tmp'):
     writer.close()
 
 if __name__ == '__main__':
-    # login
-    hf_token = os.getenv("HF_TOKEN")
-    login(token=hf_token, write_permission = True)
-
+    # Hugging Face auth is picked up automatically from HF_TOKEN or the cached token (hf auth login)
     exp = sys.argv[1]
     outdir = Path(sys.argv[2])
     data_dir = Path(f"output/ml/rbpnet_data/{exp}")
