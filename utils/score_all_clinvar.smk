@@ -1,10 +1,15 @@
 from pathlib import Path
 import pandas as pd
 locals().update(config)
-workdir: f"{config.get('UTILS_WORKDIR', '/tscc/lustre/ddn/scratch/bay001')}/clinvar_analysis"
+UTILS_WORKDIR = config.get('UTILS_WORKDIR', '/tscc/lustre/ddn/scratch/bay001')
+workdir: f"{UTILS_WORKDIR}/clinvar_analysis"
 VCF='/tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.rename.vcf.gz'
 VEP_CACHEDIR = config.get('UTILS_VEP_CACHEDIR', '/tscc/lustre/ddn/scratch/bay001/vep_cache')
 UTILS_DIR = workflow.basedir
+# per-experiment gnomAD scores (utils/score_gnomAD_per_experiment.smk) set the GoB/LoB thresholds;
+# with USE_GNOMAD: false the thresholds come from the ClinVar delta scores instead
+USE_GNOMAD = config.get('USE_GNOMAD', True)
+GNOMAD_SCORES_DIR = Path(config.get('GNOMAD_SCORES_DIR', f"{UTILS_WORKDIR}/gnomAD_per_experiment/output/variants/gnomAD_roulette"))
 # Defines regions to query
 TABLE='/tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v41.annotation.tiled_partition.bed.gz'
 
@@ -14,12 +19,7 @@ tabledir = Path('/tscc/nfs/home/hsher/projects/ENCODE/tables/')
 metrics=pd.read_csv(tabledir/'model_performance.csv')
 selected_models = metrics.loc[metrics['selected'], 'Experiment'].sort_values().tolist()
 model_dir = Path('/tscc/nfs/home/hsher/ps-yeolab5/rbpnet_models')
-models = model_dir.glob('*')
-eclip_dict = {}
-model_dict = {}
-for f in models:
-    model_dict[f.name] = f
-    eclip_dict[f.name] = str(f).split('output')[0] # point to eclip output
+model_dict = {f.name: f for f in model_dir.glob('*')}
 
 
 """
@@ -244,7 +244,7 @@ rule vep:
 rule analysis:
     input:
         score="output/variants/{model_name}.score.csv.gz",
-        gnomad=lambda wildcards: Path(eclip_dict[wildcards.model_name]) / f'output/variants/gnomAD_roulette/{wildcards.model_name}.total.csv',
+        gnomad=lambda wildcards: GNOMAD_SCORES_DIR / f'{wildcards.model_name}.total.csv' if USE_GNOMAD else [],
         vep = "output/variants/vep.tsv",
         gnomadech=expand("output/gnomAD_roulette/{chr_number}.vcf",
         chr_number = range(1, 23)
@@ -258,6 +258,8 @@ rule analysis:
     resources:
         mem_mb=80000,
         runtime="1h"
+    params:
+        gnomad = lambda wildcards, input: input.gnomad if USE_GNOMAD else 'none',
     conda:
         "../rules/envs/metadensity.yaml"
     shell:
@@ -265,7 +267,7 @@ rule analysis:
         python {UTILS_DIR}/clivnar_analysis.py \
             {input.score} \
             output/gnomAD_roulette/ \
-            {input.gnomad} \
+            {params.gnomad} \
             {input.vep} \
             output/analysis/
         """

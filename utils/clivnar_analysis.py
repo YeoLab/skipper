@@ -66,7 +66,8 @@ if __name__ == '__main__':
     clinvar_df = pd.read_csv(sys.argv[1])
     exp = Path(sys.argv[1]).name.split('.')[0]
     gnomad_output_dir = Path(sys.argv[2])
-    gnomad = pd.read_csv(sys.argv[3], na_values = '.')
+    # 'none' skips the gnomAD comparison; thresholds then come from the ClinVar delta scores
+    gnomad = None if sys.argv[3] == 'none' else pd.read_csv(sys.argv[3], na_values = '.')
     clinvar_vep = pd.read_csv(sys.argv[4],
                               sep = '\t',
                       comment = '#',
@@ -94,9 +95,12 @@ if __name__ == '__main__':
     clinvar_df = pd.concat(alldf, axis = 0)
 
     # get std from MAF>0.01
-    std = gnomad.loc[(gnomad['INFO/AC']/gnomad['INFO/AN'])>0.01,'delta_score'].std()
-    if math.isnan(std):
-        std = gnomad['delta_score'].std()
+    if gnomad is not None:
+        std = gnomad.loc[(gnomad['INFO/AC']/gnomad['INFO/AN'])>0.01,'delta_score'].std()
+        if math.isnan(std):
+            std = gnomad['delta_score'].std()
+    else:
+        std = clinvar_df['delta_score'].std()
 
     # join data
     clinvar_df['Consequence'] = clinvar_df['ID'].map(
