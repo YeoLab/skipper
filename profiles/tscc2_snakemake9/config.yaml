@@ -25,4 +25,4 @@ set-resources:
     slurm_partition: "rtx3090"
     slurm_account: "csd792"
     slurm_extra: "'--qos=condo-gpu' '--gpus=1'"
-    runtime: 1
+    runtime: 10
