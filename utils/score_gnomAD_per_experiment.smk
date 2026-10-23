@@ -64,7 +64,7 @@ use rule fetch_SNP_from_gnomAD_and_roulette, slop_finemap, fetch_peak_sequence, 
 use rule score_fa from variants with:
     resources:
         mem_mb=80000,
-        runtime=60,
+        runtime=10,
         slurm_partition="rtx3090",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
