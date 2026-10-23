@@ -1,24 +1,22 @@
 from pathlib import Path
-VCFs = ROULETTE_DIR.glob('*rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz')
 
 # Defines regions to query
 TABLE='/tscc/nfs/home/hsher/bin/poison_exon_variant_analysis/data/Felker2023SuppelementaryTable2_hg38_PE_cassettes.strand.bed'
 import pandas as pd
 locals().update(config)
+VCFs = Path(ROULETTE_DIR).glob('*rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz')
+UTILS_WORKDIR = config.get('UTILS_WORKDIR', '/tscc/lustre/ddn/scratch/bay001')
 
 tabledir = Path('/tscc/nfs/home/hsher/ps-yeolab5/ENCODE_paper_tables/')
 metrics=pd.read_csv(tabledir/'model_performance.csv')
 selected_models = metrics.loc[metrics['selected'], 'Experiment'].sort_values().tolist()
 
-workdir: f"{config.get('UTILS_WORKDIR', '/tscc/lustre/ddn/scratch/bay001')}/poison_exon_analysis"
-from pathlib import Path
-model_dir = Path('/tscc/nfs/home/hsher/scratch/')
-models = model_dir.glob('ENCO*/output/ml/rbpnet_model/*')
-eclip_dict = {}
-model_dict = {}
-for f in models:
-    model_dict[f.name] = f
-    eclip_dict[f.name] = str(f).split('output')[0] # point to eclip output
+workdir: f"{UTILS_WORKDIR}/poison_exon_analysis"
+VEP_CACHEDIR = config.get('UTILS_VEP_CACHEDIR', '/tscc/lustre/ddn/scratch/bay001/vep_cache')
+UTILS_DIR = workflow.basedir
+GNOMAD_SCORES_DIR = Path(config.get('GNOMAD_SCORES_DIR', f"{UTILS_WORKDIR}/gnomAD_per_experiment/output/variants/gnomAD_roulette"))
+model_dir = Path('/tscc/nfs/home/hsher/ps-yeolab5/rbpnet_models')
+model_dict = {f.name: f for f in model_dir.glob('*')}
 
 
 print(model_dict)
@@ -114,7 +112,7 @@ rule score_wt:
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
 
-        python /tscc/nfs/home/hsher/projects/RBPNet/score_fa.py \
+        python {RBPNET_PATH}/score_fa.py \
             {params.model_path} \
             {input}  {output} \
             /tscc/lustre/ddn/scratch/${{USER}}
@@ -139,7 +137,7 @@ rule fetch_variant_sequence:
     params:
         out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
     conda:
-        "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
+        "../rules/envs/metadensity.yaml"
     shell:
         """
         if [ -s {input.subset_vcf} ]; then
@@ -196,10 +194,10 @@ rule combine_score:
         mem_mb=80000,
         runtime=20
     conda:
-        "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
+        "../rules/envs/metadensity.yaml"
     shell:
         """
-        python /tscc/nfs/home/hsher/projects/skipper/utils/join_scores.py \
+        python {UTILS_DIR}/join_scores.py \
             {wildcards.model_name} output/variants \
             {output}
         """
@@ -207,7 +205,7 @@ rule combine_score:
 rule analysis:
     input:
         score="output/variants/{model_name}.score.csv.gz",
-        gnomad=lambda wildcards: Path(eclip_dict[wildcards.model_name]) / f'output/variants/gnomAD_roulette/{wildcards.model_name}.total.csv'
+        gnomad=lambda wildcards: GNOMAD_SCORES_DIR / f'{wildcards.model_name}.total.csv'
     output:
         "output/variants/{model_name}.global_oe.csv",
         "output/variants/{model_name}.global_maps.csv",
@@ -219,17 +217,36 @@ rule analysis:
         mem_mb=80000,
         runtime=20
     conda:
-        "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
+        "../rules/envs/metadensity.yaml"
     shell:
         """
-        python /tscc/nfs/home/hsher/projects/skipper/utils/gnomad_analysis_poison_exon.py \
+        python {UTILS_DIR}/gnomad_analysis_poison_exon.py \
             {input.score} \
             {input.gnomad} \
             output/variants/{wildcards.model_name}
         """
+rule download_vep_cache:
+    output:
+        Path(VEP_CACHEDIR) / f'homo_sapiens/{VEP_CACHE_VERSION}_GRCh38/1/all_vars.gz'
+    threads: 1
+    resources:
+        mem_mb=2000,
+        runtime="3h"
+    container:
+        f"docker://ensemblorg/ensembl-vep:release_{VEP_CACHE_VERSION}.4"
+    shell:
+        """
+        mkdir -p {VEP_CACHEDIR}
+        cd {VEP_CACHEDIR}
+        wget https://ftp.ensembl.org/pub/release-{VEP_CACHE_VERSION}/variation/indexed_vep_cache/homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        tar xzf homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        rm homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        """
+
 rule vep:
     input:
-        "output/variants/variants.vcf"
+        vcf = "output/variants/variants.vcf",
+        cache = rules.download_vep_cache.output,
     output:
         "output/variants/vep.tsv"
     threads: 2
@@ -237,12 +254,12 @@ rule vep:
         mem_mb=40000,
         runtime=80
     container:
-        "docker://ensemblorg/ensembl-vep:latest"
+        f"docker://ensemblorg/ensembl-vep:release_{VEP_CACHE_VERSION}.4"
     shell:
         """
         vep \
-        -i {input} \
+        -i {input.vcf} \
         --force_overwrite \
-        -o {output} -offline --cache {VEP_CACHEDIR}
+        -o {output} --offline --cache --dir_cache {VEP_CACHEDIR} --cache_version {VEP_CACHE_VERSION}
         """
 

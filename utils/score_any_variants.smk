@@ -4,19 +4,19 @@ VARIANT='/tscc/nfs/home/hsher/ps-yeolab5/ENCODE_paper_tables/CHD_variants.tsv'
 
 TABLE='/tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.Heart_Left_Ventricle.tiled_partition.bed.gz'
 import pandas as pd
+from pathlib import Path
 locals().update(config)
+UTILS_WORKDIR = config.get('UTILS_WORKDIR', '/tscc/lustre/ddn/scratch/bay001')
 
 tabledir = Path('/tscc/nfs/home/hsher/ps-yeolab5/ENCODE_paper_tables/')
 metrics=pd.read_csv(tabledir/'model_performance.csv')
 selected_models = metrics.loc[metrics['selected'], 'Experiment'].sort_values().tolist()
 
-workdir: f"{config.get('UTILS_WORKDIR', '/tscc/lustre/ddn/scratch/bay001')}/CHD_analysis"
-from pathlib import Path
-model_dir = Path('/tscc/nfs/home/hsher/scratch/')
-models = model_dir.glob('ENCO*/output/ml/rbpnet_model/*')
-model_dict = {}
-for f in models:
-    model_dict[f.name] = f
+workdir: f"{UTILS_WORKDIR}/CHD_analysis"
+VEP_CACHEDIR = config.get('UTILS_VEP_CACHEDIR', '/tscc/lustre/ddn/scratch/bay001/vep_cache')
+UTILS_DIR = workflow.basedir
+model_dir = Path('/tscc/nfs/home/hsher/ps-yeolab5/rbpnet_models')
+model_dict = {f.name: f for f in model_dir.glob('*')}
 
 
 print(model_dict)
@@ -83,7 +83,7 @@ rule fetch_variant_sequence:
     params:
         out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
     conda:
-        "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
+        "../rules/envs/metadensity.yaml"
     shell:
         """
         if [ -s {input.subset_vcf} ]; then
@@ -110,8 +110,8 @@ rule score_fa:
         runtime=20
     params:
         model_path = lambda wildcards: model_dict[wildcards.model_name]
-    conda:
-        "/tscc/nfs/home/hsher/projects/skipper/rules/envs/eugene.yaml"
+    container:
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
         if [ -s {input.fa} ]; then
@@ -139,9 +139,28 @@ rule to_vcf:
         """
         bcftools convert -c CHROM,POS,REF,ALT,-,-,filter,- -f {GENOME} --tsv2vcf {input} -o {output}
         """
+rule download_vep_cache:
+    output:
+        Path(VEP_CACHEDIR) / f'homo_sapiens/{VEP_CACHE_VERSION}_GRCh38/1/all_vars.gz'
+    threads: 1
+    resources:
+        mem_mb=2000,
+        runtime="3h"
+    container:
+        f"docker://ensemblorg/ensembl-vep:release_{VEP_CACHE_VERSION}.4"
+    shell:
+        """
+        mkdir -p {VEP_CACHEDIR}
+        cd {VEP_CACHEDIR}
+        wget https://ftp.ensembl.org/pub/release-{VEP_CACHE_VERSION}/variation/indexed_vep_cache/homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        tar xzf homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        rm homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        """
+
 rule vep:
     input:
-        "output/variants/variants.vcf"
+        vcf = "output/variants/variants.vcf",
+        cache = rules.download_vep_cache.output,
     output:
         "output/variants/vep.tsv"
     threads: 2
@@ -149,12 +168,12 @@ rule vep:
         mem_mb=40000,
         runtime=20
     container:
-        "docker://ensemblorg/ensembl-vep:latest"
+        f"docker://ensemblorg/ensembl-vep:release_{VEP_CACHE_VERSION}.4"
     shell:
         """
         vep \
-        -i {input} \
+        -i {input.vcf} \
         --force_overwrite \
-        -o {output} -offline --cache {VEP_CACHEDIR}
+        -o {output} --offline --cache --dir_cache {VEP_CACHEDIR} --cache_version {VEP_CACHE_VERSION}
         """
 
