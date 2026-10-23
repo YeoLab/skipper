@@ -178,6 +178,7 @@ rule dedup_umi:
         ibam = "output/bams/raw/genome/{replicate_label}.genome.Aligned.sort.bam.bai"
     output:
         bam_dedup="output/bams/dedup/genome/{replicate_label}.genome.Aligned.sort.dedup.bam",
+    params:
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
     container:
