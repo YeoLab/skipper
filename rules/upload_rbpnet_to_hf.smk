@@ -23,6 +23,6 @@ rule upload_hf_dataset:
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         export HF_HOME=/tscc/nfs/home/${{USER}}/scratch/.cache/huggingface
-        export HF_TOKEN_PATH=/tscc/nfs/home/${{USER}}/.cache/huggingface/token # token from `hf auth login`, outside the scratch HF_HOME
+        export HF_TOKEN=$(cat ${{HOME}}/.secure/credentials/huggingface/read-only.token)
         python {TOOL_DIR}/upload_to_hf_dataset.py {wildcards.experiment_label} output/ml/rbpnet_data/parquet
         """

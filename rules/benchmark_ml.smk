@@ -1,6 +1,4 @@
 locals().update(config)
-# train_and_evaluate_nucleotide_transformer needs HF_TOKEN (hugging-face-user-access-token) exported in the submitting shell.
-# Not declared via `envvars:` because that would make HF_TOKEN mandatory for every Skipper run.
 
 rule test_sdata_to_fasta:
     input:
@@ -168,6 +166,7 @@ rule train_and_evaluate_nucleotide_transformer:
     shell:
         """
         export HF_HOME=/tscc/nfs/home/${{USER}}/.cache/huggingface
+        export HF_TOKEN=$(cat ${{HOME}}/.secure/credentials/huggingface/read-only.token)
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {TOOL_DIR}/benchmark_nucleotide_transformer.py \
