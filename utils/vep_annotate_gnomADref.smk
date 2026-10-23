@@ -8,7 +8,7 @@ MODEL_DIR='/tscc/nfs/home/hsher/ps-yeolab5/roulette/model'
 
 locals().update(config)
 
-workdir: '/tscc/nfs/home/hsher/scratch/annotate_roulette/'
+workdir: f"{config.get('UTILS_WORKDIR', '/tscc/lustre/ddn/scratch/bay001')}/annotate_roulette"
 """
 snakemake -s utils/vep_annotate_gnomADref.smk \
     --profile /tscc/nfs/home/hsher/projects/skipper/profiles/tscc2 \

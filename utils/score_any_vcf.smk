@@ -10,7 +10,7 @@ tabledir = Path('/tscc/nfs/home/hsher/ps-yeolab5/ENCODE_paper_tables/')
 metrics=pd.read_csv(tabledir/'model_performance.csv')
 selected_models = metrics.loc[metrics['selected'], 'Experiment'].sort_values().tolist()
 
-workdir: "/tscc/nfs/home/hsher/scratch/poison_exon_analysis"
+workdir: f"{config.get('UTILS_WORKDIR', '/tscc/lustre/ddn/scratch/bay001')}/poison_exon_analysis"
 from pathlib import Path
 model_dir = Path('/tscc/nfs/home/hsher/scratch/')
 models = model_dir.glob('ENCO*/output/ml/rbpnet_model/*')
@@ -108,7 +108,7 @@ rule score_wt:
     params:
         model_path = lambda wildcards: model_dict[wildcards.model_name]
     container:
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
@@ -167,7 +167,7 @@ rule score_fa:
         mem_mb=80000,
         runtime="2h"
     container: 
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD

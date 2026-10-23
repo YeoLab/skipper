@@ -1,7 +1,7 @@
 locals().update(config)
-# for train_and_evaluate_nucleotide_transformer
-envvars:
-        "HF_TOKEN", # hugging-face-user-access-token
+# train_and_evaluate_nucleotide_transformer needs HF_TOKEN (hugging-face-user-access-token) exported in the submitting shell.
+# Not declared via `envvars:` because that would make HF_TOKEN mandatory for every Skipper run.
+
 rule test_sdata_to_fasta:
     input:
         zarr = "output/ml/rbpnet_data/{experiment_label}/prep_done"
@@ -11,7 +11,7 @@ rule test_sdata_to_fasta:
         mem_mb=80000,
         runtime="10m",
     container:
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
@@ -88,7 +88,7 @@ rule calculate_pearson_auprc_for_homer:
     wildcard_constraints:
         motif_source="(RBNS|SELEX)",
     container:
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
@@ -112,7 +112,7 @@ rule calculate_pearson_auprc_for_internal_homer:
         mem_mb=80000,
         runtime="10m",
     container:
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
@@ -139,7 +139,7 @@ rule calculate_pearson_auprc_for_mcross_homer:
     wildcard_constraints:
         data_types="(CIMS|CITS)",
     container:
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
@@ -164,7 +164,7 @@ rule train_and_evaluate_nucleotide_transformer:
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     singularity:
-        "/tscc/nfs/home/hsher/scratch/singularity/eugene_nt_lora_latest.sif" # https://hub.docker.com/r/algaebrown/eugene_nt_lora # singularity pull docker://algaebrown/eugene_nt_lora
+        "/tscc/nfs/home/bay001/bin/eugene_nt_lora_latest.sif" # https://hub.docker.com/r/algaebrown/eugene_nt_lora # singularity pull docker://algaebrown/eugene_nt_lora
     shell:
         """
         export HF_HOME=/tscc/nfs/home/${{USER}}/.cache/huggingface

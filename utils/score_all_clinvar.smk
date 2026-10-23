@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 locals().update(config)
-workdir: "/tscc/nfs/home/hsher/scratch/clinvar_analysis"
+workdir: f"{config.get('UTILS_WORKDIR', '/tscc/lustre/ddn/scratch/bay001')}/clinvar_analysis"
 VCF='/tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.rename.vcf.gz'
 # Defines regions to query
 TABLE='/tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v41.annotation.tiled_partition.bed.gz'
@@ -110,7 +110,7 @@ rule fetch_variant_sequence:
         all_fa = "output/variants/annotation.all.fa",
         csv = "output/variants/annotation.csv"
     threads: 2
-    resouces:
+    resources:
         mem_mb=80000,
         runtime=80
     params:
@@ -144,7 +144,7 @@ rule score_fa:
     params:
         model_path = lambda wildcards: model_dict[wildcards.model_name]
     container: 
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
@@ -209,7 +209,7 @@ rule vep:
     threads: 2
     resources:
         mem_mb=40000,
-        runtime="6h"
+        runtime="6h",
         cache= VEP_CACHEDIR
     container:
         "docker://ensemblorg/ensembl-vep:latest"

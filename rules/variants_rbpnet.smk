@@ -154,7 +154,7 @@ rule score_fa:
     params:
         exp =lambda wildcards: wildcards.experiment_label_thing.split('.')[0],
     container:
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD

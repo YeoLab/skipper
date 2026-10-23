@@ -16,7 +16,7 @@ rule upload_hf_dataset:
         mem_mb=80000,
         runtime=40
     singularity:
-        "/tscc/nfs/home/hsher/scratch/singularity/eugene_nt_lora_latest.sif"
+        "/tscc/nfs/home/bay001/bin/eugene_nt_lora_latest.sif"
     shell:
         """
         export NUMBA_DISABLE_CACHING=1

@@ -125,7 +125,7 @@ def find_all_tested_windows(experiment_labels, experiment_to_clip_replicate_labe
         for rep in experiment_to_clip_replicate_labels[e]:
             tested_windows.append(f"output/tested_windows/{e}.{rep}.tested_windows.tsv.gz")
     return tested_windows
-rule join_reproducible_enriched_windows:
+rule join_all_reproducible_enriched_windows:
     input:
         expand("output/reproducible_enriched_windows/{experiment_label}.reproducible_enriched_windows.tsv.gz",
             experiment_label=experiment_labels),

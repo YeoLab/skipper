@@ -10,7 +10,7 @@ tabledir = Path('/tscc/nfs/home/hsher/ps-yeolab5/ENCODE_paper_tables/')
 metrics=pd.read_csv(tabledir/'model_performance.csv')
 selected_models = metrics.loc[metrics['selected'], 'Experiment'].sort_values().tolist()
 
-workdir: "/tscc/nfs/home/hsher/scratch/CHD_analysis"
+workdir: f"{config.get('UTILS_WORKDIR', '/tscc/lustre/ddn/scratch/bay001')}/CHD_analysis"
 from pathlib import Path
 model_dir = Path('/tscc/nfs/home/hsher/scratch/')
 models = model_dir.glob('ENCO*/output/ml/rbpnet_model/*')

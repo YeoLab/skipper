@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 locals().update(config)
-workdir: "/tscc/nfs/home/hsher/scratch/gnomad_vep_store"
+workdir: f"{config.get('UTILS_WORKDIR', '/tscc/lustre/ddn/scratch/bay001')}/gnomad_vep_store"
 # VCF='/tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.rename.vcf.gz'
 # Defines regions to query
 TABLE='/tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v41.annotation.tiled_partition.bed.gz'

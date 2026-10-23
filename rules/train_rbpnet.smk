@@ -14,7 +14,7 @@ rule prepare_data:
         mem_mb=80000,
         runtime=40
     container: 
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
         export NUMBA_DISABLE_CACHING=1
@@ -36,7 +36,7 @@ rule train_model:
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     # container:
     #     "docker://brianyee/eugene-tools:0.1.2" #NO SPACE LEFT ON DEVICE PROBLEM
     shell:
@@ -61,7 +61,7 @@ rule train_original_model:
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     # container:
     #     "docker://brianyee/eugene-tools:0.1.2" #NO SPACE LEFT ON DEVICE PROBLEM
     shell:
@@ -86,7 +86,7 @@ rule validation:
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     # container:
     #     "docker://brianyee/eugene-tools:0.1.2"
     shell:
@@ -113,7 +113,7 @@ rule validate_original_model:
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     # container:
     #     "docker://brianyee/eugene-tools:0.1.2"
     shell:
@@ -141,7 +141,7 @@ rule seqlet:
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
-        "/tscc/nfs/home/bay001/eugene-tools_0.1.2.sif"
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     # container:
     #     "docker://brianyee/eugene-tools:0.1.2"
     shell:
