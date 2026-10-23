@@ -61,11 +61,40 @@ module variants:
 
 use rule fetch_SNP_from_gnomAD_and_roulette, slop_finemap, fetch_peak_sequence, fetch_variant_sequence, join_gnomAD_info from variants
 
-use rule score_fa from variants with:
+# score every chromosome's ref/alt fasta of an experiment in one GPU job (model loaded once)
+# instead of the module's per-chromosome score_fa; job startup dominates otherwise (~1 min each)
+REPO_TOOLS = Path(workflow.basedir).parent / 'tools'
+CHROMS = list(range(1, 23))
+TYPES = ['ref', 'alt']
+
+rule score_experiment:
+    input:
+        model = "output/ml/rbpnet_model/{experiment_label}/training_done",
+        fa = expand("output/variants/gnomAD_roulette/{{experiment_label}}.chr{chr_number}.{type}.fa",
+                    chr_number = CHROMS, type = TYPES),
+    output:
+        score = temp(expand("output/variants/gnomAD_roulette/{{experiment_label}}.chr{chr_number}.{type}.score.csv",
+                            chr_number = CHROMS, type = TYPES)),
+    wildcard_constraints:
+        experiment_label = "[^./]+"
+    params:
+        pairs = lambda wildcards, input, output: ' '.join(f'{fa} {out}' for fa, out in zip(input.fa, output.score)),
+    threads: 1
     resources:
         mem_mb=80000,
-        runtime=10,
+        runtime=30,
         slurm_partition="rtx3090",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
-
+    container:
+        "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
+    shell:
+        """
+        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
+        export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
+        export PYTHONPATH={RBPNET_PATH}
+        python {REPO_TOOLS}/score_fa_batch.py \
+            output/ml/rbpnet_model/{wildcards.experiment_label}/ \
+            output/variants/gnomAD_roulette/zarr/{wildcards.experiment_label} \
+            {params.pairs}
+        """
