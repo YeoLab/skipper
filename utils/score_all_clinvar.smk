@@ -3,6 +3,8 @@ import pandas as pd
 locals().update(config)
 workdir: f"{config.get('UTILS_WORKDIR', '/tscc/lustre/ddn/scratch/bay001')}/clinvar_analysis"
 VCF='/tscc/projects/ps-yeolab5/hsher/clinvar/clinvar.rename.vcf.gz'
+VEP_CACHEDIR = config.get('UTILS_VEP_CACHEDIR', '/tscc/lustre/ddn/scratch/bay001/vep_cache')
+UTILS_DIR = workflow.basedir
 # Defines regions to query
 TABLE='/tscc/projects/ps-yeolab4/software/skipper/bb63a25/bin/skipper/annotations/gencode.v41.annotation.tiled_partition.bed.gz'
 
@@ -76,7 +78,7 @@ rule slop_finemap:
     threads: 2
     resources:
         mem_mb=40000,
-        runtime="06:20:00"
+        runtime=380
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
     shell:
@@ -116,7 +118,7 @@ rule fetch_variant_sequence:
     params:
         out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
     conda:
-        "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
+        "../rules/envs/metadensity.yaml"
     shell:
         """
         if [ -s {input.subset_vcf} ]; then
@@ -174,7 +176,7 @@ rule combine_score:
         print(input.vcf)
         variants = pd.read_csv(input.vcf, 
                         sep = '\t', names =['CHROM','POS','ID','REF','ALT',
-                        'INFO/CLNDN','INFO/CLNVC','INFO/CLNSIG','INFO/CLNDSIGDB','INFO/AF_ESP','INFO/AF_EXAC',
+                        'INFO/CLNDN','INFO/CLNVC','INFO/CLNSIG','INFO/CLNDSDB','INFO/AF_ESP','INFO/AF_EXAC',
                         'INFO/AF_TGP','INFO/ALLELEID'
                         ],
             na_values = '.')
@@ -201,24 +203,42 @@ rule combine_score:
         all_scores.to_csv(output[0], index = False, compression = 'gzip')
     
 
+rule download_vep_cache:
+    output:
+        Path(VEP_CACHEDIR) / f'homo_sapiens/{VEP_CACHE_VERSION}_GRCh38/1/all_vars.gz'
+    threads: 1
+    resources:
+        mem_mb=2000,
+        runtime="3h"
+    container:
+        f"docker://ensemblorg/ensembl-vep:release_{VEP_CACHE_VERSION}.4"
+    shell:
+        """
+        mkdir -p {VEP_CACHEDIR}
+        cd {VEP_CACHEDIR}
+        wget https://ftp.ensembl.org/pub/release-{VEP_CACHE_VERSION}/variation/indexed_vep_cache/homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        tar xzf homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        rm homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        """
+
 rule vep:
     input:
-        "output/variants/fetched.vcf"
+        vcf = "output/variants/fetched.vcf",
+        cache = rules.download_vep_cache.output,
     output:
         "output/variants/vep.tsv"
     threads: 2
     resources:
         mem_mb=40000,
         runtime="6h",
-        cache= VEP_CACHEDIR
     container:
-        "docker://ensemblorg/ensembl-vep:latest"
+        f"docker://ensemblorg/ensembl-vep:release_{VEP_CACHE_VERSION}.4"
     shell:
         """
         vep \
-        -i {input} \
+        -i {input.vcf} \
         --force_overwrite \
-        -o {output} -offline --cache {VEP_CACHEDIR}
+        -o {output} --offline --cache --dir_cache {VEP_CACHEDIR} --cache_version {VEP_CACHE_VERSION}
         """
 
 rule analysis:
@@ -239,10 +259,10 @@ rule analysis:
         mem_mb=80000,
         runtime="1h"
     conda:
-        "/tscc/nfs/home/hsher/projects/skipper/rules/envs/metadensity.yaml"
+        "../rules/envs/metadensity.yaml"
     shell:
         """
-        python /tscc/nfs/home/hsher/projects/skipper/utils/clivnar_analysis.py \
+        python {UTILS_DIR}/clivnar_analysis.py \
             {input.score} \
             output/gnomAD_roulette/ \
             {input.gnomad} \
@@ -287,10 +307,10 @@ rule aggregate_mondo:
         mem_mb=80000,
         runtime="1h"
     conda:
-        "/tscc/nfs/home/hsher/projects/skipper/rules/envs/mondo.yaml"
+        "../rules/envs/mondo.yaml"
     shell:
         """
-        python /tscc/nfs/home/hsher/projects/skipper/utils/propagate_mondo.py \
+        python {UTILS_DIR}/propagate_mondo.py \
             {input.variants} \
             output/mondo/{wildcards.model_name}
         """
