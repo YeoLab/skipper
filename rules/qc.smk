@@ -76,15 +76,21 @@ rule nread_in_finemapped_regions:
         runtime=5
     shell:
         """
+        # -sorted streams the bam instead of loading it into memory (unsorted OOMs at 40G);
+        # it needs the bed sorted in the bam's chromosome order
+        genome=$(mktemp)
         for bam in {input.bam}
         do
-            nread_in_peak=$(bedtools coverage \
-            -a {input.bed} \
+            samtools view -H $bam | awk -v OFS='\\t' '$1=="@SQ" {{sub("SN:", "", $2); sub("LN:", "", $3); print $2, $3}}' > $genome
+            nread_in_peak=$(bedtools sort -g $genome -i {input.bed} | bedtools coverage \
+            -sorted -g $genome \
+            -a - \
             -b $bam \
             -counts \
             -s | cut -f 10 | awk '{{sum += $NF}} END {{print sum}}')
             replicate_label=$(basename $bam | cut -d'.' -f1)
             echo -e "$replicate_label\t$nread_in_peak" >> {output.nread_in_finemapped_regions}
         done
+        rm -f $genome
         """
 
