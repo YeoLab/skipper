@@ -56,7 +56,7 @@ rule train_original_model:
         model = "output/ml/rbpnet_model_original/{experiment_label}/training_done",
     resources:
         mem_mb=160000,
-        runtime="3h",
+        runtime="6h",
         slurm_partition="rtx3090",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",

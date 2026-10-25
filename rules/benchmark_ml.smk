@@ -157,7 +157,7 @@ rule train_and_evaluate_nucleotide_transformer:
         "output/ml/nt_lora/{experiment_label}/{model_name}/d_log_odds_corr.csv"
     resources:
         mem_mb=160000,
-        runtime="3h",
+        runtime="6h",
         slurm_partition="rtx6000",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
