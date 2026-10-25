@@ -157,6 +157,7 @@ rule score_fa:
         "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
+        export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         if [ -s {input.fa} ]; then

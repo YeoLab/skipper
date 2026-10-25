@@ -42,6 +42,7 @@ rule train_model:
     shell:
         """
         module load gpu
+        export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/train.py output/ml/rbpnet_data/{wildcards.experiment_label} \
@@ -67,6 +68,7 @@ rule train_original_model:
     shell:
         """
         module load gpu
+        export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/train_original_rbpnet.py output/ml/rbpnet_data/{wildcards.experiment_label} \
@@ -92,6 +94,7 @@ rule validation:
     shell:
         """
         module load gpu
+        export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/validate.py {CONFIG_PATH} \
@@ -119,6 +122,7 @@ rule validate_original_model:
     shell:
         """
         module load gpu
+        export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/validate.py {CONFIG_PATH} \
@@ -147,6 +151,7 @@ rule seqlet:
     shell:
         """
         module load gpu
+        export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/seqlet.py \

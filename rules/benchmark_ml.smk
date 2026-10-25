@@ -12,6 +12,7 @@ rule test_sdata_to_fasta:
         "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
+        export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {TOOL_DIR}/sdata_to_fasta.py \
@@ -89,6 +90,7 @@ rule calculate_pearson_auprc_for_homer:
         "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
+        export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {TOOL_DIR}/benchmark_homer.py \
@@ -113,6 +115,7 @@ rule calculate_pearson_auprc_for_internal_homer:
         "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
+        export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {TOOL_DIR}/benchmark_homer.py \
@@ -140,6 +143,7 @@ rule calculate_pearson_auprc_for_mcross_homer:
         "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
         """
+        export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {TOOL_DIR}/benchmark_homer.py \
@@ -167,6 +171,7 @@ rule train_and_evaluate_nucleotide_transformer:
         """
         export HF_HOME=/tscc/nfs/home/${{USER}}/.cache/huggingface
         export HF_TOKEN=$(cat ${{HOME}}/.secure/credentials/huggingface/read-only.token)
+        export NUMBA_DISABLE_CACHING=1
         export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {TOOL_DIR}/benchmark_nucleotide_transformer.py \
