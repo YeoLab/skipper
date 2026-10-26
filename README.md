@@ -30,8 +30,11 @@ For example, below are some commands for installing Miniconda and Snakemake 9.1.
 
 `bash Miniconda3-latest-Linux-x86_64.sh`
 
-We exported our snakemake environment in `rules/envs/snakemake`
-`conda env create -n snakemake --file rules/envs/snakemake`
+Create a Snakemake 9 environment with the SLURM executor plugin (tested with snakemake 9.12.0 and snakemake-executor-plugin-slurm 1.4.0):
+
+`mamba create -n snakemake9 -c conda-forge -c bioconda snakemake=9.12.0 snakemake-executor-plugin-slurm=1.4.0`
+
+On TSCC, a ready-made environment can be loaded with `module load singularitypro; conda activate snakemake9`.
 
 <h2>Preparing to run Skipper</h2>
 Skipper uses a Snakemake workflow. The `Skipper.py` file contains the rules necessary to process CLIP data from fastqs. Skipper also supports running on BAMs - note that Skipper's analysis of repetitive elements will assume that non-uniquely mapping reads are contained within the BAM files.
@@ -104,40 +107,78 @@ Want to make your own partition from RNA-seq of a sample? Run the tools/subset_g
 | CLIP_fastq       | Path to CLIP replicate fastq (multiple files can be entered per cell to be concatenated            |
 | CLIP_bam       | (Optional) Enter path to CLIP BAM file            |
 
+For paired-end data (`protocol: ENCODE3`), the adapter and fastq columns are split by read: `Input_adapter_1`, `Input_adapter_2`, `Input_fastq_1`, `Input_fastq_2`, `CLIP_adapter_1`, `CLIP_adapter_2`, `CLIP_fastq_1` and `CLIP_fastq_2`.
+
 Skipper requires multiple CLIP replicates of the same sample to call reproducible windows. Enter multiple replicates with the same experiment and sample columns on separate lines, incrementing the replicate number for each replicate. The same input replicate can be used in multiple experiments and repeated for the same sample if you estimate overdispersion from CLIP replicates. If the same replicate is used for multiple comparisons, the sample and replicate columns must be consistent.
 
 See the example manifest for the exact formatting and to test running Skipper.
 
 <h2>Running Skipper</h2>
 
-Skipper can be run like any other Snakemake workflow. 
+Skipper can be run like any other Snakemake workflow. The steps below run it on a SLURM cluster (TSCC) with the `profiles/tscc2_snakemake9` profile.
 
-Create a new directory to store output, copy the Snakemake and config files, and make all edits necessary to the config file. In the `all` rule of the `Skipper.py` file, comment out output that you do not wish to inspect.
+**1. Write a config file.** Start from a working example and edit it:
 
-Remember to load the Snakemake environment before running
+| Example config | Protocol |
+| ----------- | ----------- |
+| `encode_configs/Skipper_pe_small_test_bay001.yaml` | Paired-end (`protocol: ENCODE3`, `INFORMATIVE_READ: 2`, `UNINFORMATIVE_READ: 1`) |
+| `encore_configs/Skipper_se_small_test_bay001.yaml` | Single-end (`protocol: ENCODE4`, `INFORMATIVE_READ: 1`, `UNINFORMATIVE_READ: 2`) |
 
-`conda activate snakemake`
+At minimum, set `WORKDIR` (where all output is written; Snakemake runs from this directory), `MANIFEST`, `TOOL_DIR` (the `tools` directory of this repository), `RBPNET_PATH`, `TMPDIR`, and the annotation and genome paths for your cell line. To run the ML benchmarks against HOMER motifs, also set `RBNS_MAPPING` and/or `SELEX_MAPPING`.
 
-Use the dry run function to confirm that Snakemake can parse all the information:
+**2. Load the environment.** On TSCC, unload the `nodejs` and `galyleo` modules first: they put their own python ahead of Snakemake's on `PATH`, and jobs inherit it.
 
 ```
-cd PATH_TO_SKIPPER
-CONFIG=encode_configs/Skipper_pe_small_test.yaml
-snakemake -kps Skipper.py \
+module load singularitypro
+module unload nodejs galyleo
+conda activate snakemake9
+```
+
+**3. Choose targets.** Pass one or more of these rule names on the command line:
+
+| Target | Output |
+| ----------- | ----------- |
+| `all_basic_output` | Alignment, deduplicated BAMs, bigwigs, enriched and reproducible windows, repeats, finemapping, HOMER, gene sets, QC (`basic_done.txt`) |
+| `all_benchmark_outputs` | Original RBPNet and nucleotide transformer models, plus HOMER benchmarks if `RBNS_MAPPING`/`SELEX_MAPPING` are set (`ml_benchmark_done.txt`) |
+| `all_ml_variants_output` | RBPNet model, motifs, gnomAD and ClinVar variant scoring (`ml_variants_done.txt`) |
+| `all` | `all_basic_output` + `all_ml_variants_output` (the default when no target is given) |
+| `all_uploads` | Parquet exports of RBPNet training data |
+
+The nucleotide transformer rule reads a HuggingFace token from `~/.secure/credentials/huggingface/read-only.token`; create it before running `all_benchmark_outputs`.
+
+**4. Dry run.** Pass `--configfile` as an **absolute path**: `Skipper.py` reads it from the command line and hands it to scripts that run inside `WORKDIR`, so a relative path breaks the RBPNet rules.
+
+```
+SKIPPER=/path/to/skipper
+CONFIG=$SKIPPER/encode_configs/Skipper_pe_small_test_bay001.yaml
+TARGETS="all_basic_output all_benchmark_outputs"
+
+snakemake $TARGETS -s $SKIPPER/Skipper.py \
     --configfile $CONFIG \
-    --profile profiles/tscc2_snakemake9 -n
+    --profile $SKIPPER/profiles/tscc2_snakemake9 \
+    --conda-prefix /path/to/your/snakeconda \
+    --singularity-prefix /path/to/your/singularity \
+    -n
 ```
 
-Once Snakemake has confirmed DAG creation, submit the jobs using whatever high performance computing infrastructure options suit you:
+`--conda-prefix` and `--singularity-prefix` override the shared locations in the profile; point them at directories you can write to (e.g. on scratch) so environments and images are built once and reused. Put the targets before the options: options such as `--rerun-triggers` take several values and will swallow targets that follow them.
+
+**5. Run.** Run Snakemake from a login node, inside `tmux`/`screen` or with `nohup`, since it must stay alive while it submits and tracks SLURM jobs. If you do launch it from within a SLURM job, run `unset SLURM_JOB_ID` first, or the SLURM plugin gets confused.
 
 ```
-# do this if you are NOT running on login node (in TSCC you are not supposed to). Running in a job confuses the snakemake slurm plugin.
-unset SLURM_JOB_ID
-# and run
-snakemake -kps Skipper.py \
+nohup snakemake $TARGETS -s $SKIPPER/Skipper.py \
     --configfile $CONFIG \
-    --profile profiles/tscc2_snakemake9 
+    --profile $SKIPPER/profiles/tscc2_snakemake9 \
+    --conda-prefix /path/to/your/snakeconda \
+    --singularity-prefix /path/to/your/singularity \
+    > $WORKDIR/snakemake.log 2>&1 &
 ```
+
+The profile sets `keep-going`, so one failed job does not stop independent jobs; Snakemake exits with an error once everything it can run has finished. The profile also sets `nolock: true`, so do not start two Snakemake runs in the same `WORKDIR` at once.
+
+**6. Monitor.** `squeue -u $USER` lists running jobs (job names are the Snakemake run ID). Progress (`N of M steps done`) and `Error in rule ...` messages are in `snakemake.log`; each job's own log is in `WORKDIR/.snakemake/slurm_logs/rule_<rule name>/<wildcards>/<slurm job id>.log`.
+
+**7. Rerun after failures.** Fix the cause, then rerun the same command; Snakemake picks up where it left off. If you have pulled changes to the rules since the outputs were made, add `--rerun-triggers mtime`: by default Snakemake reruns any job whose rule code changed, which would retrain finished models.
 
 Some deep learning rules will benefit from using GPU (temporary solution), the profiles and rules is already updated such fastq to model training to variant interpretation can be run end-to-end. If you are on a different platform, you may consider editing the following parameters in profile or specific rules:
 ```
@@ -162,8 +203,6 @@ rule train_model:
 ```
 
 Also, the `--nv` flag in singularity_args is essential for application to see CUDA. At the time of development, [snakemake does not offer a rule-specific singularity-args](https://github.com/snakemake/snakemake/issues/3478), so I enabled all rules to use `--nv`. CPU rules still run without problems, luckily.
-
-Did Skipper terminate? Sometimes jobs fail - inspect any error output and rerun the same command if there is no apparent explanation such as uninstalled dependencies or a misformatted input file. Snakemake will try to pick up where it left off.
 
 <h2>Skipper output</h2>
 
