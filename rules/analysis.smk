@@ -61,20 +61,23 @@ rule run_homer:
         outdir="output/homer/finemapped_results/{wildcards.experiment_label}"
         mkdir -p "$outdir"
 
-        # Skip HOMER gracefully if there are no finemapped windows.
-        if [ "$(zcat {input.finemapped_windows} | wc -l)" -eq 0 ]; then
-            echo "No finemapped windows found. Skipping HOMER." | tee -a {log.stdout}
+        # Skip HOMER gracefully if there are no finemapped or background windows.
+        # (Background is a 0-byte file when there are no reproducible enriched windows.)
+        if [ "$(zcat {input.finemapped_windows} | wc -l)" -eq 0 ] \
+            || [ ! -s {input.background} ] \
+            || [ "$(zcat {input.background} | wc -l)" -eq 0 ]; then
+            echo "No finemapped or background windows found. Skipping HOMER." | tee -a {log.stdout}
 
             cat > {output.report} <<EOF
 <html>
 <head><title>No motifs found</title></head>
 <body>
-<p>No finemapped windows were available, so HOMER was not run.</p>
+<p>No finemapped or background windows were available, so HOMER was not run.</p>
 </body>
 </html>
 EOF
 
-            echo "# No motifs: no finemapped windows available." > {output.pwm}
+            echo "# No motifs: no finemapped or background windows available." > {output.pwm}
 
             echo "[`date`] Finished run_homer (skipped)" | tee -a {log.stdout}
             exit 0
@@ -94,6 +97,13 @@ EOF
             -size given -rna -nofacts -S 20 -len 5,6,7,8,9 -nlen 1 \
             -bg "$bg_input" \
         >> {log.stdout} 2> {log.stderr}
+
+        # HOMER exits 0 without writing a report when all motifs are filtered out.
+        if [ ! -f {output.report} ]; then
+            echo "HOMER produced no report (all motifs filtered). Writing placeholder." | tee -a {log.stdout}
+            echo "<html><head><title>No motifs found</title></head><body><p>HOMER ran but all motifs were filtered out.</p></body></html>" > {output.report}
+        fi
+        [ -f {output.pwm} ] || echo "# No motifs: HOMER filtered out all motifs." > {output.pwm}
 
         echo "[`date`] Finished run_homer" | tee -a {log.stdout}
         """
