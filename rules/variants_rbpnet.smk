@@ -256,14 +256,14 @@ rule download_vep_cache:
     threads: 1
     resources:
         mem_mb=2000,
-        runtime="4h"
+        runtime="12h"
     container:
         "docker://ensemblorg/ensembl-vep:release_113.4"
     shell:
         """
         mkdir -p {VEP_CACHEDIR}
         cd {VEP_CACHEDIR}
-        curl -fLO https://ftp.ensembl.org/pub/release-{VEP_CACHE_VERSION}/variation/indexed_vep_cache/homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
+        curl -fL -C - -O https://ftp.ensembl.org/pub/release-{VEP_CACHE_VERSION}/variation/indexed_vep_cache/homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
         tar xzf homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
         rm homo_sapiens_vep_{VEP_CACHE_VERSION}_GRCh38.tar.gz
         """

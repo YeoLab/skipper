@@ -1,6 +1,8 @@
 # CHANGELOG
 
 ## 2026-11-14
+- `rules/variants_rbpnet.smk` (`download_vep_cache`): `curl -C -` (resume partial tarball) and runtime 4h -> 12h.
+  Ensembl FTP gave ~1.5 MB/s; 23 GB tarball was 17 GB after 3 h in encore_HepG2 (job 14279323), would time out.
 - `2025revision_configs/`: frozen `config.yaml`, `manifest.csv`, `run_skipper.sh` for the 8 revision runs + README
   (run order, sequential driver).
 - ML rules (train_rbpnet.smk x6, benchmark_ml.smk x5, variants_rbpnet.smk, upload_rbpnet_to_hf.smk):
