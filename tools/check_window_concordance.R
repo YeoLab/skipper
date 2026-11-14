@@ -38,7 +38,11 @@ for(clip_replicate_1 in clip_replicate_labels) {
 				pdf(paste0("output/figures/enrichment_concordance/", prefix, ".enrichment_concordance.", clip_replicate_1, "_", clip_replicate_2, ".pdf"), height = 1, width = 2)
 					print(ggplot() + annotate("text", x = 1, y = 1, label = "Insufficient data") + theme_void())
 				dev.off()
-				next	
+				# odds_data.tsv is a declared output; write NAs (unless another pair wrote it) so the rule doesn't fail
+				odds_path <- paste0("output/enrichment_reproducibility/", prefix, ".odds_data.tsv")
+				if(!file.exists(odds_path)) write_tsv(tibble(estimate = NA, p.value = NA, conf.low = NA, conf.high = NA, method = "Insufficient data", alternative = NA),
+					odds_path)
+				next
 			}
 			
 			odds_data = enriched_concordance_data %>% pivot_wider(names_from="replicate_2", values_from = "count") %>% 
