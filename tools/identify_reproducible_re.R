@@ -13,6 +13,14 @@ enriched_re_data = enriched_re_files %>%
     Filter(function(x) nrow(x) > 0, .) %>%
     bind_rows(.id = "clip_replicate_label") 
 
+# no enriched REs in any replicate: write an empty table (main / Skipper 2.0.0 falls back too; group_by below fails on 0 columns)
+if(nrow(enriched_re_data) == 0) {
+	write_tsv(tibble(input_sum = numeric(), clip_sum = numeric(), enrichment_n = integer(), enrichment_l2or_min = numeric(),
+		enrichment_l2or_mean = numeric(), enrichment_l2or_max = numeric(), p_max = numeric(), p_min = numeric(), q_max = numeric(), q_min = numeric()),
+		paste0("output/reproducible_enriched_re/", prefix, ".reproducible_enriched_re.tsv.gz"))
+	quit()
+}
+
 reproducible_enriched_re_data = enriched_re_data %>% group_by(across(-c(clip_replicate_label,gc_bin,baseline_l2or,input,clip,enrichment_l2or,pvalue,qvalue))) %>%
 	summarize(
 		input_sum = sum(input),

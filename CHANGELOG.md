@@ -1,6 +1,13 @@
 # CHANGELOG
 
 ## 2026-11-14
+- Empty-input fallbacks aligned with main (Skipper 2.0.0):
+  `tools/consult_term_reference.R` empty case now uses main's 15-column `enriched_terms` schema + "0 or 1 significant terms" PDF;
+  `tools/identify_reproducible_re.R` writes an empty `reproducible_enriched_re.tsv.gz` when no replicate has enriched REs
+  (group_by on 0 columns errored; main has an equivalent fallback). Main's NA dummy row not used: this branch's
+  consult_encode_reference.R has no dummy filter. Already guarded on this branch: call_enriched_windows.R,
+  identify_reproducible_windows.R, sample_matched_background_by_region.R, finemap_enriched_windows.R,
+  annotate_finemapped_regions (rule-level `-s` check).
 - `tools/consult_term_reference.R`: write empty `enriched_terms.tsv.gz` + placeholder PDF when there are 0 reproducible
   enriched windows (summarize(table()) errored; RPS21_K562_9990, RPS10_K562_4104 in encore_edgecases_K562).
 - `rules/variants_rbpnet.smk` (`download_vep_cache`): `curl -C -` (resume partial tarball) and runtime 4h -> 12h.

@@ -20,12 +20,14 @@ term_reference = read_tsv(term_reference_file)
 
 valid_terms = terms[unique(term_reference$term)]
 
-# no reproducible enriched windows: write empty outputs (summarize/table below fail on 0 rows)
-if(nrow(enriched_windows) == 0) {
-	write_tsv(tibble(term = character(), n_genes_term = numeric(), n_genes_enriched = numeric(), n_windows_enriched = numeric(), n_windows_total = numeric()),
-		paste0("output/gene_sets/", prefix, ".enriched_terms.tsv.gz"))
+# no reproducible enriched windows: write empty outputs (as on main / Skipper 2.0.0; summarize/table below fail on 0 rows)
+if(length(enriched_windows$chr) == 0) {
+	df = setNames(data.frame(matrix(ncol = 15, nrow = 0)), c("term","n_genes_term","n_genes_enriched","n_windows_enriched",
+		"n_windows_total","estimate","statistic","parameter","conf.low",
+		"conf.high","method","alternative","l2fc","p_unadjusted","p_adj"))
+	write_tsv(df, paste0("output/gene_sets/", prefix, ".enriched_terms.tsv.gz"))
 	pdf(paste0("output/figures/gene_sets/", prefix, ".clustered_top_terms.pdf"),height= 1,width = 2)
-		print(ggplot() + annotate("text", x = 1, y = 1, label = "No enriched windows") + theme_void())
+		print(ggplot() + annotate("text", x = 1, y = 1, label = "0 or 1 significant terms") + theme_void())
 	dev.off()
 	quit()
 }
