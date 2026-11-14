@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current state (2026-11-13 19:10)
-Full Skipper run (target `all`, branch `dev/charlene/2025revision` @ 0dabd4e) on the 6 rbp-portal manifests
+Full Skipper run (target `all`, branch `dev/charlene/2025revision`; VEP fix a078230) on the 6 rbp-portal manifests
 (`/tscc/projects/ps-yeolab5/rbp-portal/enco*/eclip/Skipper/2.0.0/v2/output/*.csv`), split into 8 runs
 (manifest x cell line), running ONE AT A TIME in
 `B=/tscc/nfs/home/bay001/projects/charlene_paper_20250521/permanent_data/skipper2025revision` (on ps-yeolab3).
@@ -39,7 +39,7 @@ Full Skipper run (target `all`, branch `dev/charlene/2025revision` @ 0dabd4e) on
 ## Gotchas
 - Lustre quota nearly full (~510G free after cleanup): rules hardcode `NUMBA_CACHE_DIR`/`MPLCONFIGDIR=/tscc/lustre/ddn/scratch/$USER`
   (variants_rbpnet.smk, train_rbpnet.smk, benchmark_ml.smk); conda/singularity prefixes on Lustre (read-only use OK).
-  If ML rules fail on writes, free Lustre space or patch rules (ask first).
+  If ML rules fail on writes, free Lustre space or patch rules.
 - ps-yeolab3 is shared (1.6P, 18T free at launch); other users' writes count toward the 5T stop.
 - "ILP solver ... PULP_CBC_CMD" warning is harmless.
-- Nothing committed; configs live only in `$B`.
+- Run configs/scripts committed in byee4/charlene_paper_20250521 (branch `skipper2025revision`); pipeline fixes here on `dev/charlene/2025revision`.
