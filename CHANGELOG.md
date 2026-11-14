@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## 2026-11-14
+- `rules/variants_rbpnet.smk` (`score_fa`): GPU slurm resources moved into the rule; removed the profile's
+  `set-resources: rbpnet_variants_score_fa` block. Snakemake stripped its outer quotes, so sbatch got
+  `--qos=condo-gpu'` -> "Invalid qos specification" (encore_HepG2). Runtime now the rule's 20 min (profile had 10).
 - GPU partition `rtx3090` (rules/train_rbpnet.smk x5, profiles/tscc2_snakemake9 `rbpnet_variants_score_fa`) and
   `rtx6000` (rules/benchmark_ml.smk) -> `hotel-v100`: rtx3090 nodes decommissioned 2026-11-05 (sinfo: drain,
   "PBB decommission"), rtx6000 down; GPU jobs pended forever. hotel-v100 accepts qos `condo-gpu` with account csd792

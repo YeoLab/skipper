@@ -150,7 +150,10 @@ rule score_fa:
     threads: 1
     resources:
         mem_mb=80000,
-        runtime=20
+        runtime=20,
+        slurm_partition="hotel-v100",
+        slurm_account="csd792",
+        slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     params:
         exp =lambda wildcards: wildcards.experiment_label_thing.split('.')[0],
     container:
