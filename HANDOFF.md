@@ -1,6 +1,6 @@
 # HANDOFF
 
-## Current state (2026-11-13 19:10)
+## Current state (2026-11-13 20:50)
 Full Skipper run (target `all`, branch `dev/charlene/2025revision`; VEP fix a078230) on the 6 rbp-portal manifests
 (`/tscc/projects/ps-yeolab5/rbp-portal/enco*/eclip/Skipper/2.0.0/v2/output/*.csv`), split into 8 runs
 (manifest x cell line), running ONE AT A TIME in
@@ -20,8 +20,10 @@ Full Skipper run (target `all`, branch `dev/charlene/2025revision`; VEP fix a078
 - Driver: inline `setsid nohup bash -c` loop (log `$B/sequential.log`, command documented in `$B/README.md`):
   runs `$B/<run>/run_skipper.sh` in order, then `df -h /tscc/projects/ps-yeolab3`; STOPS if <5T available.
   After the pass, retries once every run whose `supervise.log` doesn't end in `done`.
-- Status: run 1 encore2_FINAL_HepG2 failed (Lustre quota errors from before cleanup + VEP download bug, fixed);
-  run 2 encore_edgecases_HepG2 running (will hit old VEP bug: its snakemake loaded pre-fix rules). Both get retried.
+- Status 20:43: run 1 encore2_FINAL_HepG2 failed (old Lustre quota + VEP wget bug, fixed a078230) -> retry pass.
+  Run 2 encore_edgecases_HepG2 64% (2102/3267); 1 error: check_window_concordance DDX1_HepG2_4226 missing
+  odds_data.tsv on insufficient data (fixed 1e35f13; tools/ read at job runtime). Its VEP step still uses old rule
+  -> retry pass. ps-yeolab3 17T free. Driver alive.
 - Each run: `$B/<run>/run_skipper.sh` (retries on "sbatch failed"; `-n` = dry run), `config.yaml`,
   `manifest.csv` (only for mixed-cell manifests, split by `Cells`), logs `supervise.log`, `snakemake.log`,
   `.snakemake/slurm_logs/`.
