@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-14
+- GPU partition `rtx3090` (rules/train_rbpnet.smk x5, profiles/tscc2_snakemake9 `rbpnet_variants_score_fa`) and
+  `rtx6000` (rules/benchmark_ml.smk) -> `hotel-v100`: rtx3090 nodes decommissioned 2026-11-05 (sinfo: drain,
+  "PBB decommission"), rtx6000 down; GPU jobs pended forever. hotel-v100 accepts qos `condo-gpu` with account csd792
+  (V100 nodes; test job ran).
+
 ## 2026-11-13
 - `tools/check_window_concordance.R`: write an NA `odds_data.tsv` when a replicate pair has insufficient data
   (<4 concordance cells); it is a declared output, so the rule failed with MissingOutputException

@@ -32,7 +32,7 @@ rule train_model:
     resources:
         mem_mb=160000,
         runtime="3h",
-        slurm_partition="rtx3090",
+        slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
@@ -58,7 +58,7 @@ rule train_original_model:
     resources:
         mem_mb=160000,
         runtime="6h",
-        slurm_partition="rtx3090",
+        slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
@@ -84,7 +84,7 @@ rule validation:
     resources:
         mem_mb=160000,
         runtime="1h",
-        slurm_partition="rtx3090",
+        slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
@@ -112,7 +112,7 @@ rule validate_original_model:
     resources:
         mem_mb=160000,
         runtime="1h",
-        slurm_partition="rtx3090",
+        slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:
@@ -141,7 +141,7 @@ rule seqlet:
     resources:
         mem_mb=160000,
         runtime="1h",
-        slurm_partition="rtx3090",
+        slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     container:

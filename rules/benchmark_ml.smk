@@ -162,7 +162,7 @@ rule train_and_evaluate_nucleotide_transformer:
     resources:
         mem_mb=160000,
         runtime="6h",
-        slurm_partition="rtx6000",
+        slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
     singularity:
