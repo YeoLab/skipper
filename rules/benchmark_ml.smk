@@ -13,7 +13,7 @@ rule test_sdata_to_fasta:
     shell:
         """
         export NUMBA_DISABLE_CACHING=1
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
+        export NUMBA_CACHE_DIR=$(mktemp -d) # per-job: a shared numba cache gets corrupted by concurrent jobs
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {TOOL_DIR}/sdata_to_fasta.py \
             output/ml/rbpnet_data/{wildcards.experiment_label}/test.zarr \
@@ -91,7 +91,7 @@ rule calculate_pearson_auprc_for_homer:
     shell:
         """
         export NUMBA_DISABLE_CACHING=1
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
+        export NUMBA_CACHE_DIR=$(mktemp -d) # per-job: a shared numba cache gets corrupted by concurrent jobs
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {TOOL_DIR}/benchmark_homer.py \
             . \
@@ -116,7 +116,7 @@ rule calculate_pearson_auprc_for_internal_homer:
     shell:
         """
         export NUMBA_DISABLE_CACHING=1
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
+        export NUMBA_CACHE_DIR=$(mktemp -d) # per-job: a shared numba cache gets corrupted by concurrent jobs
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {TOOL_DIR}/benchmark_homer.py \
             . \
@@ -144,7 +144,7 @@ rule calculate_pearson_auprc_for_mcross_homer:
     shell:
         """
         export NUMBA_DISABLE_CACHING=1
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
+        export NUMBA_CACHE_DIR=$(mktemp -d) # per-job: a shared numba cache gets corrupted by concurrent jobs
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {TOOL_DIR}/benchmark_homer.py \
             . \
@@ -172,7 +172,7 @@ rule train_and_evaluate_nucleotide_transformer:
         export HF_HOME=/tscc/nfs/home/${{USER}}/.cache/huggingface
         export HF_TOKEN=$(cat ${{HOME}}/.secure/credentials/huggingface/read-only.token)
         export NUMBA_DISABLE_CACHING=1
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
+        export NUMBA_CACHE_DIR=$(mktemp -d) # per-job: a shared numba cache gets corrupted by concurrent jobs
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {TOOL_DIR}/benchmark_nucleotide_transformer.py \
             . \

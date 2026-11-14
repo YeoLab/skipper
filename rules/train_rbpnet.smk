@@ -18,7 +18,7 @@ rule prepare_data:
     shell:
         """
         export NUMBA_DISABLE_CACHING=1
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
+        export NUMBA_CACHE_DIR=$(mktemp -d) # per-job: a shared numba cache gets corrupted by concurrent jobs
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/prep_data.py {CONFIG_PATH} {wildcards.experiment_label} \
             output/ml/rbpnet_data/{wildcards.experiment_label}
@@ -43,7 +43,7 @@ rule train_model:
         """
         module load gpu
         export NUMBA_DISABLE_CACHING=1
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
+        export NUMBA_CACHE_DIR=$(mktemp -d) # per-job: a shared numba cache gets corrupted by concurrent jobs
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/train.py output/ml/rbpnet_data/{wildcards.experiment_label} \
         output/ml/rbpnet_model/{wildcards.experiment_label}
@@ -69,7 +69,7 @@ rule train_original_model:
         """
         module load gpu
         export NUMBA_DISABLE_CACHING=1
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
+        export NUMBA_CACHE_DIR=$(mktemp -d) # per-job: a shared numba cache gets corrupted by concurrent jobs
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/train_original_rbpnet.py output/ml/rbpnet_data/{wildcards.experiment_label} \
         output/ml/rbpnet_model_original/{wildcards.experiment_label}
@@ -95,7 +95,7 @@ rule validation:
         """
         module load gpu
         export NUMBA_DISABLE_CACHING=1
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
+        export NUMBA_CACHE_DIR=$(mktemp -d) # per-job: a shared numba cache gets corrupted by concurrent jobs
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/validate.py {CONFIG_PATH} \
         {wildcards.experiment_label} \
@@ -123,7 +123,7 @@ rule validate_original_model:
         """
         module load gpu
         export NUMBA_DISABLE_CACHING=1
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
+        export NUMBA_CACHE_DIR=$(mktemp -d) # per-job: a shared numba cache gets corrupted by concurrent jobs
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/validate.py {CONFIG_PATH} \
         {wildcards.experiment_label} \
@@ -152,7 +152,7 @@ rule seqlet:
         """
         module load gpu
         export NUMBA_DISABLE_CACHING=1
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}}
+        export NUMBA_CACHE_DIR=$(mktemp -d) # per-job: a shared numba cache gets corrupted by concurrent jobs
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         python {RBPNET_PATH}/seqlet.py \
         output/ml/rbpnet_data/{wildcards.experiment_label} \

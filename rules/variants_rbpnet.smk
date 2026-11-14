@@ -161,7 +161,7 @@ rule score_fa:
     shell:
         """
         export NUMBA_DISABLE_CACHING=1
-        export NUMBA_CACHE_DIR=/tscc/lustre/ddn/scratch/${{USER}} # TODO: HARCODED IS BAD
+        export NUMBA_CACHE_DIR=$(mktemp -d) # per-job: a shared numba cache gets corrupted by concurrent jobs
         export MPLCONFIGDIR=/tscc/lustre/ddn/scratch/${{USER}}
         if [ -s {input.fa} ]; then
             python {RBPNET_PATH}/score_fa.py \

@@ -1,6 +1,10 @@
 # CHANGELOG
 
 ## 2026-11-14
+- ML rules (train_rbpnet.smk x6, benchmark_ml.smk x5, variants_rbpnet.smk, upload_rbpnet_to_hf.smk):
+  `NUMBA_CACHE_DIR=$(mktemp -d)` per job instead of shared `/tscc/lustre/ddn/scratch/$USER`. numba 0.60 has no
+  `NUMBA_DISABLE_CACHING`, so 2288aed didn't stop concurrent jobs corrupting the shared seqpro cache
+  (`LLVM ERROR: Symbol not found: __gufunc__...seqpro...`; 17 train_model, 64 score_fa, 2 validation failures in encore_HepG2).
 - `rules/variants_rbpnet.smk` (`score_fa`): GPU slurm resources moved into the rule; removed the profile's
   `set-resources: rbpnet_variants_score_fa` block. Snakemake stripped its outer quotes, so sbatch got
   `--qos=condo-gpu'` -> "Invalid qos specification" (encore_HepG2). Runtime now the rule's 20 min (profile had 10).
