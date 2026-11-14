@@ -46,10 +46,11 @@ Full Skipper run (target `all`, branch `dev/brian/2025revision`, created 2026-11
 - Skipper fixes go on `dev/brian/2025revision` (user, 2026-11-14). Fixes a078230..362dc27 were first pushed to
   `dev/charlene/2025revision` (left as-is); both branches are identical at 362dc27.
 - Old shared numba caches in Lustre scratch deleted 2026-11-14.
-- charlene_paper_20250521 GitHub repo (byee4) doesn't exist; commit 919dd41 is local-only.
+- Frozen run params: `2025revision_configs/<run>/` (keep in sync with live `$B/<run>/` if params change).
+  charlene_paper_20250521 repo not used (user, 2026-11-14).
 - Lustre quota nearly full (~510G free after cleanup): rules hardcode `NUMBA_CACHE_DIR`/`MPLCONFIGDIR=/tscc/lustre/ddn/scratch/$USER`
   (variants_rbpnet.smk, train_rbpnet.smk, benchmark_ml.smk); conda/singularity prefixes on Lustre (read-only use OK).
   If ML rules fail on writes, free Lustre space or patch rules.
 - ps-yeolab3 is shared (1.6P, 18T free at launch); other users' writes count toward the 5T stop.
 - "ILP solver ... PULP_CBC_CMD" warning is harmless.
-- Run configs/scripts committed in byee4/charlene_paper_20250521 (branch `skipper2025revision`); pipeline fixes here on `dev/brian/2025revision`.
+- Pipeline fixes and frozen run params both live in this repo on `dev/brian/2025revision`.

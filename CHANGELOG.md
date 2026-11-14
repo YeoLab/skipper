@@ -1,6 +1,8 @@
 # CHANGELOG
 
 ## 2026-11-14
+- `2025revision_configs/`: frozen `config.yaml`, `manifest.csv`, `run_skipper.sh` for the 8 revision runs + README
+  (run order, sequential driver).
 - ML rules (train_rbpnet.smk x6, benchmark_ml.smk x5, variants_rbpnet.smk, upload_rbpnet_to_hf.smk):
   `NUMBA_CACHE_DIR=$(mktemp -d)` per job instead of shared `/tscc/lustre/ddn/scratch/$USER`. numba 0.60 has no
   `NUMBA_DISABLE_CACHING`, so 2288aed didn't stop concurrent jobs corrupting the shared seqpro cache
