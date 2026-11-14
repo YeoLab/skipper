@@ -1,6 +1,6 @@
 # HANDOFF
 
-## Current state (2026-11-14 08:31)
+## Current state (2026-11-14 12:31)
 Full Skipper run (target `all`, branch `dev/brian/2025revision`, created 2026-11-14 from `dev/charlene/2025revision` @ 362dc27) on the 6 rbp-portal manifests
 (`/tscc/projects/ps-yeolab5/rbp-portal/enco*/eclip/Skipper/2.0.0/v2/output/*.csv`), split into 8 runs
 (manifest x cell line), running ONE AT A TIME in
@@ -27,7 +27,8 @@ Full Skipper run (target `all`, branch `dev/brian/2025revision`, created 2026-11
   Run 3 encore_HepG2: score_fa invalid qos fixed 0d4a4b5; then GPU rules failed 'LLVM ERROR ... seqpro' from shared
   numba cache (2288aed's NUMBA_DISABLE_CACHING isn't a numba 0.60 setting) -> per-job NUMBA_CACHE_DIR abcf926.
   Snakemake SIGTERMed 05:45, draining 3 running train_model jobs; then driver starts run 4; run 3 -> retry pass.
-  08:31: run 3 snakemake idle-waiting on VEP download (19.8/24.9 GB, 4h limit ~08:51; likely timeout -> run 4 starts).
+  08:51 run 3 VEP download timed out (21.2/24.9 GB kept in $B/vep_cache); run 3 ended 08:56 -> retry pass.
+  Run 4 encore_edgecases_K562 started 08:56 (has 002f547); 12:31: 2185/6344 (34%), no errors, 16T free.
   download_vep_cache now resumable + 12h; partial tarball in $B/vep_cache kept for resume.
   Stale shared cache /tscc/lustre/ddn/scratch/bay001/seqpro_* now unused (delete after run 3 drains). 17T free.
 - Each run: `$B/<run>/run_skipper.sh` (retries on "sbatch failed"; `-n` = dry run), `config.yaml`,
