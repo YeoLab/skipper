@@ -1,6 +1,8 @@
 # CHANGELOG
 
 ## 2026-11-14
+- `tools/consult_term_reference.R`: write empty `enriched_terms.tsv.gz` + placeholder PDF when there are 0 reproducible
+  enriched windows (summarize(table()) errored; RPS21_K562_9990, RPS10_K562_4104 in encore_edgecases_K562).
 - `rules/variants_rbpnet.smk` (`download_vep_cache`): `curl -C -` (resume partial tarball) and runtime 4h -> 12h.
   Ensembl FTP gave ~1.5 MB/s; 23 GB tarball was 17 GB after 3 h in encore_HepG2 (job 14279323), would time out.
 - `2025revision_configs/`: frozen `config.yaml`, `manifest.csv`, `run_skipper.sh` for the 8 revision runs + README
