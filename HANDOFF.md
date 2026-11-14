@@ -1,6 +1,6 @@
 # HANDOFF
 
-## Current state (2026-11-14 00:55)
+## Current state (2026-11-14 04:55)
 Full Skipper run (target `all`, branch `dev/charlene/2025revision`; VEP fix a078230) on the 6 rbp-portal manifests
 (`/tscc/projects/ps-yeolab5/rbp-portal/enco*/eclip/Skipper/2.0.0/v2/output/*.csv`), split into 8 runs
 (manifest x cell line), running ONE AT A TIME in
@@ -24,7 +24,8 @@ Full Skipper run (target `all`, branch `dev/charlene/2025revision`; VEP fix a078
   Run 2 encore_edgecases_HepG2 stopped at 72% (2362/3267): GPU jobs stuck on decommissioned rtx3090 partition;
   fixed 0f8608c (-> hotel-v100, qos condo-gpu), 18 stuck jobs scancelled, snakemake SIGTERMed -> retry pass.
   Also had check_window_concordance (fixed 1e35f13) + VEP (fixed a078230) errors.
-  Run 3 encore_HepG2 started 00:50 with all fixes. ps-yeolab3 17T free. Driver alive.
+  Run 3 encore_HepG2 (started 00:50) at 72% (2889/3991); score_fa sbatch "Invalid qos" (profile quote stripping)
+  fixed 0d4a4b5; run_skipper retry attempt 4 picked it up, GPU jobs running on hotel-v100. 17T free. Driver alive.
 - Each run: `$B/<run>/run_skipper.sh` (retries on "sbatch failed"; `-n` = dry run), `config.yaml`,
   `manifest.csv` (only for mixed-cell manifests, split by `Cells`), logs `supervise.log`, `snakemake.log`,
   `.snakemake/slurm_logs/`.
