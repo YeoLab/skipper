@@ -1,6 +1,8 @@
 # CHANGELOG
 
 ## 2026-11-15
+- encode3_test5_HepG2 finished (853/853, no errors): de novo motifs match the known ones for RBFOX2, PTBP1, QKI and U2AF2;
+  TIA1 top motif is G-rich (weak U-rich). Results table in HANDOFF.md.
 - Stopped the 8-run revision driver and all runs (user); finished outputs kept.
 - `2025revision_configs/encode3_test5_HepG2/`: 5-RBP HepG2 test (RBFOX2 ENCSR987FTF, PTBP1, QKI, TIA1, U2AF2)
   subset of `encode3_manifest_H_fastq.csv`; config = encode3_H_HepG2 with WORKDIR/MANIFEST changed. Started 08:42.
