@@ -1,46 +1,41 @@
 # HANDOFF
 
-## Current state (2026-11-15 04:31)
-Full Skipper run (target `all`, branch `dev/brian/2025revision`) on the 6 rbp-portal manifests
-(`/tscc/projects/ps-yeolab5/rbp-portal/enco*/eclip/Skipper/2.0.0/v2/output/*.csv`), split into 8 runs
-(manifest x cell line), ONE AT A TIME in
-`B=/tscc/nfs/home/bay001/projects/charlene_paper_20250521/permanent_data/skipper2025revision`.
+## Current state (2026-11-15 08:45)
+8-run revision pass STOPPED by the user (2026-11-15 ~08:20). Replaced by a 5-RBP test run.
+`B=/tscc/nfs/home/bay001/projects/charlene_paper_20250521/permanent_data/skipper2025revision`
 
-| Order | Run | Status |
-|---|---|---|
-| 1 | encore2_FINAL_HepG2 | rerunning since 05:37 alongside run 5 (user request; 444 jobs left) |
-| 2 | encore_edgecases_HepG2 | stopped 72% -> retry pass |
-| 3 | encore_HepG2 | rerunning since 05:37 alongside run 5 (user request; 1073 jobs left) |
-| 4 | encore_edgecases_K562 | ended 22:06 rc=1 at 6123/6344 -> retry pass (dry run: 221 jobs) |
-| 5 | encore_K562 | running since 22:06; 04:31: 3731/8153 (46%), no errors, no OOM/timeout retries |
-| 6-8 | encode3_H_HepG2, encore2_FINAL_K562, encode3_K_K562 | queued |
+- **Active: `$B/encode3_test5_HepG2/`** (started 08:42, setsid; end line goes to `$B/sequential.log`).
+  5 HepG2 RBPs from `encode3_manifest_H_fastq.csv` (ENCODE3 PE, OVERDISPERSION_MODE clip, hepg2 >1 TPM transcriptome):
+  RBFOX2_HepG2_ENCSR987FTF ("204"), PTBP1_HepG2_ENCSR384KAN, QKI_HepG2_ENCSR570WLM, TIA1_HepG2_ENCSR623VEQ,
+  U2AF2_HepG2_ENCSR202BFN. Config = encode3_H_HepG2 with WORKDIR/MANIFEST changed. Dry run: 853 jobs.
+  Frozen params: `2025revision_configs/encode3_test5_HepG2/`.
+- Stopped runs (finished outputs preserved; killed jobs' outputs marked incomplete, redone on restart):
 
-- Driver: setsid bash loop (PID 929206, log `$B/sequential.log`): runs `$B/<run>/run_skipper.sh` in order,
-  `df -h /tscc/projects/ps-yeolab3` after each, STOPS if <5T. Then retries once every run whose `supervise.log`
-  doesn't end in `done`. 15T free at 04:31.
-- Frozen run params: `2025revision_configs/<run>/` (keep in sync with live `$B/<run>/`).
+| Run | Last progress |
+|---|---|
+| 1 encore2_FINAL_HepG2 | rerun started 05:37 (444 jobs), stopped |
+| 2 encore_edgecases_HepG2 | 2362/3267 |
+| 3 encore_HepG2 | rerun started 05:37 (1073 jobs), stopped |
+| 4 encore_edgecases_K562 | 6123/6344 (221 left) |
+| 5 encore_K562 | ~60% of 8153, stopped |
+| 6-8 encode3_H_HepG2, encore2_FINAL_K562, encode3_K_K562 | not started |
 
-## This session (00:31)
-- Run 4 failures: consult_term_reference, run_homer, fetch_Clinvar/gnomAD (RPS10/RPS21 empty windows) -> fixed
-  (944df60: bcftools guards use `zcat | wc -l`, run_homer skips on empty). 30 variant_analysis failures: python3essential
-  module python shadowed the conda env (GLIBCXX error) -> run_skipper.sh unloads python3essential.
-- run_skipper.sh adds `--rerun-triggers mtime` so guard-only rule edits don't rerun finished jobs.
+  Restart any with `$B/<run>/run_skipper.sh > $B/<run>/supervise.log 2>&1` (one at a time unless the user says otherwise).
+  The old driver (PID 929206) is killed; don't restart it without asking.
 
-## Open issues / next steps
-- Runs 1 and 3 run concurrently with run 5 (user, 2026-11-15), launched by their own setsid loops ("MANUAL START/END" in
-  `$B/sequential.log`). The main driver still retries them after run 8 if their supervise.log doesn't end in `done`.
-- Run 5 started under the OLD env and rules: its variant_analysis (and any empty-window bcftools/homer jobs) will
-  fail -> redone in the retry pass.
-- From run 5: base mem ~2x measured peak, mem/runtime scale with attempt (`retries: 2`). Watch for OOM retries.
-- GPU rules on hotel-v100 (a40 dropped, user 2026-11-14); jobs pend on account-wide MaxNodePerAccount.
-- download_vep_cache resumable (curl -C -), 12h; partial tarball in `$B/vep_cache` kept.
-- Delete stale `/tscc/lustre/ddn/scratch/bay001/seqpro_*` (unused).
-- Monitoring: session cron every 4 h (expires 2026-11-20 or when session ends).
+## Recent fixes
+- run_skipper.sh: unloads nodejs/galyleo/python3essential (module python shadowed conda envs), `--rerun-triggers mtime`.
+- Empty-window guards: bcftools rules `zcat | wc -l`, run_homer placeholder (944df60).
+- Attempt-scaled mem/runtime in all rules (`retries: 2`); no OOM/timeout retries seen in run 5.
+
+## Next steps
+- Monitor test (session cron 24336a5d, every 4 h, expires 2026-11-22 or when session ends).
+- When done: per-RBP reproducible windows, HOMER motif vs known (RBFOX2 GCAUG, PTBP1 CU-rich, QKI ACUAA,
+  TIA1 U-rich, U2AF2 polypyrimidine), RBPNet validation.
 
 ## Gotchas
 - charlene_paper_20250521 repo not used (user). All fixes go here on `dev/brian/2025revision`.
-- Run scripts must unload nodejs/galyleo/python3essential before `conda activate snakemake9`; jobs inherit the env.
-- Conda python rules in runs 1-5 ran under python3essential's python (succeeded; not rerun).
-- Lustre quota nearly full: ML rules write caches under `/tscc/lustre/ddn/scratch/$USER`.
-- ps-yeolab3 is shared; other users' writes count toward the 5T stop.
-- "ILP solver ... PULP_CBC_CMD" warning is harmless.
+- `pkill -f run_skipper.sh` also matches the calling shell; kill by PID.
+- Snakemake 9 SIGTERM drains running jobs; to stop fast, scancel jobs by run UUID (squeue job name) then SIGINT.
+- GPU rules on hotel-v100; jobs pend on account-wide MaxNodePerAccount.
+- ps-yeolab3 shared; stop if <5T free.
