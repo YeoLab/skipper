@@ -1,6 +1,6 @@
 # HANDOFF
 
-## Current state (2026-11-15 11:45)
+## Current state (2026-11-15 12:46)
 8-run revision pass STOPPED by the user (2026-11-15 ~08:20). Replaced by a 5-RBP test run.
 `B=/tscc/nfs/home/bay001/projects/charlene_paper_20250521/permanent_data/skipper2025revision`
 
@@ -9,6 +9,9 @@
   RBFOX2_HepG2_ENCSR987FTF ("204"), PTBP1_HepG2_ENCSR384KAN, QKI_HepG2_ENCSR570WLM, TIA1_HepG2_ENCSR623VEQ,
   U2AF2_HepG2_ENCSR202BFN. Config = encode3_H_HepG2 with WORKDIR/MANIFEST changed. Dry run: 853 jobs.
   Frozen params: `2025revision_configs/encode3_test5_HepG2/`.
+- **Active: `$B/encode3_testPUM_K562/`** (started 12:44): PUM1_K562_ENCSR308YNT, PUM2_K562_ENCSR661ICQ
+  (only in encode3 K manifest); config = encode3_K_K562 with WORKDIR/MANIFEST changed; dry run 346 jobs.
+  Frozen params: `2025revision_configs/encode3_testPUM_K562/`. Expected motif UGUAHAUA (PUM).
 - Stopped runs (finished outputs preserved; killed jobs' outputs marked incomplete, redone on restart):
 
 | Run | Last progress |

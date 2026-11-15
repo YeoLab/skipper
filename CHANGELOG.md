@@ -1,6 +1,8 @@
 # CHANGELOG
 
 ## 2026-11-15
+- `2025revision_configs/encode3_testPUM_K562/`: PUM1/PUM2 K562 test (encode3 K manifest subset; config = encode3_K_K562
+  with WORKDIR/MANIFEST changed). Started 12:44.
 - encode3_test5_HepG2 finished (853/853, no errors): de novo motifs match the known ones for RBFOX2, PTBP1, QKI and U2AF2;
   TIA1 top motif is G-rich (weak U-rich). Results table in HANDOFF.md.
 - Stopped the 8-run revision driver and all runs (user); finished outputs kept.
