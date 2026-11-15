@@ -14,6 +14,10 @@ rule run_homer:
     container:
         "docker://howardxu520/skipper:Homer_4.11"
     shell:
+        # no finemapped windows: write placeholder outputs and skip HOMER (as on main / Skipper 2.0.0)
+        "if [ \"$(zcat {input.finemapped_windows} | wc -l)\" -eq 0 ]; then "
+            "echo '<html><body><p>No finemapped windows were available, so HOMER was not run.</p></body></html>' > {output.report}; "
+            "echo '# No motifs: no finemapped windows available.' > {output.pwm}; exit 0; fi; "
         "findMotifsGenome.pl <(zcat {input.finemapped_windows} | awk -v OFS=\"\t\" '{{print $4 \":\"$9,$1,$2+1,$3,$6}}') "
             "{input.genome} output/homer/finemapped_results/{wildcards.experiment_label} -preparsedDir output/homer/preparsed -size given -rna -nofacts -S 20 -len 5,6,7,8,9 -nlen 1 "
             "-bg <(zcat {input.background} | awk -v OFS=\"\t\" '{{print $4,$1,$2+1,$3,$6}}') "

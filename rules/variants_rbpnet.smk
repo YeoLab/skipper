@@ -64,7 +64,7 @@ rule fetch_SNP_from_gnomAD_and_roulette:
         "docker://brianyee/bcftools:1.17"
     shell:
         """
-        if [ -s {input.finemapped_windows} ]; then
+        if [ "$(zcat {input.finemapped_windows} | wc -l)" -gt 0 ]; then
             bcftools query -R {input.finemapped_windows} -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%INFO/AC\t%INFO/AN\t%INFO/MR\t%INFO/AR\t%INFO/MG\t%INFO/MC\n' \
                 {input.vcf} > {output}
         else
@@ -241,7 +241,7 @@ rule fetch_Clinvar_SNP:
         "docker://brianyee/bcftools:1.17"
     shell:
         """
-        if [ -s {input.finemapped_windows} ]; then
+        if [ "$(zcat {input.finemapped_windows} | wc -l)" -gt 0 ]; then
             bcftools query -R {input.finemapped_windows} \
                 -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t%INFO/CLNDN\t%INFO/CLNVC\t%INFO/CLNSIG\t%INFO/CLNDISDB\t%INFO/AF_ESP\t%INFO/AF_EXAC\t%INFO/AF_TGP\t%INFO/ALLELEID\n' \
                 {input.vcf} > {output}

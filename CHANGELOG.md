@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-11-15
+- `2025revision_configs/*/run_skipper.sh` (and live `$B/<run>/`): also `module unload python3essential`. Its python
+  (loaded in the driver's env) stayed ahead of the snakemake conda env, so `rbpnet_variants_variant_analysis` ran
+  python3essential's scipy -> `GLIBCXX_3.4.30 not found` (30 jobs, encore_edgecases_K562). Other conda python rules
+  in runs 1-5 ran under the same python (succeeded; not rerun).
+- Same scripts: `--rerun-triggers mtime`. Guard-only rule edits otherwise re-trigger every finished job via code
+  provenance (encore_edgecases_K562 retry: 3260 jobs incl. 1540 score_fa -> 221 = failed jobs + downstream).
+- `rules/variants_rbpnet.smk` (fetch_SNP_from_gnomAD_and_roulette, fetch_Clinvar_SNP): empty-finemap guard
+  `[ -s ]` -> `zcat | wc -l`; since 5d97e05 the empty finemapped bed.gz is a valid 20-byte gzip, so `-s` passed
+  and `bcftools query -R` failed "Failed to read the regions" (RPS10/RPS21_K562).
+- `rules/analysis.smk` (run_homer): skip with placeholder html/motif outputs when there are no finemapped windows
+  (as on main / Skipper 2.0.0; zcat of the 0-byte sampled background failed).
+
 ## 2026-11-14
 - All rules: `mem_mb` and `runtime` are `lambda wildcards, attempt: N * attempt`; profile adds `retries: 2` and
   attempt-scaled default-resources (`20000*attempt` MB, `30*attempt` min). A job that runs out of memory/time is

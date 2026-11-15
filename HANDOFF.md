@@ -1,6 +1,6 @@
 # HANDOFF
 
-## Current state (2026-11-14 20:31)
+## Current state (2026-11-15 00:31)
 Full Skipper run (target `all`, branch `dev/brian/2025revision`, created 2026-11-14 from `dev/charlene/2025revision` @ 362dc27) on the 6 rbp-portal manifests
 (`/tscc/projects/ps-yeolab5/rbp-portal/enco*/eclip/Skipper/2.0.0/v2/output/*.csv`), split into 8 runs
 (manifest x cell line), running ONE AT A TIME in
@@ -28,8 +28,10 @@ Full Skipper run (target `all`, branch `dev/brian/2025revision`, created 2026-11
   numba cache (2288aed's NUMBA_DISABLE_CACHING isn't a numba 0.60 setting) -> per-job NUMBA_CACHE_DIR abcf926.
   Snakemake SIGTERMed 05:45, draining 3 running train_model jobs; then driver starts run 4; run 3 -> retry pass.
   08:51 run 3 VEP download timed out (21.2/24.9 GB kept in $B/vep_cache); run 3 ended 08:56 -> retry pass.
-  Run 4 encore_edgecases_K562 started 08:56 (has 002f547); 20:31: 5733/6344 (90%), 16T free; GPU jobs pending on account-wide MaxNodePerAccount.
-  2 consult_term_reference failures (0 enriched windows) fixed in tools/consult_term_reference.R -> run 4 needs retry pass.
+  Run 4 encore_edgecases_K562 ended 22:06 rc=1 at 6123/6344 -> retry pass (dry run: 221 jobs). Failures: consult_term_reference,
+  run_homer, fetch_Clinvar/gnomAD (RPS10/RPS21 empty windows; fixed) + 30 variant_analysis (python3essential python; run_skipper.sh fixed).
+  Run 5 encore_K562 started 22:06 under the OLD env/rules: its variant_analysis will fail too -> retry pass. 00:31: 923/8153 (11%), 16T free.
+  run_skipper.sh now uses `--rerun-triggers mtime` (guard edits don't re-trigger finished jobs).
   Scan: only RPS10/RPS21_K562 (run 4) have empty reproducible windows; no empty enriched_re anywhere yet.
   tools/ diffed vs main: finemap empty-gzip, annotate_finemapped EmptyDataError, reproducible-windows header ported.
   consult_encode_reference.R now guarded for no reproducible windows/REs.
