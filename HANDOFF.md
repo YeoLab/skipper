@@ -33,6 +33,8 @@ Full Skipper run (target `all`, branch `dev/brian/2025revision`, created 2026-11
   Scan: only RPS10/RPS21_K562 (run 4) have empty reproducible windows; no empty enriched_re anywhere yet.
   tools/ diffed vs main: finemap empty-gzip, annotate_finemapped EmptyDataError, reproducible-windows header ported.
   consult_encode_reference.R now guarded for no reproducible windows/REs.
+  GPU mem cut (train 32G, score_fa 16G) applies from run 5. Pending: a40 (10 SU/GPU-h vs 30) as
+  `slurm_partition="a40,hotel-v100"` once test job 14289102 (eugene-tools container on A40) passes; A40 queue is full.
   download_vep_cache now resumable + 12h; partial tarball in $B/vep_cache kept for resume.
   Stale shared cache /tscc/lustre/ddn/scratch/bay001/seqpro_* now unused (delete after run 3 drains). 17T free.
 - Each run: `$B/<run>/run_skipper.sh` (retries on "sbatch failed"; `-n` = dry run), `config.yaml`,

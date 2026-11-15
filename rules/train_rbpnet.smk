@@ -30,7 +30,7 @@ rule train_model:
     output:
         model = "output/ml/rbpnet_model/{experiment_label}/training_done",
     resources:
-        mem_mb=160000,
+        mem_mb=32000,
         runtime="3h",
         slurm_partition="hotel-v100",
         slurm_account="csd792",
@@ -56,7 +56,7 @@ rule train_original_model:
     output:
         model = "output/ml/rbpnet_model_original/{experiment_label}/training_done",
     resources:
-        mem_mb=160000,
+        mem_mb=32000,
         runtime="6h",
         slurm_partition="hotel-v100",
         slurm_account="csd792",
@@ -82,7 +82,7 @@ rule validation:
     output:
         validation = "output/ml/rbpnet_model/{experiment_label}/valid/test_data_metric.csv",
     resources:
-        mem_mb=160000,
+        mem_mb=32000,
         runtime="1h",
         slurm_partition="hotel-v100",
         slurm_account="csd792",
@@ -110,7 +110,7 @@ rule validate_original_model:
     output:
         validation = "output/ml/rbpnet_model_original/{experiment_label}/valid/test_data_metric.csv",
     resources:
-        mem_mb=160000,
+        mem_mb=32000,
         runtime="1h",
         slurm_partition="hotel-v100",
         slurm_account="csd792",
@@ -139,7 +139,7 @@ rule seqlet:
     output:
         validation = "output/ml/rbpnet_model/{experiment_label}/motif_done",
     resources:
-        mem_mb=160000,
+        mem_mb=32000,
         runtime="1h",
         slurm_partition="hotel-v100",
         slurm_account="csd792",

@@ -149,7 +149,7 @@ rule score_fa:
         fai=temp("output/variants/{subset}/{experiment_label_thing}.{type}.fa.fai")
     threads: 1
     resources:
-        mem_mb=80000,
+        mem_mb=16000,
         runtime=20,
         slurm_partition="hotel-v100",
         slurm_account="csd792",

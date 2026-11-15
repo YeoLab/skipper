@@ -1,6 +1,10 @@
 # CHANGELOG
 
 ## 2026-11-14
+- GPU memory requests lowered: `rules/train_rbpnet.smk` (x5) mem_mb 160000 -> 32000 (23 completed train_model jobs
+  peaked at 1.9-4.7 GB RSS); `rules/variants_rbpnet.smk` score_fa 80000 -> 16000 (178 clean exits peaked at 1.6 GB;
+  inputs <=180 MB FASTA scored in batches of 512). hotel-v100 bills mem at 0.2 SU/GB-h, so train_model 62 -> ~37 SU/h,
+  score_fa 47 -> ~34 SU/h; smaller requests also let several 1-GPU jobs share a 4-GPU node under MaxNodePerAccount.
 - `tools/consult_encode_reference.R`: empty-input guards. Placeholder TSV/PDF when no experiment has reproducible
   windows or REs (as main's consult_encode_reference_windows.R); empty feature table when only one of windows/REs is
   empty (simplify_*/inner_join failed on 0-column tibbles). Tested real (identical to encore_HepG2 output),
