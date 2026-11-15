@@ -32,7 +32,7 @@ Full Skipper run (target `all`, branch `dev/brian/2025revision`, created 2026-11
   2 consult_term_reference failures (0 enriched windows) fixed in tools/consult_term_reference.R -> run 4 needs retry pass.
   Scan: only RPS10/RPS21_K562 (run 4) have empty reproducible windows; no empty enriched_re anywhere yet.
   tools/ diffed vs main: finemap empty-gzip, annotate_finemapped EmptyDataError, reproducible-windows header ported.
-  Known unguarded (not on main either): consult_encode_reference.R crashes if NO experiment in a run has reproducible REs.
+  consult_encode_reference.R now guarded for no reproducible windows/REs.
   download_vep_cache now resumable + 12h; partial tarball in $B/vep_cache kept for resume.
   Stale shared cache /tscc/lustre/ddn/scratch/bay001/seqpro_* now unused (delete after run 3 drains). 17T free.
 - Each run: `$B/<run>/run_skipper.sh` (retries on "sbatch failed"; `-n` = dry run), `config.yaml`,

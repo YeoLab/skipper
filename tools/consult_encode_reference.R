@@ -30,6 +30,16 @@ enriched_re = enriched_re_files %>%
 
 experiment_labels = c(enriched_re$experiment_label, enriched_windows$experiment_label) %>% unique
 
+# no reproducible windows or REs in any experiment: write placeholder outputs (as on main / Skipper 2.0.0)
+if(length(experiment_labels) == 0) {
+	write_tsv(tibble(id = character(), tsne_1 = numeric(), tsne_2 = numeric(), rbp = character(), cluster = numeric(), class = character()),
+		paste0("output/tsne/", prefix, ".tsne_query.tsv"))
+	pdf(paste0("output/figures/tsne/", prefix, ".tsne_query.pdf"),height= 1,width = 2)
+		print(ggplot() + annotate("text", x = 1, y = 1, label = "No enriched windows") + theme_void())
+	dev.off()
+	quit()
+}
+
 # load all reference data from the ENCODE Project website
 repeatmasker_labels = read_tsv(paste0(ref_directory, "/repeat_masker_hierarchy.tsv"))
 reference_enrichments = read_tsv(paste0(ref_directory, "/encode3_eclip_enrichment.reference.tsv"))
@@ -67,9 +77,11 @@ simplify_re_data = function(df) {
 }
 
 
-win_features = simplify_window_data(enriched_windows) %>% 
+# either input can be empty (0 columns) when no experiment has reproducible windows / REs
+empty_features = tibble(id = character(), feature = character(), value = integer())
+win_features = if(nrow(enriched_windows) == 0) empty_features else simplify_window_data(enriched_windows) %>% 
 	group_by(id = experiment_label, feature) %>% count(name="value") %>% ungroup
-re_features = inner_join(enriched_re,repeatmasker_labels) %>% simplify_re_data %>% 
+re_features = if(nrow(enriched_re) == 0) empty_features else inner_join(enriched_re,repeatmasker_labels) %>% simplify_re_data %>% 
 	group_by(id = experiment_label, feature) %>% count(name = "value")  %>% ungroup
 clip_count_data = bind_rows(win_features,re_features) %>% group_by(id) %>% summarize(left_join(reference_features %>% mutate(id=unique(id)), tibble(.))) %>% 
 	mutate(value = ifelse(is.na(value), global_fraction, value)) %>% group_by(id, feature, global_fraction) %>% summarize(clip_count = sum(value)) 

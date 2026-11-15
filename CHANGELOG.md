@@ -1,6 +1,10 @@
 # CHANGELOG
 
 ## 2026-11-14
+- `tools/consult_encode_reference.R`: empty-input guards. Placeholder TSV/PDF when no experiment has reproducible
+  windows or REs (as main's consult_encode_reference_windows.R); empty feature table when only one of windows/REs is
+  empty (simplify_*/inner_join failed on 0-column tibbles). Tested real (identical to encore_HepG2 output),
+  windows-only, RE-only, none.
 - Reviewed all tools/ against origin/main (Skipper 2.0.0); ported the robustness fixes this branch is exposed to:
   `tools/finemap_enriched_windows.R` writes a valid empty gzip (0-byte .gz broke downstream `zcat`, e.g. run_homer);
   `tools/annotate_finemapped_regions.py` catches EmptyDataError on that file and writes an empty output;
