@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## 2026-11-15
+- Stopped the 8-run revision driver and all runs (user); finished outputs kept.
+- `2025revision_configs/encode3_test5_HepG2/`: 5-RBP HepG2 test (RBFOX2 ENCSR987FTF, PTBP1, QKI, TIA1, U2AF2)
+  subset of `encode3_manifest_H_fastq.csv`; config = encode3_H_HepG2 with WORKDIR/MANIFEST changed. Started 08:42.
 - Runs 1 (encore2_FINAL_HepG2) and 3 (encore_HepG2) restarted at 05:37, at the same time as run 5, at the user's request (dry runs: 444 and 1073 jobs).
 - `2025revision_configs/*/run_skipper.sh` (and live `$B/<run>/`): also `module unload python3essential`. Its python
   (loaded in the driver's env) stayed ahead of the snakemake conda env, so `rbpnet_variants_variant_analysis` ran
