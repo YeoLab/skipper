@@ -1,6 +1,13 @@
 # CHANGELOG
 
 ## 2026-11-14
+- Reviewed all tools/ against origin/main (Skipper 2.0.0); ported the robustness fixes this branch is exposed to:
+  `tools/finemap_enriched_windows.R` writes a valid empty gzip (0-byte .gz broke downstream `zcat`, e.g. run_homer);
+  `tools/annotate_finemapped_regions.py` catches EmptyDataError on that file and writes an empty output;
+  `tools/identify_reproducible_windows.R` no-shared-windows case writes the full 30-column header
+  (input_sum..q_min were missing; RPS10/RPS21_K562 in encore_edgecases_K562).
+  Not ported (change results or this branch's rule I/O): call_enriched_windows threshold/normalization/blacklist
+  changes, identify_reproducible_* reproducibility filter + na.rm, parse_gff base_feature_id column, output path layout.
 - Empty-input fallbacks aligned with main (Skipper 2.0.0):
   `tools/consult_term_reference.R` empty case now uses main's 15-column `enriched_terms` schema + "0 or 1 significant terms" PDF;
   `tools/identify_reproducible_re.R` writes an empty `reproducible_enriched_re.tsv.gz` when no replicate has enriched REs

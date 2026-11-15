@@ -11,8 +11,11 @@ window_size = 75
 dir.create(output_directory, showWarnings = FALSE, recursive = TRUE)
 
 if(nrow(count_data) == 0) {
-        file.create(paste0(output_directory, "/", output_stem, ".finemapped_windows.bed.gz"))
-        quit()
+        # write a valid empty gzip (as on main / Skipper 2.0.0); a 0-byte .gz breaks downstream zcat
+        con = gzfile(paste0(output_directory, "/", output_stem, ".finemapped_windows.bed.gz"), "w")
+        writeLines(character(0), con)
+        close(con)
+        quit(save = "no")
 }
 
 # memory issues on joining in certain R versions

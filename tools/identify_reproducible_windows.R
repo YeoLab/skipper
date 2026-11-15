@@ -51,7 +51,15 @@ if(nrow(enriched_window_data %>% group_by(name) %>% filter(n() > 1)) == 0) {
 	pdf(paste0('output/figures/reproducible_enriched_windows/', prefix, '.reproducible_enriched_window_counts.log10.pdf'), height = 1, width = 2)
 		print(ggplot() + annotate("text", x = 1, y = 1, label = "No data") + theme_void())
 	dev.off()
-	reproducible_enriched_window_data = enriched_window_data %>% group_by(across(-c(clip_replicate_label,baseline_l2or,input,clip,enrichment_l2or,pvalue,qvalue))) %>% summarize %>% head(0)
+	# full header incl. summary columns, as on main / Skipper 2.0.0 (summarize %>% head(0) dropped input_sum..q_min)
+	columns= c("chr","start","end","name","score","strand","gc",
+	"gc_bin","chrom","feature_id","feature_bin","feature_type_top","feature_types",
+	"gene_name","gene_id","transcript_ids","gene_type_top","transcript_type_top",
+	"gene_types","transcript_types", "input_sum","clip_sum","enrichment_n",
+	"enrichment_l2or_min","enrichment_l2or_mean","enrichment_l2or_max","p_max","p_min",
+	"q_max","q_min")
+	reproducible_enriched_window_data = data.frame(matrix(nrow = 0, ncol = length(columns)))
+	colnames(reproducible_enriched_window_data) = columns
 	write_tsv(reproducible_enriched_window_data, paste0("output/reproducible_enriched_windows/", prefix, ".reproducible_enriched_windows.tsv.gz"))
 	quit()
 }	
