@@ -8,9 +8,9 @@ Full Skipper run (target `all`, branch `dev/brian/2025revision`) on the 6 rbp-po
 
 | Order | Run | Status |
 |---|---|---|
-| 1 | encore2_FINAL_HepG2 | failed -> retry pass |
+| 1 | encore2_FINAL_HepG2 | rerunning since 05:37 alongside run 5 (user request; 444 jobs left) |
 | 2 | encore_edgecases_HepG2 | stopped 72% -> retry pass |
-| 3 | encore_HepG2 | failed (numba cache, VEP timeout) -> retry pass |
+| 3 | encore_HepG2 | rerunning since 05:37 alongside run 5 (user request; 1073 jobs left) |
 | 4 | encore_edgecases_K562 | ended 22:06 rc=1 at 6123/6344 -> retry pass (dry run: 221 jobs) |
 | 5 | encore_K562 | running since 22:06; 04:31: 3731/8153 (46%), no errors, no OOM/timeout retries |
 | 6-8 | encode3_H_HepG2, encore2_FINAL_K562, encode3_K_K562 | queued |
@@ -27,6 +27,8 @@ Full Skipper run (target `all`, branch `dev/brian/2025revision`) on the 6 rbp-po
 - run_skipper.sh adds `--rerun-triggers mtime` so guard-only rule edits don't rerun finished jobs.
 
 ## Open issues / next steps
+- Runs 1 and 3 run concurrently with run 5 (user, 2026-11-15), launched by their own setsid loops ("MANUAL START/END" in
+  `$B/sequential.log`). The main driver still retries them after run 8 if their supervise.log doesn't end in `done`.
 - Run 5 started under the OLD env and rules: its variant_analysis (and any empty-window bcftools/homer jobs) will
   fail -> redone in the retry pass.
 - From run 5: base mem ~2x measured peak, mem/runtime scale with attempt (`retries: 2`). Watch for OOM retries.

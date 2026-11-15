@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## 2026-11-15
+- Runs 1 (encore2_FINAL_HepG2) and 3 (encore_HepG2) restarted at 05:37, at the same time as run 5, at the user's request (dry runs: 444 and 1073 jobs).
 - `2025revision_configs/*/run_skipper.sh` (and live `$B/<run>/`): also `module unload python3essential`. Its python
   (loaded in the driver's env) stayed ahead of the snakemake conda env, so `rbpnet_variants_variant_analysis` ran
   python3essential's scipy -> `GLIBCXX_3.4.30 not found` (30 jobs, encore_edgecases_K562). Other conda python rules
