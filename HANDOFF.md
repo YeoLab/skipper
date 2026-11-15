@@ -1,6 +1,6 @@
 # HANDOFF
 
-## Current state (2026-11-15 00:31)
+## Current state (2026-11-15 04:31)
 Full Skipper run (target `all`, branch `dev/brian/2025revision`) on the 6 rbp-portal manifests
 (`/tscc/projects/ps-yeolab5/rbp-portal/enco*/eclip/Skipper/2.0.0/v2/output/*.csv`), split into 8 runs
 (manifest x cell line), ONE AT A TIME in
@@ -12,12 +12,12 @@ Full Skipper run (target `all`, branch `dev/brian/2025revision`) on the 6 rbp-po
 | 2 | encore_edgecases_HepG2 | stopped 72% -> retry pass |
 | 3 | encore_HepG2 | failed (numba cache, VEP timeout) -> retry pass |
 | 4 | encore_edgecases_K562 | ended 22:06 rc=1 at 6123/6344 -> retry pass (dry run: 221 jobs) |
-| 5 | encore_K562 | running since 22:06; 00:31: 923/8153 (11%) |
+| 5 | encore_K562 | running since 22:06; 04:31: 3731/8153 (46%), no errors, no OOM/timeout retries |
 | 6-8 | encode3_H_HepG2, encore2_FINAL_K562, encode3_K_K562 | queued |
 
 - Driver: setsid bash loop (PID 929206, log `$B/sequential.log`): runs `$B/<run>/run_skipper.sh` in order,
   `df -h /tscc/projects/ps-yeolab3` after each, STOPS if <5T. Then retries once every run whose `supervise.log`
-  doesn't end in `done`. 16T free at 00:31.
+  doesn't end in `done`. 15T free at 04:31.
 - Frozen run params: `2025revision_configs/<run>/` (keep in sync with live `$B/<run>/`).
 
 ## This session (00:31)
