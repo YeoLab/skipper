@@ -17,11 +17,11 @@ rule copy_with_umi:
         fq_2 = temp("output/fastqs/copy/{replicate_label}-2.fastq.gz"), #SORT OUT!!        
     threads: 2
     resources:
-        runtime="6h",
-        mem_mb=2000
+        runtime=lambda wildcards, attempt: 360 * attempt,
+        mem_mb=lambda wildcards, attempt: 2000 * attempt
     benchmark: "benchmarks/umi/unassigned_experiment.{replicate_label}.copy_with_umi.txt"
     resources:
-        mem_mb=2000
+        mem_mb=lambda wildcards, attempt: 2000 * attempt
     shell:
         "zcat {input.fq_1} | awk 'NR % 4 != 1 {{print}} NR % 4 == 1 {{split($1,header,\":\"); print $1 \":\" substr(header[1],2,length(header[1]) - 1) }}' | gzip > {output.fq_1};"
         "zcat {input.fq_2} | awk 'NR % 4 != 1 {{print}} NR % 4 == 1 {{split($1,header,\":\"); print $1 \":\" substr(header[1],2,length(header[1]) - 1) }}' | gzip > {output.fq_2};"
@@ -40,8 +40,8 @@ rule run_initial_fastqc:
     container:
         "docker://howardxu520/skipper:fastqc_0.12.1"
     resources:
-        mem_mb=16000,
-        runtime="3h"
+        mem_mb=lambda wildcards, attempt: 16000 * attempt,
+        runtime=lambda wildcards, attempt: 180 * attempt
     params:
         outdir="output/fastqc/initial/"
     shell:
@@ -63,8 +63,8 @@ rule trim_fastq_encode:
     threads: 8
     resources:
         tmpdir = "/tscc/nfs/home/hsher/scratch/singularity_tmp",
-        mem_mb=16000,
-        runtime="3h"
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 180 * attempt
     benchmark: "benchmarks/trim/unassigned_experiment.{replicate_label}.trim.txt"
     container:
         "docker://howardxu520/skipper:skewer_0.2.2"
@@ -91,8 +91,8 @@ rule run_trimmed_fastqc:
     container:
         "docker://howardxu520/skipper:fastqc_0.12.1"
     resources:
-        mem_mb=16000,
-        runtime="4h"
+        mem_mb=lambda wildcards, attempt: 16000 * attempt,
+        runtime=lambda wildcards, attempt: 240 * attempt
     shell:
         "fastqc {input.r1} --extract --outdir output/fastqc/processed -t {threads};"
         "fastqc {input.r2} --extract --outdir output/fastqc/processed -t {threads};"
@@ -114,8 +114,8 @@ rule align_reads_encode:
     container:
         "docker://howardxu520/skipper:star_2.7.10b"
     resources:
-        mem_mb=320000,
-        runtime="2h"
+        mem_mb=lambda wildcards, attempt: 320000 * attempt,
+        runtime=lambda wildcards, attempt: 120 * attempt
     shell:   
         "STAR "
             "--alignEndsType EndToEnd "
@@ -153,7 +153,7 @@ rule sort_bam:
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=16000,
+        mem_mb=lambda wildcards, attempt: 16000 * attempt,
         runteim="1h"
     shell:
         "samtools sort -T {wildcards.replicate_label} -@ {threads} -o {output.sort} {input.bam};"
@@ -168,8 +168,8 @@ rule index_bams:
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=1000,
-        runtime=20
+        mem_mb=lambda wildcards, attempt: 1000 * attempt,
+        runtime=lambda wildcards, attempt: 20 * attempt
     shell:
         "samtools index -@ {threads} {input.bam};"
 
@@ -182,14 +182,14 @@ rule dedup_umi_encode:
     params:
         prefix='output/bams/dedup/genome/{replicate_label}.genome.sort'
     resources:
-        mem_mb=34000,
-        runtime="8h",
+        mem_mb=lambda wildcards, attempt: 34000 * attempt,
+        runtime=lambda wildcards, attempt: 480 * attempt,
         tmpdir = TMPDIR
     benchmark: "benchmarks/dedup/genome/unassigned_experiment.{replicate_label}.dedup_umi.txt"
     container:
         "docker://howardxu520/skipper:umicollapse_1.0.0"
     resources:
-        mem_mb=34000
+        mem_mb=lambda wildcards, attempt: 34000 * attempt
     shell:
         "java -server -Xms32G -Xmx32G -Xss40M -jar /UMICollapse/umicollapse.jar bam "
             "-i {input.bam} -o {output.bam_dedup} --umi-sep : --two-pass"
@@ -203,8 +203,8 @@ rule select_informative_read:
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=10000,
-        runtime=30
+        mem_mb=lambda wildcards, attempt: 10000 * attempt,
+        runtime=lambda wildcards, attempt: 30 * attempt
     shell:
         "samtools view -bF " + str(64 if UNINFORMATIVE_READ == 1 else 128) + " {input.bam_combined} > {output.bam_informative}"
 
@@ -218,8 +218,8 @@ rule obtain_unique_reads:
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=10000,
-        runtime=30
+        mem_mb=lambda wildcards, attempt: 10000 * attempt,
+        runtime=lambda wildcards, attempt: 30 * attempt
     shell:
         """
         samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}
@@ -235,8 +235,8 @@ rule obtain_aligned_reads:
     container:
         "docker://howardxu520/skipper:samtools_1.17"
     resources:
-        mem_mb=8000,
-        runtime=30
+        mem_mb=lambda wildcards, attempt: 8000 * attempt,
+        runtime=lambda wildcards, attempt: 30 * attempt
     shell:
         """
         samtools idxstats {input} | awk -F '\t' '{{s+=$3+$4}}END{{print s}}' > {output}

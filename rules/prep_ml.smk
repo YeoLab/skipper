@@ -10,8 +10,8 @@ rule fetch_sequence:
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     resources:
-        mem_mb=2000,
-        runtime=40
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 40 * attempt
     shell:
         '''
         bedtools getfasta -fo {output.finemapped_fa} -fi {GENOME} -bed {input.finemapped_windows} -s

@@ -13,8 +13,8 @@ rule upload_hf_dataset:
     # container:
     #     "docker://brianyee/eugene-tools:0.1.2" # THIS DOCKER IS NOT UPDATED WITH PYAROOW YET? NO SPACE LEFT ON DEVICE PROBLEM. PLUS CHARLENE CAN NEVER PULL CORRECTLY
     resources:
-        mem_mb=80000,
-        runtime=40
+        mem_mb=lambda wildcards, attempt: 80000 * attempt,
+        runtime=lambda wildcards, attempt: 40 * attempt
     singularity:
         "/tscc/nfs/home/bay001/bin/eugene_nt_lora_latest.sif"
     shell:

@@ -8,13 +8,13 @@ rule parse_gff:
         feature_annotations = FEATURE_ANNOTATIONS,
     threads: 1
     resources:
-        mem_mb=48000,
-        runtime="3h"
+        mem_mb=lambda wildcards, attempt: 48000 * attempt,
+        runtime=lambda wildcards, attempt: 180 * attempt
     benchmark: "benchmarks/parse_gff.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=48000
+        mem_mb=lambda wildcards, attempt: 48000 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/parse_gff.R {input.gff} {input.rankings} {output.partition} {output.feature_annotations}"
 
@@ -26,8 +26,8 @@ rule partition_bam_reads:
     output:
         counts = "output/counts/genome/vectors/{replicate_label}.counts",
     resources:
-        mem_mb=60000,
-        runtime="12h"
+        mem_mb=lambda wildcards, attempt: 60000 * attempt,
+        runtime=lambda wildcards, attempt: 720 * attempt
     benchmark: "benchmarks/counts/unassigned_experiment.{replicate_label}.partition_bam_reads.txt"
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
@@ -46,13 +46,13 @@ rule calc_partition_nuc:
     output:
         nuc = PARTITION.replace(".bed", ".nuc")
     resources:
-        mem_mb=16000,
-        runtime="2h"
+        mem_mb=lambda wildcards, attempt: 16000 * attempt,
+        runtime=lambda wildcards, attempt: 120 * attempt
     benchmark: "benchmarks/partition_nuc.txt"
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     resources:
-        mem_mb=16000
+        mem_mb=lambda wildcards, attempt: 16000 * attempt
     shell:
         "bedtools nuc -s -fi {input.genome} -bed {input.partition} | gzip -c > {output.nuc}"
 
@@ -64,13 +64,13 @@ rule make_genome_count_table:
         count_table = "output/counts/genome/tables/{experiment_label}.tsv.gz",
     threads: 4
     resources:
-        mem_mb=1000,
-        runtime=10
+        mem_mb=lambda wildcards, attempt: 1000 * attempt,
+        runtime=lambda wildcards, attempt: 10 * attempt
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_genome_count_table.txt"
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     resources:
-        mem_mb=1000
+        mem_mb=lambda wildcards, attempt: 1000 * attempt
     shell:
         "paste <(zcat {input.partition} | awk -v OFS=\"\\t\" 'BEGIN {{print \"chr\\tstart\\tend\\tname\\tscore\\tstrand\\tgc\"}} NR > 1 {{print $1,$2,$3,$4,$5,$6,$8}}' ) {input.replicate_counts} | gzip -c > {output.count_table};"
 
@@ -85,8 +85,8 @@ rule fit_input_betabinomial_model:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=32000,
-        runtime="6h"
+        mem_mb=lambda wildcards, attempt: 22000 * attempt,
+        runtime=lambda wildcards, attempt: 360 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
@@ -101,8 +101,8 @@ rule fit_clip_betabinomial_model:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=32000,
-        runtime="6h"
+        mem_mb=lambda wildcards, attempt: 32000 * attempt,
+        runtime=lambda wildcards, attempt: 360 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
@@ -145,8 +145,8 @@ rule call_enriched_windows:
     params:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label]
     resources:
-        mem_mb=24000,
-        runtime="6h"
+        mem_mb=lambda wildcards, attempt: 13000 * attempt,
+        runtime=lambda wildcards, attempt: 360 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/call_enriched_windows.R {input.table} {input.accession_rankings} {input.feature_annotations} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
@@ -161,8 +161,8 @@ rule check_window_concordance:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=8000,
-        runtime=15
+        mem_mb=lambda wildcards, attempt: 8000 * attempt,
+        runtime=lambda wildcards, attempt: 15 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/check_window_concordance.R output/tested_windows {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
@@ -177,8 +177,8 @@ rule find_reproducible_enriched_windows:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=2000,
-        runtime=30
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 30 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/identify_reproducible_windows.R output/enriched_windows/ {wildcards.experiment_label} " + (BLACKLIST if BLACKLIST is not None else "") 
 
@@ -193,7 +193,7 @@ rule sample_background_windows_by_region:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=16000,
-        runtime=30
+        mem_mb=lambda wildcards, attempt: 10000 * attempt,
+        runtime=lambda wildcards, attempt: 30 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/sample_matched_background_by_region.R {input.enriched_windows} {input.all_windows} 75 output/homer/region_matched_background {wildcards.experiment_label};"

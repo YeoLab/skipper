@@ -8,8 +8,8 @@ rule run_homer:
         report = "output/homer/finemapped_results/{experiment_label}/homerResults.html",
         pwm= "output/homer/finemapped_results/{experiment_label}/homerMotifs.all.motifs",
     resources:
-        mem_mb=8000,
-        runtime=50
+        mem_mb=lambda wildcards, attempt: 3000 * attempt,
+        runtime=lambda wildcards, attempt: 50 * attempt
     benchmark: "benchmarks/run_homer/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:Homer_4.11"
@@ -27,8 +27,8 @@ rule consult_encode_reference:
         tsne_coordinates = "output/tsne/skipper.tsne_query.tsv",
         tsne_plot = "output/figures/tsne/skipper.tsne_query.pdf"
     resources:
-        mem_mb=1000,
-        runtime=10
+        mem_mb=lambda wildcards, attempt: 1000 * attempt,
+        runtime=lambda wildcards, attempt: 10 * attempt
     benchmark: "benchmarks/consult_encode_reference/skipper.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
@@ -45,12 +45,12 @@ rule consult_term_reference:
         enrichment_results = "output/gene_sets/{experiment_label}.enriched_terms.tsv.gz",
         enrichment_plot = "output/figures/gene_sets/{experiment_label}.clustered_top_terms.pdf"
     resources:
-        mem_mb=1000,
-        runtime=15
+        mem_mb=lambda wildcards, attempt: 1000 * attempt,
+        runtime=lambda wildcards, attempt: 15 * attempt
     benchmark: "benchmarks/consult_term_reference/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=1000
+        mem_mb=lambda wildcards, attempt: 1000 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/consult_term_reference.R {input.enriched_windows} {input.gene_sets} {input.gene_set_reference} {input.gene_set_distance} {wildcards.experiment_label} "

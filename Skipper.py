@@ -169,7 +169,7 @@ rule all_uploads:
     output:
         "upload_done.txt"
     resources:
-        mem_mb=400,
+        mem_mb=lambda wildcards, attempt: 400 * attempt,
         run_time=20
     shell:
         """
@@ -189,7 +189,7 @@ rule all_benchmark_outputs:
     output:
         "ml_benchmark_done.txt"
     resources:
-        mem_mb=400,
+        mem_mb=lambda wildcards, attempt: 400 * attempt,
         run_time=20
     shell:
         """
@@ -211,7 +211,7 @@ rule all_ml_variants_output:
     output:
         "ml_variants_done.txt"
     resources:
-        mem_mb=400,
+        mem_mb=lambda wildcards, attempt: 400 * attempt,
         run_time=20
     shell:
         """
@@ -254,7 +254,7 @@ rule all_basic_output:
     output:
         "basic_done.txt"
     resources:
-        mem_mb=400,
+        mem_mb=lambda wildcards, attempt: 400 * attempt,
         run_time=20
     shell:
         """

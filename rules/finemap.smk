@@ -11,13 +11,13 @@ rule get_nt_coverage:
         nt_coverage = "output/finemapping/nt_coverage/{experiment_label}.nt_coverage.bed"
     threads: 6
     resources:
-        mem_mb=45000,
-        runtime="2h"
+        mem_mb=lambda wildcards, attempt: 45000 * attempt,
+        runtime=lambda wildcards, attempt: 120 * attempt
     benchmark: "benchmarks/get_nt_coverage/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
     resources:
-        mem_mb=45000
+        mem_mb=lambda wildcards, attempt: 45000 * attempt
     shell:
         "zcat {input.windows} | tail -n +2 | sort -k1,1 -k2,2n | awk -v OFS=\"\t\" '{{start = $2-37; if(start < 0) {{start = 0}}; print $1, start, $3+37,$4,$5,$6}}' | "
             "bedtools merge -i - -s -c 6 -o distinct | awk -v OFS=\"\t\" '{{for(i=$2;i< $3;i++) {{print $1,i,i+1,\"MW:\" NR \":\" i - $2,0,$4, NR}} }}' > {output.nt_census}; "
@@ -42,13 +42,13 @@ rule finemap_windows:
         finemapped_windows = "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.bed.gz"
     threads: 6,
     resources:
-        mem_mb=45000,
-        runtime="2h"
+        mem_mb=lambda wildcards, attempt: 25000 * attempt,
+        runtime=lambda wildcards, attempt: 120 * attempt
     benchmark: "benchmarks/finemap_windows/{experiment_label}.all_replicates.reproducible.txt"
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=45000
+        mem_mb=lambda wildcards, attempt: 25000 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/finemap_enriched_windows.R {input.nt_coverage} output/finemapping/mapped_sites/ {wildcards.experiment_label}"
 
@@ -62,8 +62,8 @@ rule annotate_finemap:
     threads:
         1
     resources:
-        mem_mb=45000,
-        runtime=30
+        mem_mb=lambda wildcards, attempt: 19000 * attempt,
+        runtime=lambda wildcards, attempt: 30 * attempt
     conda:
         "envs/metadensity.yaml"
     shell:
@@ -88,8 +88,8 @@ rule find_both_tested_windows:
         tested_windows_merged = "output/finemapping/both_tested_sites/{experiment_label}.both_tested_windows.merged.bed"
     threads: 1
     resources:
-        mem_mb=45000,
-        runtime=30
+        mem_mb=lambda wildcards, attempt: 16000 * attempt,
+        runtime=lambda wildcards, attempt: 30 * attempt
     conda:
         "envs/metadensity.yaml"
     shell:

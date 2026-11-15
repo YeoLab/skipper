@@ -14,8 +14,8 @@ rule filter_roulette_for_high:
         "docker://brianyee/bcftools:1.17"
     threads: 1
     resources:
-        mem_mb=40000,
-        runtime="1h"
+        mem_mb=lambda wildcards, attempt: 40000 * attempt,
+        runtime=lambda wildcards, attempt: 60 * attempt
     shell:
         """
         bcftools reheader -h {input.header} \
@@ -33,8 +33,8 @@ rule annotate_roulette_w_gnomAD:
         annotated=Path(ROULETTE_DIR)/'{chr_number}_rate_v5.2_TFBS_correction_all.header.filtered.rename.annotated.vcf.gz'
     threads: 1
     resources:
-        mem_mb=80000,
-        runtime="6h"
+        mem_mb=lambda wildcards, attempt: 80000 * attempt,
+        runtime=lambda wildcards, attempt: 360 * attempt
     container:
         "docker://brianyee/bcftools:1.17"
     shell:
@@ -58,8 +58,8 @@ rule fetch_SNP_from_gnomAD_and_roulette:
         "output/variants/gnomAD_roulette/{experiment_label}.chr{chr_number}.vcf"
     threads: 2
     resources:
-        mem_mb=40000,
-        runtime="13h"
+        mem_mb=lambda wildcards, attempt: 16000 * attempt,
+        runtime=lambda wildcards, attempt: 780 * attempt
     container:
         "docker://brianyee/bcftools:1.17"
     shell:
@@ -79,8 +79,8 @@ rule slop_finemap:
         "output/finemapping/mapped_sites/{experiment_label}.finemapped_windows.slop.bed.gz"
     threads: 2
     resources:
-        mem_mb=40000,
-        runtime="6h"
+        mem_mb=lambda wildcards, attempt: 16000 * attempt,
+        runtime=lambda wildcards, attempt: 360 * attempt
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
     shell:
@@ -94,8 +94,8 @@ rule fetch_peak_sequence:
     output:
         finemapped_fa = "output/ml/sequence/{experiment_label}.foreground.slop.fa",
     resources:
-        mem_mb=2000,
-        runtime=40
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 40 * attempt
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     shell:
@@ -118,8 +118,8 @@ rule fetch_variant_sequence:
         csv = "output/variants/{subset}/{experiment_label_thing}.csv"
     threads: 2
     resources:
-        mem_mb=80000,
-        runtime="1h"
+        mem_mb=lambda wildcards, attempt: 19000 * attempt,
+        runtime=lambda wildcards, attempt: 60 * attempt
     params:
         out_prefix = lambda wildcards, output: output.csv.replace('.csv', ''),
     conda:
@@ -149,8 +149,8 @@ rule score_fa:
         fai=temp("output/variants/{subset}/{experiment_label_thing}.{type}.fa.fai")
     threads: 1
     resources:
-        mem_mb=16000,
-        runtime=20,
+        mem_mb=lambda wildcards, attempt: 4000 * attempt,
+        runtime=lambda wildcards, attempt: 20 * attempt,
         slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
@@ -188,8 +188,8 @@ rule join_gnomAD_info:
         "output/variants/gnomAD_roulette/{experiment_label}.total.csv"
     threads: 1
     resources:
-        mem_mb=80000,
-        runtime=20
+        mem_mb=lambda wildcards, attempt: 16000 * attempt,
+        runtime=lambda wildcards, attempt: 20 * attempt
     run:
         indir = Path('output/variants/gnomAD_roulette/')
         scores = []
@@ -235,8 +235,8 @@ rule fetch_Clinvar_SNP:
         "output/variants/clinvar/{experiment_label}.vcf"
     threads: 2
     resources:
-        mem_mb=50000,
-        runtime="3h"
+        mem_mb=lambda wildcards, attempt: 16000 * attempt,
+        runtime=lambda wildcards, attempt: 180 * attempt
     container:
         "docker://brianyee/bcftools:1.17"
     shell:
@@ -255,8 +255,8 @@ rule download_vep_cache:
         Path(VEP_CACHEDIR) / f'homo_sapiens/{VEP_CACHE_VERSION}_GRCh38/1/all_vars.gz'
     threads: 1
     resources:
-        mem_mb=2000,
-        runtime="12h"
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 720 * attempt
     container:
         "docker://ensemblorg/ensembl-vep:release_113.4"
     shell:
@@ -275,8 +275,8 @@ rule vep:
         "output/variants/clinvar/{experiment_label}.vep.tsv"
     threads: 2
     resources:
-        mem_mb=40000,
-        runtime="1h"
+        mem_mb=lambda wildcards, attempt: 40000 * attempt,
+        runtime=lambda wildcards, attempt: 60 * attempt
     container:
         "docker://ensemblorg/ensembl-vep:release_113.4"
     shell:
@@ -325,8 +325,8 @@ rule variant_analysis:
         "output/variant_analysis/{experiment_label}.feature_type_top.oe.lofbins.csv",
     threads: 1
     resources:
-        mem_mb=40000,
-        runtime=20
+        mem_mb=lambda wildcards, attempt: 40000 * attempt,
+        runtime=lambda wildcards, attempt: 20 * attempt
     conda:
         "envs/metadensity.yaml"
     shell:

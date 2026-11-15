@@ -12,11 +12,12 @@ use-conda: true
 conda-prefix: "/tscc/nfs/home/hsher/snakeconda"
 conda-frontend: conda
 rerun-incomplete: true
+retries: 2 # resources scale with attempt (lambda wildcards, attempt in rules; *attempt in default-resources)
 jobs: 30
 executor: slurm
 default-resources:
   slurm_partition: "gold"
   slurm_account: "csd792"
   slurm_extra: "'--qos=hcg-csd792'"
-  runtime: 30
-  mem_mb: 20000
+  runtime: "30*attempt"
+  mem_mb: "20000*attempt"

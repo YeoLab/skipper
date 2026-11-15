@@ -1,6 +1,14 @@
 # CHANGELOG
 
 ## 2026-11-14
+- All rules: `mem_mb` and `runtime` are `lambda wildcards, attempt: N * attempt`; profile adds `retries: 2` and
+  attempt-scaled default-resources (`20000*attempt` MB, `30*attempt` min). A job that runs out of memory/time is
+  resubmitted with 2x, then 3x.
+- Base mem_mb lowered to ~2x measured peak RSS (sacct, all encore runs since 2026-11-13; rule from SubmitLine) where that
+  is <75% of the old request; short jobs with unsampled RSS capped at 16 GB. Largest cuts: se_align_reads 160->67 GB,
+  rbpnet_variants_fetch_variant_sequence 80->19, rbpnet_prepare_data 80->34, annotate_finemap 45->19, finemap_windows
+  45->25, train_model 32->10, seqlet 32->9, score_fa 16->4, fastqc/trim 16->2. rbpnet_validation stays 32 GB (peak 18).
+  PE-only and unrun rules (no measurements) keep their values.
 - GPU memory requests lowered: `rules/train_rbpnet.smk` (x5) mem_mb 160000 -> 32000 (23 completed train_model jobs
   peaked at 1.9-4.7 GB RSS); `rules/variants_rbpnet.smk` score_fa 80000 -> 16000 (178 clean exits peaked at 1.6 GB;
   inputs <=180 MB FASTA scored in batches of 512). hotel-v100 bills mem at 0.2 SU/GB-h, so train_model 62 -> ~37 SU/h,

@@ -11,8 +11,8 @@ rule prepare_data:
     # container:
     #     "docker://brianyee/eugene-tools:0.1.2" # THIS DOCKER IS NOT UPDATED WITH PYAROOW YET? NO SPACE LEFT ON DEVICE PROBLEM. PLUS CHARLENE CAN NEVER PULL CORRECTLY
     resources:
-        mem_mb=80000,
-        runtime=40
+        mem_mb=lambda wildcards, attempt: 34000 * attempt,
+        runtime=lambda wildcards, attempt: 40 * attempt
     container: 
         "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
@@ -30,8 +30,8 @@ rule train_model:
     output:
         model = "output/ml/rbpnet_model/{experiment_label}/training_done",
     resources:
-        mem_mb=32000,
-        runtime="3h",
+        mem_mb=lambda wildcards, attempt: 10000 * attempt,
+        runtime=lambda wildcards, attempt: 180 * attempt,
         slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
@@ -56,8 +56,8 @@ rule train_original_model:
     output:
         model = "output/ml/rbpnet_model_original/{experiment_label}/training_done",
     resources:
-        mem_mb=32000,
-        runtime="6h",
+        mem_mb=lambda wildcards, attempt: 32000 * attempt,
+        runtime=lambda wildcards, attempt: 360 * attempt,
         slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
@@ -82,8 +82,8 @@ rule validation:
     output:
         validation = "output/ml/rbpnet_model/{experiment_label}/valid/test_data_metric.csv",
     resources:
-        mem_mb=32000,
-        runtime="1h",
+        mem_mb=lambda wildcards, attempt: 32000 * attempt,
+        runtime=lambda wildcards, attempt: 60 * attempt,
         slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
@@ -110,8 +110,8 @@ rule validate_original_model:
     output:
         validation = "output/ml/rbpnet_model_original/{experiment_label}/valid/test_data_metric.csv",
     resources:
-        mem_mb=32000,
-        runtime="1h",
+        mem_mb=lambda wildcards, attempt: 32000 * attempt,
+        runtime=lambda wildcards, attempt: 60 * attempt,
         slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",
@@ -139,8 +139,8 @@ rule seqlet:
     output:
         validation = "output/ml/rbpnet_model/{experiment_label}/motif_done",
     resources:
-        mem_mb=32000,
-        runtime="1h",
+        mem_mb=lambda wildcards, attempt: 9000 * attempt,
+        runtime=lambda wildcards, attempt: 60 * attempt,
         slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",

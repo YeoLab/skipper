@@ -9,8 +9,8 @@ rule make_genome_mega_table:
         "output/counts/genome/megatables/megatable.tsv.gz",
     threads: 4
     resources:
-        mem_mb=1000,
-        runtime=75
+        mem_mb=lambda wildcards, attempt: 1000 * attempt,
+        runtime=lambda wildcards, attempt: 75 * attempt
     shell:
         """
         paste <(zcat {input.feature}) {input.replicate_counts} | gzip > {output}
@@ -26,8 +26,8 @@ rule make_repeat_mega_tables:
         class_table = "output/counts/repeats/megatables/class.tsv.gz",
         family_table = "output/counts/repeats/megatables/family.tsv.gz",
     resources:
-        mem_mb=2000,
-        runtime=90
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 90 * attempt
     shell:
         "echo \"repeat_name\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.name_table};"
         "echo \"repeat_class\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.class_table};"
@@ -46,8 +46,8 @@ rule join_unique_fragments:
     output:
         "output/QC/unique_fragments.csv"
     resources:
-        mem_mb=2000,
-        runtime=25
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 25 * attempt
     shell:
         """
         awk '{{print FILENAME "," $0}}' {input} > {output}
@@ -59,8 +59,8 @@ rule join_aligned_reads:
     output:
         "output/QC/aligned_reads.csv"
     resources:
-        mem_mb=2000,
-        runtime=25
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 25 * attempt
     shell:
         """
         awk '{{print FILENAME "," $0}}' {input} > {output}
@@ -76,8 +76,8 @@ rule summarize_genome_megatable:
     conda:
         "envs/metadensity.yaml"
     resources:
-        mem_mb=2000,
-        runtime=60
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 60 * attempt
     shell:
         """
         python {TOOL_DIR}/group_genome_megatable.py {input} {output.f} {output.t}
@@ -93,8 +93,8 @@ rule join_reproducible_enriched_re:
         binary="output/joined_reproducible_re/binary.csv",
         l2or="output/joined_reproducible_re/l2or.csv",
     resources:
-        mem_mb=2000,
-        runtime=25
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 25 * attempt
     conda:
         "envs/metadensity.yaml"
     shell:
@@ -110,8 +110,8 @@ rule join_reproducible_enriched_windows:
         binary="output/joined_reproducible_windows/binary.{feature_type}.csv",
         l2or="output/joined_reproducible_windows/l2or.{feature_type}.csv",
     resources:
-        mem_mb=2000,
-        runtime=25
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 25 * attempt
     conda:
         "envs/metadensity.yaml"
     shell:
@@ -133,8 +133,8 @@ rule join_all_reproducible_enriched_windows:
     output:
         binary="output/joined_reproducible_windows/all.csv",
     resources:
-        mem_mb=2000,
-        runtime=25
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 25 * attempt
     conda:
         "envs/metadensity.yaml"
     shell:

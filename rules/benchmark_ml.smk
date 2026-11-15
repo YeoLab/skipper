@@ -6,8 +6,8 @@ rule test_sdata_to_fasta:
     output:
         fasta = temp("output/ml/rbpnet_data/{experiment_label}/test_data.fasta"),
     resources:
-        mem_mb=80000,
-        runtime="10m",
+        mem_mb=lambda wildcards, attempt: 80000 * attempt,
+        runtime=lambda wildcards, attempt: 10 * attempt,
     container:
         "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
@@ -30,8 +30,8 @@ rule score_with_homer:
     wildcard_constraints:
         motif_source="(RBNS|SELEX)",
     resources:
-        mem_mb=80000,
-        runtime="10m",
+        mem_mb=lambda wildcards, attempt: 80000 * attempt,
+        runtime=lambda wildcards, attempt: 10 * attempt,
     container:
         "docker://howardxu520/skipper:Homer_4.11"
     shell:
@@ -48,8 +48,8 @@ rule score_with_internal_homer:
         score = "output/ml/benchmark/homer/internal/{experiment_label}.csv",
         outdir = temp(directory("output/ml/benchmark/homer/internal/{experiment_label}.temp_output_dir"))
     resources:
-        mem_mb=80000,
-        runtime="40m",
+        mem_mb=lambda wildcards, attempt: 80000 * attempt,
+        runtime=lambda wildcards, attempt: 40 * attempt,
     container:  
         "docker://howardxu520/skipper:Homer_4.11"
     shell:
@@ -82,8 +82,8 @@ rule calculate_pearson_auprc_for_homer:
     output:
         pearson_auprc = "output/ml/benchmark/homer/{motif_source}/{experiment_label}.pearson_auprc.csv",
     resources:
-        mem_mb=80000,
-        runtime="10m",
+        mem_mb=lambda wildcards, attempt: 80000 * attempt,
+        runtime=lambda wildcards, attempt: 10 * attempt,
     wildcard_constraints:
         motif_source="(RBNS|SELEX)",
     container:
@@ -109,8 +109,8 @@ rule calculate_pearson_auprc_for_internal_homer:
     output:
         pearson_auprc = "output/ml/benchmark/homer/internal/{experiment_label}.pearson_auprc.csv",
     resources:
-        mem_mb=80000,
-        runtime="10m",
+        mem_mb=lambda wildcards, attempt: 80000 * attempt,
+        runtime=lambda wildcards, attempt: 10 * attempt,
     container:
         "/tscc/nfs/home/bay001/bin/eugene-tools_0.1.2.sif"
     shell:
@@ -135,8 +135,8 @@ rule calculate_pearson_auprc_for_mcross_homer:
     output:
         pearson_auprc = "output/ml/benchmark/homer/{data_types}_mcross/{experiment_label}.pearson_auprc.csv",
     resources:
-        mem_mb=80000,
-        runtime="10m",
+        mem_mb=lambda wildcards, attempt: 80000 * attempt,
+        runtime=lambda wildcards, attempt: 10 * attempt,
     wildcard_constraints:
         data_types="(CIMS|CITS)",
     container:
@@ -160,8 +160,8 @@ rule train_and_evaluate_nucleotide_transformer:
     output:
         "output/ml/nt_lora/{experiment_label}/{model_name}/d_log_odds_corr.csv"
     resources:
-        mem_mb=160000,
-        runtime="6h",
+        mem_mb=lambda wildcards, attempt: 160000 * attempt,
+        runtime=lambda wildcards, attempt: 360 * attempt,
         slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",

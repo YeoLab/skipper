@@ -68,8 +68,8 @@ rule uniquely_mapped_reads:
         bam_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam",
         bai_umap = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.bam.bai",
     resources:
-        runtime = 30,
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 30 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     shell:
         """
@@ -86,8 +86,8 @@ rule md_tag:
     output:
         mdtag = "output/bams/genome/{replicate_label}.genome.Aligned.sort.dedup.umap.md.sam",
     resources:
-        runtime = "1h",
-        mem_mb = "5000",
+        runtime = lambda wildcards, attempt: 60 * attempt,
+        mem_mb = lambda wildcards, attempt: 5000 * attempt,
     threads: 8
     container:
         "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
@@ -122,8 +122,8 @@ rule ctk_parse:
         peak_bd = "output/ctk/{replicate_label}.uniq.peak.sig.boundary.bed",
         peak_PH = "output/ctk/{replicate_label}.uniq.peak.sig.halfPH.bed",
     resources:
-        runtime = "8h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 480 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
         tmpdir = "output/ctktmp",
     threads: 8
     conda: "envs/ctk.yaml"
@@ -152,8 +152,8 @@ rule ctk_get_mutation:
     wildcard_constraints:
         mutation_type="(del|ins|sub)",
     resources:
-        runtime = "2h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 120 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     conda: "envs/ctk.yaml"
     shell:
@@ -170,8 +170,8 @@ rule ctk_CIMS:
         mutation_CIMS = "output/ctk/CIMS/{replicate_label}.uniq.{mutation_type}.CIMS.txt",
         mutation_CIMS_stat = "output/ctk/CIMS/{replicate_label}.uniq.{mutation_type}.pos.stat.CIMS.txt",
     resources:
-        runtime = "3h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 180 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     conda: "envs/ctk.yaml"
     shell:
         """
@@ -189,8 +189,8 @@ rule ctk_CIMS_process:
         mutation_CIMS_s30_bed = "output/ctk/CIMS/sig/{replicate_label}.uniq.{mutation_type}.CIMS.s30.bed",
         mutation_CIMS_s30_21nt_bed = "output/ctk/CIMS/sig/{replicate_label}.uniq.{mutation_type}.CIMS.s30.21nt.bed",
     resources:
-        runtime = 10,
-        mem_mb = "5000",
+        runtime = lambda wildcards, attempt: 10 * attempt,
+        mem_mb = lambda wildcards, attempt: 5000 * attempt,
     threads: 8
     shell:
         """
@@ -214,8 +214,8 @@ rule fetch_CIMS_sequence:
     params:
         fa=GENOME,
     resources:
-        runtime = 30,
-        mem_mb = "5000",
+        runtime = lambda wildcards, attempt: 30 * attempt,
+        mem_mb = lambda wildcards, attempt: 5000 * attempt,
     threads: 8
     shell:
         """
@@ -239,8 +239,8 @@ rule ctk_CITS:
     output:
         mutation_CITS = "output/ctk/CITS/{replicate_label}.uniq.clean.CITS.s30.{mutation_type}.bed",
     resources:
-        runtime = "6h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 360 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     conda: "envs/ctk.yaml"
     shell:
@@ -258,8 +258,8 @@ rule ctk_CITS_process:
     wildcard_constraints:
         mutation_type="(del|ins|sub)",
     resources:
-        runtime = 10,
-        mem_mb = "5000",
+        runtime = lambda wildcards, attempt: 10 * attempt,
+        mem_mb = lambda wildcards, attempt: 5000 * attempt,
     threads: 8
     container:
         "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"     
@@ -284,8 +284,8 @@ rule fetch_CITS_sequence:
     params:
         fa=GENOME,
     resources:
-        runtime = 30,
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 30 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     container:
         "docker://howardxu520/skipper:samtools_1.17_bedtools_2.31.0"
     shell:
@@ -316,8 +316,8 @@ rule ctk_mcross_kmer_enrichment:
     params:
         experiment_label = "{data_types}.{experiment_label}",
     resources:
-        runtime = "2h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 120 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     conda: "envs/ctk.yaml"
     shell:
@@ -340,8 +340,8 @@ rule ctk_mcross_enrich_matrix:
     output:
         ctk_topn_kmer_matrix = "output/ctk/ctk_mcross/{data_types}.{experiment_label}.w7.zcore.mat.txt",
     resources:
-        runtime = "2h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 120 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     conda: "envs/ctk.yaml"
     shell:
@@ -357,8 +357,8 @@ rule ctk_mcross_topword:
     output:
         ctk_top_peak = "output/ctk/ctk_mcross/top7mer/{data_types}.{experiment_label}/top.X.{data_types}.{experiment_label}.txt",
     resources:
-        runtime = "2h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 120 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     conda: "envs/ctk.yaml"
     shell:
@@ -380,8 +380,8 @@ rule ctk_mcross:
         output_dir = "output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}",
         experiment_label = "{data_types}.{experiment_label}",
     resources:
-        runtime = "2h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 120 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     conda: "envs/ctk.yaml"
     shell:
@@ -401,8 +401,8 @@ rule skipper_mcross_kmer_enrichment:
         clip_kmer_enrichment = "output/ctk/skipper_mcross/{experiment_label}.kmer.txt",
         clip_config = "output/ctk/skipper_mcross/{experiment_label}.config.txt",
     resources:
-        runtime = "2h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 120 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     conda: "envs/ctk.yaml"
     shell:
@@ -425,8 +425,8 @@ rule skipper_mcross_enrich_matrix:
     output:
         clip_topn_kmer_matrix = "output/ctk/skipper_mcross/{experiment_label}.w7.zcore.mat.txt",
     resources:
-        runtime = "2h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 120 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     conda: "envs/ctk.yaml"
     shell:
@@ -444,8 +444,8 @@ rule skipper_mcross_topword:
     params:
         output_dir = "output/ctk/skipper_mcross/top7mer",
     resources:
-        runtime = "2h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 120 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     conda: "envs/ctk.yaml"
     shell:
@@ -466,8 +466,8 @@ rule skipper_mcross:
     params:
         output_dir = "output/ctk/skipper_mcross/mcross/{experiment_label}",
     resources:
-        runtime = "2h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 120 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     conda: "envs/ctk.yaml"
     shell:
@@ -486,8 +486,8 @@ rule plot_skipper_mcross:
     output:
         skipper_plot = "output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.00.pdf",
     resources:
-        runtime = "2h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 120 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     container:
         "docker://howardxu520/skipper:R_4.1.3_2"
@@ -507,8 +507,8 @@ rule plot_ctk_mcross:
     output:
         ctk_mat_plot = "output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.00.pdf",
     resources:
-        runtime = "2h",
-        mem_mb = "20000",
+        runtime = lambda wildcards, attempt: 120 * attempt,
+        mem_mb = lambda wildcards, attempt: 20000 * attempt,
     threads: 8
     container:
         "docker://howardxu520/skipper:R_4.1.3_2"
@@ -527,8 +527,8 @@ rule mcross2homer_skipper:
     output:
         "output/ctk/skipper_mcross/mcross/{experiment_label}/{experiment_label}.homer"
     resources:
-        runtime = 10,
-        mem_mb=20000,
+        runtime = lambda wildcards, attempt: 10 * attempt,
+        mem_mb=lambda wildcards, attempt: 20000 * attempt,
     threads: 1
     conda:
         "envs/metadensity.yaml"
@@ -545,8 +545,8 @@ rule mcross2homer_ctk:
     output:
         "output/ctk/ctk_mcross/mcross/{data_types}.{experiment_label}/{data_types}.{experiment_label}.homer"
     resources:
-        runtime = 10,
-        mem_mb=20000,
+        runtime = lambda wildcards, attempt: 10 * attempt,
+        mem_mb=lambda wildcards, attempt: 20000 * attempt,
     threads: 1
     conda:
         "envs/metadensity.yaml"

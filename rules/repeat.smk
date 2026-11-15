@@ -10,8 +10,8 @@ rule uniq_repeats:
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     resources:
-        mem_mb=16000,
-        runtime="4h"
+        mem_mb=lambda wildcards, attempt: 16000 * attempt,
+        runtime=lambda wildcards, attempt: 240 * attempt
     shell:
         "zcat {REPEAT_TABLE} | awk -v OFS=\"\\t\" '{{print $6,$7,$8,$11 \":\" name_count[$11]++, $2, $10,$11,$12,$13}} "
             "$13 == \"L1\" || $13 == \"Alu\" {{$11 = $11 \"_AS\"; $12 = $12 \"_AS\"; $13 = $13 \"_AS\"; "
@@ -37,8 +37,8 @@ rule quantify_repeats:
     container:
         "docker://howardxu520/skipper:bedtools_2.31.0"
     resources:
-        mem_mb=60000,
-        runtime=40
+        mem_mb=lambda wildcards, attempt: 60000 * attempt,
+        runtime=lambda wildcards, attempt: 40 * attempt
     shell:
         "bedtools bamtobed -i {input.bam} | awk '($1 != \"chrEBV\") && ($4 !~ \"/{UNINFORMATIVE_READ}$\")' | "
             "bedtools flank -s -l 1 -r 0 -g {CHROM_SIZES} -i - | "
@@ -57,8 +57,8 @@ rule make_repeat_count_tables:
         family_table = "output/counts/repeats/tables/family/{experiment_label}.tsv.gz",
     benchmark: "benchmarks/counts/{experiment_label}.all_replicates.make_repeat_count_table.txt"
     resources:
-        mem_mb=2000,
-        runtime=120
+        mem_mb=lambda wildcards, attempt: 2000 * attempt,
+        runtime=lambda wildcards, attempt: 120 * attempt
     shell:
         "echo \"repeat_name\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.name_table};"
         "echo \"repeat_class\" | paste - {input.replicate_counts} | sed -n '1p' | gzip > {output.class_table};"
@@ -80,8 +80,8 @@ rule fit_clip_betabinomial_re_model:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=32000,
-        runtime="6h"
+        mem_mb=lambda wildcards, attempt: 32000 * attempt,
+        runtime=lambda wildcards, attempt: 360 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/fit_clip_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.clip_replicate_label}"
 
@@ -95,8 +95,8 @@ rule fit_input_betabinomial_re_model:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=32000,
-        runtime=60
+        mem_mb=lambda wildcards, attempt: 4000 * attempt,
+        runtime=lambda wildcards, attempt: 60 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/fit_input_betabinom_re.R {input.table} {wildcards.experiment_label} {wildcards.input_replicate_label}"
 
@@ -116,8 +116,8 @@ rule call_enriched_re:
     params:
         input_replicate_label = lambda wildcards: clip_to_input_replicate_label[wildcards.clip_replicate_label]
     resources:
-        mem_mb=16000,
-        runtime="3h"
+        mem_mb=lambda wildcards, attempt: 7000 * attempt,
+        runtime=lambda wildcards, attempt: 180 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/call_enriched_re.R {input.table} {input.repeats} {input.parameters} {params.input_replicate_label} {wildcards.clip_replicate_label} {wildcards.experiment_label}.{wildcards.clip_replicate_label}"
 
@@ -130,8 +130,8 @@ rule find_reproducible_enriched_re:
     container:
         "docker://howardxu520/skipper:R_4.1.3_1"
     resources:
-        mem_mb=8000,
-        runtime=120
+        mem_mb=lambda wildcards, attempt: 8000 * attempt,
+        runtime=lambda wildcards, attempt: 120 * attempt
     shell:
         "Rscript --vanilla {TOOL_DIR}/identify_reproducible_re.R output/enriched_re/ {wildcards.experiment_label}"
         

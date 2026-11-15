@@ -29,8 +29,8 @@ rule multiqc:
     container:
         "docker://jeltje/multiqc:1.6"
     resources:
-        mem_mb=4000,
-        runtime=15
+        mem_mb=lambda wildcards, attempt: 4000 * attempt,
+        runtime=lambda wildcards, attempt: 15 * attempt
     shell:
         """
         ls {input.trimmed_fastqc} {input.initial_fastqc} {input.star_log} {input.fastp} {input.trimmed} > output/multiqc/{wildcards.experiment_label}/files.txt
@@ -45,8 +45,8 @@ rule quantify_gc_bias:
     conda:
         "envs/metadensity.yaml"
     resources:
-        mem_mb=40000,
-        runtime=5
+        mem_mb=lambda wildcards, attempt: 16000 * attempt,
+        runtime=lambda wildcards, attempt: 5 * attempt
     shell:
         """
         python {TOOL_DIR}/quantify_gcbias.py {input} {output}
@@ -72,8 +72,8 @@ rule nread_in_finemapped_regions:
     container:
         "docker://howardxu520/skipper:bigwig_1.0"
     resources:
-        mem_mb=40000,
-        runtime=5
+        mem_mb=lambda wildcards, attempt: 16000 * attempt,
+        runtime=lambda wildcards, attempt: 5 * attempt
     shell:
         """
         # -sorted streams the bam instead of loading it into memory (unsorted OOMs at 40G);
