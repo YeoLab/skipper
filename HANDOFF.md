@@ -43,6 +43,10 @@
 | PUM1 (K562) | 24231 | GAAGAAGA, CDS-dominated; UGUAHAUA only #44 (1.7%) | 0.66 | 623 |
 | PUM2 (K562) | 6739 | TGTAHATA (matches; 62% of sites, 3'UTR) | 0.55 | 70 |
 
+- vs Her et al. 2026: RBPNet enrichment corr (dlogodds pearson, total>50; paper pass >0.5): RBFOX2 0.56, PTBP1 0.77,
+  QKI 0.77, U2AF2 0.68, PUM2 0.69 pass; TIA1 0.50, PUM1 0.46 fail (paper: PUM1 ~0.4, 75% rRNA). Seqlets (97.5th pct):
+  RBFOX2 UGCAUG, QKI UACUAAC, PTBP1 CU, U2AF2 polyU+AG|GU, PUM2 UGUAUAUA, TIA1 U-rich (+5'SS), PUM1 GA-rich.
+
 ## Next steps
 - Ask the user whether to resume the stopped revision runs (and in what order/concurrency).
 
