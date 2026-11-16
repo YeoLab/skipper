@@ -1,6 +1,6 @@
 # HANDOFF
 
-## Current state (2026-11-16 09:55) - BLOCKED
+## Current state (2026-11-16 11:25)
 `B=/tscc/nfs/home/bay001/projects/charlene_paper_20250521/permanent_data/skipper2025revision`
 Driver `$B/driver_20261116.sh` (copy in `2025revision_configs/`): encore2_FINAL_HepG2 -> encore_HepG2 -> encore_K562.
 - encore2_FINAL_HepG2 done 07:36 (148/148). CDK9 972 windows, RACK1 346, PABPN1 0; enrichment r 0.20/0.07/0.12
@@ -9,8 +9,8 @@ Driver `$B/driver_20261116.sh` (copy in `2025revision_configs/`): encore2_FINAL_
   `OSError: [Errno 122] Disk quota exceeded`. Cause: **Lustre scratch user quota full** (`lfs quota -h -u bay001
   /tscc/lustre/ddn`: 24T/24T). Snakemake source cache (`~/.cache` -> `/tscc/lustre/ddn/scratch/bay001/.cache`),
   `--conda-prefix` and `--singularity-prefix` live there. Not cleaned (needs user OK).
-- Next: user frees scratch; then `setsid nohup bash -c "$B/driver_20261116.sh >> $B/sequential.log 2>&1" &`
-  (encore2_FINAL_HepG2 is a no-op). No monitoring cron (session ended).
+- 11:23: pytest_igvf (4.5T) gone from scratch -> 19.5T/24T; driver relaunched (`setsid nohup bash -c
+  "$B/driver_20261116.sh >> $B/sequential.log 2>&1" &`), encore_HepG2 then encore_K562 running. No monitoring cron.
 - Tests done: `$B/encode3_test5_HepG2/` (853/853), `$B/encode3_testPUM_K562/` (346/346); configs in `2025revision_configs/`.
 - Stopped runs (finished outputs preserved; killed jobs' outputs marked incomplete, redone on restart):
 
