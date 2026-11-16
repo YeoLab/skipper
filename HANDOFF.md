@@ -1,9 +1,10 @@
 # HANDOFF
 
-## Current state (2026-11-16 05:45)
+## Current state (2026-11-16 08:46)
 8-run revision pass stopped 2026-11-15. **Restarted 2026-11-16 05:43** (user): `$B/driver_20261116.sh`
 (copy in `2025revision_configs/`) runs encore2_FINAL_HepG2 (148 jobs) -> encore_HepG2 (819) -> encore_K562 (2203),
 one at a time, 5T check before each. Others stay stopped. Monitoring: session cron every 4 h.
+08:46: encore2_FINAL_HepG2 done (148/148, 07:36); encore_HepG2 714/819, 0 errors, 0 failed jobs; 15T free.
 `B=/tscc/nfs/home/bay001/projects/charlene_paper_20250521/permanent_data/skipper2025revision`
 
 - **Done: `$B/encode3_test5_HepG2/`** 08:42-11:41, 853/853, no errors, no OOM/timeout retries.
