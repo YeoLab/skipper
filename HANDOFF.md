@@ -9,7 +9,7 @@
   RBFOX2_HepG2_ENCSR987FTF ("204"), PTBP1_HepG2_ENCSR384KAN, QKI_HepG2_ENCSR570WLM, TIA1_HepG2_ENCSR623VEQ,
   U2AF2_HepG2_ENCSR202BFN. Config = encode3_H_HepG2 with WORKDIR/MANIFEST changed. Dry run: 853 jobs.
   Frozen params: `2025revision_configs/encode3_test5_HepG2/`.
-- **Active: `$B/encode3_testPUM_K562/`** (started 12:44): PUM1_K562_ENCSR308YNT, PUM2_K562_ENCSR661ICQ
+- **Done: `$B/encode3_testPUM_K562/`** (12:44-22:28, 346/346; PUM2 train_model timed out once at 3h, retry OK): PUM1_K562_ENCSR308YNT, PUM2_K562_ENCSR661ICQ
   (only in encode3 K manifest); config = encode3_K_K562 with WORKDIR/MANIFEST changed; dry run 346 jobs.
   Frozen params: `2025revision_configs/encode3_testPUM_K562/`. Expected motif UGUAHAUA (PUM).
 - Stopped runs (finished outputs preserved; killed jobs' outputs marked incomplete, redone on restart):
@@ -40,6 +40,8 @@
 | QKI | 31380 | TACTAAC (matches) | 0.68 | 421 |
 | TIA1 | 2681 | G-rich; TTTKGGGG #5 (weak U-rich) | 0.70 | 137 |
 | U2AF2 | 58251 | TTYYTYCC (polypyrimidine, matches) | 0.76 | 253 |
+| PUM1 (K562) | 24231 | GAAGAAGA, CDS-dominated; UGUAHAUA only #44 (1.7%) | 0.66 | 623 |
+| PUM2 (K562) | 6739 | TGTAHATA (matches; 62% of sites, 3'UTR) | 0.55 | 70 |
 
 ## Next steps
 - Ask the user whether to resume the stopped revision runs (and in what order/concurrency).

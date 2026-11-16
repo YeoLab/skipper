@@ -1,6 +1,8 @@
 # CHANGELOG
 
 ## 2026-11-15
+- encode3_testPUM_K562 finished (346/346): PUM2 top motif TGTAHATA (3'UTR); PUM1 top motif GAAGAAGA (CDS), PUM motif
+  only rank 44. Results in HANDOFF.md.
 - `rules/train_rbpnet.smk` (train_model): runtime 3h -> 6h base (x attempt). PUM2_K562 (582k training windows, ~3.4 min/epoch)
   hit the 3h limit at epoch ~44; train.py (max_epochs 100, patience 10) does not resume from checkpoints, so a
   timeout wastes the whole attempt. Earlier datasets trained in 25-66 min.
