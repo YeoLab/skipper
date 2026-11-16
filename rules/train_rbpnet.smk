@@ -31,7 +31,7 @@ rule train_model:
         model = "output/ml/rbpnet_model/{experiment_label}/training_done",
     resources:
         mem_mb=lambda wildcards, attempt: 10000 * attempt,
-        runtime=lambda wildcards, attempt: 180 * attempt,
+        runtime=lambda wildcards, attempt: 360 * attempt,
         slurm_partition="hotel-v100",
         slurm_account="csd792",
         slurm_extra="'--qos=condo-gpu' '--gpus=1'",

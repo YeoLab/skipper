@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## 2026-11-15
+- `rules/train_rbpnet.smk` (train_model): runtime 3h -> 6h base (x attempt). PUM2_K562 (582k training windows, ~3.4 min/epoch)
+  hit the 3h limit at epoch ~44; train.py (max_epochs 100, patience 10) does not resume from checkpoints, so a
+  timeout wastes the whole attempt. Earlier datasets trained in 25-66 min.
 - `2025revision_configs/encode3_testPUM_K562/`: PUM1/PUM2 K562 test (encode3 K manifest subset; config = encode3_K_K562
   with WORKDIR/MANIFEST changed). Started 12:44.
 - encode3_test5_HepG2 finished (853/853, no errors): de novo motifs match the known ones for RBFOX2, PTBP1, QKI and U2AF2;

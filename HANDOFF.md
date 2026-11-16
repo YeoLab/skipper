@@ -29,6 +29,7 @@
 ## Recent fixes
 - run_skipper.sh: unloads nodejs/galyleo/python3essential (module python shadowed conda envs), `--rerun-triggers mtime`.
 - Empty-window guards: bcftools rules `zcat | wc -l`, run_homer placeholder (944df60).
+- train_model runtime 6h base (PUM2 hit 3h; training restarts from scratch on retry).
 - Attempt-scaled mem/runtime in all rules (`retries: 2`); no OOM/timeout retries seen in run 5.
 
 ## Test results (2026-11-15)
