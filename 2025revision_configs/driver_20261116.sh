@@ -6,7 +6,7 @@ for r in encore2_FINAL_HepG2 encore_HepG2 encore_K562; do
     echo "$(date) df: $(df -h /tscc/projects/ps-yeolab3 | tail -1)"
     [ $avail -ge 5000000000000 ] || { echo "$(date) STOP: <5T free on ps-yeolab3"; exit 1; }
     echo "$(date) START $r"
-    $B/$r/run_skipper.sh > $B/$r/supervise.log 2>&1
-    echo "$(date) END $r rc=$?"
+    $B/$r/run_skipper.sh > $B/$r/supervise.log 2>&1; rc=$?
+    echo "$(date) END $r rc=$rc"
 done
 echo "$(date) DRIVER DONE"

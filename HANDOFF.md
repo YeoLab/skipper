@@ -4,7 +4,11 @@
 8-run revision pass stopped 2026-11-15. **Restarted 2026-11-16 05:43** (user): `$B/driver_20261116.sh`
 (copy in `2025revision_configs/`) runs encore2_FINAL_HepG2 (148 jobs) -> encore_HepG2 (819) -> encore_K562 (2203),
 one at a time, 5T check before each. Others stay stopped. Monitoring: session cron every 4 h.
-08:46: encore2_FINAL_HepG2 done (148/148, 07:36); encore_HepG2 714/819, 0 errors, 0 failed jobs; 15T free.
+08:46: encore2_FINAL_HepG2 done (148/148, 07:36); encore_HepG2 714/819, 0 errors; 15T free.
+encore2_FINAL_HepG2 results: CDK9 972 windows, RACK1 346, PABPN1 0; enrichment r 0.20/0.07/0.12 (all fail >0.5);
+top motifs UGAUGA-core (C/D-box-like), weak.
+**Session ended ~09:30; the driver (setsid nohup) keeps running but the 4 h monitoring cron is gone.** Resume: check
+`$B/sequential.log`, latest `$B/<run>/.snakemake/log/*.log` ("steps (", "Error in rule"), `sacct`, `df -h /tscc/projects/ps-yeolab3`.
 `B=/tscc/nfs/home/bay001/projects/charlene_paper_20250521/permanent_data/skipper2025revision`
 
 - **Done: `$B/encode3_test5_HepG2/`** 08:42-11:41, 853/853, no errors, no OOM/timeout retries.
