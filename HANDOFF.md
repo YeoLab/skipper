@@ -29,10 +29,7 @@ one at a time, 5T check before each. Others stay stopped. Monitoring: session cr
   The old driver (PID 929206) is killed; don't restart it without asking.
 
 ## Recent fixes
-- run_skipper.sh: unloads nodejs/galyleo/python3essential (module python shadowed conda envs), `--rerun-triggers mtime`.
-- Empty-window guards: bcftools rules `zcat | wc -l`, run_homer placeholder (944df60).
-- train_model runtime 6h base (PUM2 hit 3h; training restarts from scratch on retry).
-- Attempt-scaled mem/runtime in all rules (`retries: 2`); no OOM/timeout retries seen in run 5.
+See CHANGELOG.md (python3essential unload, mtime rerun trigger, empty-window guards, train_model 6h).
 
 ## Test results (2026-11-15)
 | RBP | repro windows | top HOMER de novo | RBPNet profile r (total>50) | sig GO terms |
