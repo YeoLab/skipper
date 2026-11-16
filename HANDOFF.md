@@ -26,7 +26,6 @@ one at a time, 5T check before each. Others stay stopped. Monitoring: session cr
 | 6-8 encode3_H_HepG2, encore2_FINAL_K562, encode3_K_K562 | not started |
 
   Restart any with `$B/<run>/run_skipper.sh > $B/<run>/supervise.log 2>&1` (one at a time unless the user says otherwise).
-  The old driver (PID 929206) is killed; don't restart it without asking.
 
 ## Recent fixes
 See CHANGELOG.md (python3essential unload, mtime rerun trigger, empty-window guards, train_model 6h).
