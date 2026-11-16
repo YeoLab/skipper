@@ -1,6 +1,8 @@
 # CHANGELOG
 
 ## 2026-11-16
+- `2025revision_configs/driver_20261116.sh`: log run_skipper.sh's exit code (printed `$(date)`'s, always 0).
+- encore_HepG2 (817/819) and encore_K562 stopped: Lustre scratch quota full (24T), snakemake source cache can't be written.
 - `2025revision_configs/driver_20261116.sh`: sequential restart of encore2_FINAL_HepG2, encore_HepG2, encore_K562 (user).
 
 ## 2026-11-15
