@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 2026-11-16
+- `2025revision_configs/driver_20261116.sh`: sequential restart of encore2_FINAL_HepG2, encore_HepG2, encore_K562 (user).
+
 ## 2026-11-15
 - encode3_testPUM_K562 finished (346/346): PUM2 top motif TGTAHATA (3'UTR); PUM1 top motif GAAGAAGA (CDS), PUM motif
   only rank 44. Results in HANDOFF.md.

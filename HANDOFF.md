@@ -1,7 +1,9 @@
 # HANDOFF
 
-## Current state (2026-11-15 12:46)
-8-run revision pass STOPPED by the user (2026-11-15 ~08:20). Replaced by a 5-RBP test run.
+## Current state (2026-11-16 05:45)
+8-run revision pass stopped 2026-11-15. **Restarted 2026-11-16 05:43** (user): `$B/driver_20261116.sh`
+(copy in `2025revision_configs/`) runs encore2_FINAL_HepG2 (148 jobs) -> encore_HepG2 (819) -> encore_K562 (2203),
+one at a time, 5T check before each. Others stay stopped. Monitoring: session cron every 4 h.
 `B=/tscc/nfs/home/bay001/projects/charlene_paper_20250521/permanent_data/skipper2025revision`
 
 - **Done: `$B/encode3_test5_HepG2/`** 08:42-11:41, 853/853, no errors, no OOM/timeout retries.
@@ -48,7 +50,7 @@
   RBFOX2 UGCAUG, QKI UACUAAC, PTBP1 CU, U2AF2 polyU+AG|GU, PUM2 UGUAUAUA, TIA1 U-rich (+5'SS), PUM1 GA-rich.
 
 ## Next steps
-- Ask the user whether to resume the stopped revision runs (and in what order/concurrency).
+- After the driver: ask the user about encore_edgecases_K562 (221 jobs), encore_edgecases_HepG2 (904) and the 3 unstarted runs.
 
 ## Gotchas
 - charlene_paper_20250521 repo not used (user). All fixes go here on `dev/brian/2025revision`.
