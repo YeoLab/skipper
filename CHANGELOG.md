@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-18
+- `2025revision_configs/driver_20261118.sh`: sequential restart of encore_edgecases_K562 then encore_edgecases_HepG2
+  (dry runs 221 and 904 jobs; 11/14 failures already fixed by 1e35f13, 6a156c4, 935c192, 944df60). encode3_H_HepG2 /
+  encode3_K_K562 dry runs OK (17,415 / 20,288 jobs), not launched. Run records: igvf-proposal `modules/eclip/runs/`.
+
 ## 2026-11-16
 - Scratch at 19.5T/24T after pytest_igvf removed; driver relaunched 11:23 (encore_HepG2 -> encore_K562).
 - `2025revision_configs/driver_20261116.sh`: log run_skipper.sh's exit code (printed `$(date)`'s, always 0).
