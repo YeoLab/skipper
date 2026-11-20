@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-20
+- `rules/bigwig.smk` (make_unscaled_bigwig): back to `bedtools genomecov -5` (read 5' ends = truncation sites) from
+  `-split` (coverage, since f8f7c84). RBPNet `prep_data.py` trains on these bigwigs; the Her 2026 models used `-5`.
+  Coverage-trained models disagree with the paper models (median variant δ r 0.43 on 28 ENCORE models); `-5` retrains
+  match within retrain noise. YeoLab/skipper#69. Scaled bigwigs unchanged (coverage). Rebuild runs need their
+  unscaled bigwigs and all RBPNet outputs regenerated.
+
 ## 2026-11-18
 - `2025revision_configs/driver_20261118.sh`: sequential restart of encore_edgecases_K562 then encore_edgecases_HepG2
   (dry runs 221 and 904 jobs; 11/14 failures already fixed by 1e35f13, 6a156c4, 935c192, 944df60). encode3_H_HepG2 /

@@ -1,4 +1,6 @@
 locals().update(config)
+# Read 5' ends (truncation / crosslink sites), as in vbb63a25-tscc and the Her 2026 RBPNet models; RBPNet prep_data.py
+# trains on these. f8f7c84 had switched this to coverage (-split); see YeoLab/skipper#69. Scaled bigwigs stay coverage.
 rule make_unscaled_bigwig:
     input:
         CHROM_SIZES,
@@ -21,8 +23,8 @@ rule make_unscaled_bigwig:
         runtime=lambda wildcards, attempt: 60 * attempt
     shell:
         "samtools index {input.bam};"
-        "bedtools genomecov -split -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
-        "bedtools genomecov -split -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
+        "bedtools genomecov -5 -strand + -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_plus};"
+        "bedtools genomecov -5 -strand - -bg -ibam {input.bam} | sort -k1,1 -k2,2n | grep -v EBV > {output.bg_minus};"
         "bedGraphToBigWig {output.bg_plus} {CHROM_SIZES} {output.bw_plus};" 
         "bedGraphToBigWig {output.bg_minus} {CHROM_SIZES} {output.bw_minus};" 
 
